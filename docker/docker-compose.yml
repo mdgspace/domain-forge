@@ -10,4 +10,4 @@ services:
       dockerfile: docker/Dockerfile.backend
       target: base
     ports:
-      - "${PORT_BACKEND}:6969"
+      - "${PORT_BACKEND}:7000"

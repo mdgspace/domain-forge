@@ -1,10 +1,10 @@
 import { Application, Router } from './dependencies.ts';
-import { githubAuth } from './auth/github.ts';
+import githubAuth from './auth/github.ts';
 import { getMaps, addMaps, deleteMaps } from './db.ts';
 
 const router = new Router();
 const app = new Application();
-const PORT = 6969;
+const PORT = 7000;
 
 router
     .get("/auth", githubAuth)

@@ -3,4 +3,4 @@ function githubAuth() {
     console.log("you've hit auth");
 }
 
-export { githubAuth };
+export default githubAuth;
