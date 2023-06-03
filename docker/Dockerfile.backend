@@ -1,0 +1,9 @@
+FROM denoland/deno:latest as base
+
+WORKDIR /domain-forge
+
+COPY . ./
+
+RUN deno cache src/backend/dependencies.ts
+
+CMD ["run", "--allow-net", "--allow-env", "src/backend/server.ts"]
