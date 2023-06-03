@@ -4,9 +4,7 @@ import { getMaps, addMaps, deleteMaps } from './db.ts';
 
 const router = new Router();
 const app = new Application();
-
-const PORT = Number(Deno.env.get("PORT"));
-console.log('Listening on 127.0.0.1:' + PORT);
+const PORT = 6969;
 
 router
     .get("/auth", githubAuth)
@@ -17,3 +15,4 @@ router
 app.use(router.routes());
 app.use(router.allowedMethods());
 app.listen({ port: PORT });
+console.log('Listening...');

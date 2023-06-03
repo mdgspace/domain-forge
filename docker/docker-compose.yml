@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  deno:
+    container_name: df_backend
+    image: df_backend
+    restart: always
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: base
+    ports:
+      - "${PORT_BACKEND}:6969"
