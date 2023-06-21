@@ -11,3 +11,13 @@ services:
       target: base
     ports:
       - "${PORT_BACKEND}:7000"
+  vue:
+    container_name: df_frontend
+    image: df_frontend
+    restart: always
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      target: base
+    ports:
+      - "${PORT_FRONTEND}:8000"
