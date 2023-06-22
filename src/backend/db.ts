@@ -1,11 +1,11 @@
 function getMaps() {
-    //code comes here
+  //code comes here
 }
 function addMaps() {
-    //code comes here
+  //code comes here
 }
 function deleteMaps() {
-    //code comes here
+  //code comes here
 }
 
-export { getMaps, addMaps, deleteMaps };
+export { addMaps, deleteMaps, getMaps };
