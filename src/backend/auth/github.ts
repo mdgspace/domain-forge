@@ -6,12 +6,12 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
 
   if (code != null) {
     ctx.response.body = "authenticating...";
-    const query: URLSearchParams = new URLSearchParams({
+    const query = new URLSearchParams({
       client_id: id,
       client_secret: secret,
       code,
     });
-    const resp: Response = await fetch(`${rootUrl}?` + query, {
+    const resp = await fetch(`${rootUrl}?` + query, {
       method: "POST",
       headers: {
         "Accept": "application/json",
