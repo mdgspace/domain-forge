@@ -1,0 +1,9 @@
+FROM denoland/deno:latest as base
+
+WORKDIR /domain-forge
+
+COPY . ./
+
+WORKDIR /domain-forge/src/frontend
+
+CMD ["deno", "task", "dev","--port","8000","--host"]
