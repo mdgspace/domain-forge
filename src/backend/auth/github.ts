@@ -2,16 +2,16 @@ import { Context } from "../dependencies.ts";
 
 async function githubAuth(ctx: Context, id: string, secret: string) {
   const code = ctx.request.url.searchParams.get("code");
-  const rootUrl = "https://github.com/login/oauth/access_token";
+  const rootUrl = new URL("https://github.com/login/oauth/access_token");
 
   if (code != null) {
     ctx.response.body = "authenticating...";
-    const query = new URLSearchParams({
+    rootUrl.search = new URLSearchParams({
       client_id: id,
       client_secret: secret,
       code,
-    });
-    const resp = await fetch(`${rootUrl}?` + query, {
+    }).toString();
+    const resp = await fetch(rootUrl.toString(), {
       method: "POST",
       headers: {
         "Accept": "application/json",
