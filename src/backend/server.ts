@@ -1,4 +1,4 @@
-import { Application, config, Router } from "./dependencies.ts";
+import { Application, Router } from "./dependencies.ts";
 import githubAuth from "./auth/github.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
 

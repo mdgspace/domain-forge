@@ -11,6 +11,8 @@ services:
       target: base
     ports:
       - "${PORT_BACKEND}:7000"
+    env_file:
+      - ../src/backend/.env
   vue:
     container_name: df_frontend
     image: df_frontend
