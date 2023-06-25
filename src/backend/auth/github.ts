@@ -1,4 +1,5 @@
 import { Context } from "../dependencies.ts";
+import { checkUser } from "../db.ts";
 
 async function githubAuth(ctx: Context, id: string, secret: string) {
   const code = ctx.request.url.searchParams.get("code");
@@ -18,8 +19,10 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
       },
     });
     const body = await resp.json();
-    console.log(body.access_token);
-    ctx.response.redirect("http://localhost:7777/");
+    const status = await checkUser(body.access_token);
+    (status.matchedCount == 1)
+      ? ctx.response.body = "Login was successful"
+      : ctx.response.body = "Unauthorized";
   } else {
     ctx.response.body = "something went wrong...";
   }
