@@ -6,6 +6,7 @@
       "@vitejs/plugin-vue@^4.0.0": "@vitejs/plugin-vue@4.2.3_vite@4.3.9_vue@3.3.4",
       "vite": "vite@4.3.9",
       "vite@^4.0.4": "vite@4.3.9",
+      "vue-router@4": "vue-router@4.2.2_vue@3.3.4",
       "vue@^3.2.45": "vue@3.3.4"
     },
     "packages": {
@@ -150,6 +151,10 @@
           "@vue/shared": "@vue/shared@3.3.4"
         }
       },
+      "@vue/devtools-api@6.5.0": {
+        "integrity": "sha512-o9KfBeaBmCKl10usN4crU53fYtC1r7jJwdGKjPT24t348rHxgfpZ0xL3Xm/gLUYnc0oTp8LAmrxOeLyu6tbk2Q==",
+        "dependencies": {}
+      },
       "@vue/reactivity-transform@3.3.4": {
         "integrity": "sha512-MXgwjako4nu5WFLAjpBnCj/ieqcjE2aJBINUNQzkZQfzIZA4xn+0fV1tIYBJvvva3N3OvKGofRLvQIwEQPpaXw==",
         "dependencies": {
@@ -271,6 +276,13 @@
           "fsevents": "fsevents@2.3.2",
           "postcss": "postcss@8.4.24",
           "rollup": "rollup@3.23.0"
+        }
+      },
+      "vue-router@4.2.2_vue@3.3.4": {
+        "integrity": "sha512-cChBPPmAflgBGmy3tBsjeoe3f3VOSG6naKyY5pjtrqLGbNEXdzCigFUHgBvp9e3ysAtFtEx7OLqcSDh/1Cq2TQ==",
+        "dependencies": {
+          "@vue/devtools-api": "@vue/devtools-api@6.5.0",
+          "vue": "vue@3.3.4"
         }
       },
       "vue@3.3.4": {
