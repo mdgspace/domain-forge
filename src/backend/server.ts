@@ -1,4 +1,4 @@
-import { Application, Router } from "./dependencies.ts";
+import { Application, Router, Session } from "./dependencies.ts";
 import githubAuth from "./auth/github.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
 
@@ -8,6 +8,8 @@ const PORT = 7000;
 
 const id: string = Deno.env.get("GITHUB_OAUTH_CLIENT_ID")!;
 const secret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET")!;
+
+app.use(Session.initMiddleware());
 
 router
   .get("/auth", (ctx) => githubAuth(ctx, id, secret))

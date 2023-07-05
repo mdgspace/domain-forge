@@ -43,7 +43,7 @@ async function checkUser(accessToken: string) {
   };
   const status_resp = await fetch(update_url.toString(), options);
   const status = await status_resp.json();
-  return status;
+  return { status, githubId };
 }
 
 function getMaps() {

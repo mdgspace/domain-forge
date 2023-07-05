@@ -19,10 +19,15 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
       },
     });
     const body = await resp.json();
-    const status = await checkUser(body.access_token);
-    (status.matchedCount == 1)
-      ? ctx.response.body = "Login was successful"
-      : ctx.response.body = "Unauthorized";
+    const { status, githubId } = await checkUser(body.access_token);
+    if (status.matchedCount == 1) {
+      ctx.response.body = "Login was successful";
+      await ctx.state.session.set("user", githubId);
+      ctx.response.redirect("http://localhost:7777/");
+    } else {
+      ctx.response.body = "Unauthorized";
+      ctx.response.redirect("http://localhost:7777/login");
+    }
   } else {
     ctx.response.body = "something went wrong...";
   }
