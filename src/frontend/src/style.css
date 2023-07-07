@@ -1,11 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch&display=swap');
+* {
+  text-align: left;
+} 
 
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
   color: #FFC947;
   background-color: #0A1931;
 
@@ -17,18 +19,22 @@
   -webkit-text-size-adjust: 100%;
 }
 
-body {
-  margin: 0;
-  display: flex;
+#container{
   place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  text-align: center;
+}
+
+body {
+  display: inline;
 }
 
 h1 {
   font-size: 3.2em;
   font-weight: bold;
   line-height: 1.1;
+  text-align: center;
+  margin-top: 15%;
+  margin-bottom: 5%;
 }
 
 button {
@@ -49,11 +55,21 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+#navbar{
+  background-color: #FFC947;
+  color: #0A1931;
+  font-size: 1.8em;
+  font-weight: bold;
+}
+
+h5{
+  padding: 1%;
+}
 
 #app {
   max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  margin: 0 !important;
+  padding: 0 !important;
   text-align: center;
 }
 

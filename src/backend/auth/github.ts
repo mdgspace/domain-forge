@@ -2,11 +2,14 @@ import { Context } from "../dependencies.ts";
 import { checkUser } from "../db.ts";
 
 async function githubAuth(ctx: Context, id: string, secret: string) {
-  const code = ctx.request.url.searchParams.get("code");
+  if (!ctx.request.hasBody) {
+    ctx.throw(415);
+  }
+  const code = await ctx.request.body().value;
+  console.log(code);
   const rootUrl = new URL("https://github.com/login/oauth/access_token");
 
   if (code !== null) {
-    ctx.response.body = "authenticating...";
     rootUrl.search = new URLSearchParams({
       client_id: id,
       client_secret: secret,
@@ -21,15 +24,13 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
     const body = await resp.json();
     const { status, githubId } = await checkUser(body.access_token);
     if (status.matchedCount == 1) {
-      ctx.response.body = "Login was successful";
-      await ctx.state.session.set("user", githubId);
-      ctx.response.redirect("http://localhost:7777/");
+      ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+      ctx.response.body = githubId;
     } else {
-      ctx.response.body = "Unauthorized";
-      ctx.response.redirect("http://localhost:7777/login");
+      ctx.response.body = "not authorized";
     }
   } else {
-    ctx.response.body = "something went wrong...";
+    ctx.response.body = "not authorized";
   }
 }
 

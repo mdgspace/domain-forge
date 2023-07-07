@@ -6,7 +6,9 @@
       "@vitejs/plugin-vue@^4.0.0": "@vitejs/plugin-vue@4.2.3_vite@4.3.9_vue@3.3.4",
       "vite": "vite@4.3.9",
       "vite@^4.0.4": "vite@4.3.9",
+      "vue-cookies@1.8.3": "vue-cookies@1.8.3",
       "vue-router@4": "vue-router@4.2.2_vue@3.3.4",
+      "vue3-cookies@1.0.6": "vue3-cookies@1.0.6",
       "vue@^3.2.45": "vue@3.3.4"
     },
     "packages": {
@@ -278,10 +280,20 @@
           "rollup": "rollup@3.23.0"
         }
       },
+      "vue-cookies@1.8.3": {
+        "integrity": "sha512-VBRsyRMVdahBgFfh389TMHPmDdr4URDJNMk4FKSCfuNITs7+jitBDhwyL4RJd3WUsfOYNNjPAkfbehyH9AFuoA==",
+        "dependencies": {}
+      },
       "vue-router@4.2.2_vue@3.3.4": {
         "integrity": "sha512-cChBPPmAflgBGmy3tBsjeoe3f3VOSG6naKyY5pjtrqLGbNEXdzCigFUHgBvp9e3ysAtFtEx7OLqcSDh/1Cq2TQ==",
         "dependencies": {
           "@vue/devtools-api": "@vue/devtools-api@6.5.0",
+          "vue": "vue@3.3.4"
+        }
+      },
+      "vue3-cookies@1.0.6": {
+        "integrity": "sha512-a1UvVD0qIgxyOqjlSOwnLnqAnz8ASltugEv8yX+96i/WGZAN9fEDci7xO4HIWZE1uToUnRq9JnFhvfDCSo45OA==",
+        "dependencies": {
           "vue": "vue@3.3.4"
         }
       },

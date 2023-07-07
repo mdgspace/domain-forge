@@ -1,5 +1,10 @@
 <script setup>
   import {githubUrl} from '../utils/github-url';
+  import {authorize} from '../utils/authorize'
+  import {useRouter} from "vue-router";
+  const code = useRouter().currentRoute.value.query.code
+  console.log(code);
+  authorize(code);
 </script>
 <template>
     <div id="container">

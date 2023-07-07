@@ -12,7 +12,7 @@ const secret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET")!;
 app.use(Session.initMiddleware());
 
 router
-  .get("/auth", (ctx) => githubAuth(ctx, id, secret))
+  .post("/auth/github", (ctx) => githubAuth(ctx, id, secret))
   .get("/map", getMaps)
   .post("/map/:id", addMaps)
   .delete("/maps/:id", deleteMaps);
