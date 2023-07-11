@@ -1,5 +1,5 @@
 <script setup type="module">
-
+const user = localStorage.getItem("LoggedUser");
 </script>
 <template>
   <div id = "navbar">
