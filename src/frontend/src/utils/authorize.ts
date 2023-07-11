@@ -1,5 +1,7 @@
 import router from "../router/index.ts";
-export async function authorize(code: string) {
+
+let isAuthenticated = false;
+async function authorize(code: string) {
   const rootUrl = new URL("http://localhost:9999/auth/github");
   if (code !== undefined) {
     const resp = await fetch(rootUrl.toString(), {
@@ -10,9 +12,18 @@ export async function authorize(code: string) {
       body: code,
     });
     console.log(resp);
-    const user = resp.text();
-    router.push("/");
+    const status = await resp.text();
+    if (status == "not authorized") {
+      alert("Invalid Credentials");
+      isAuthorized = true;
+      router.push("/login");
+    } else {
+      console.log(status);
+      router.push("/", { user: status });
+    }
   } else {
     console.log("no token");
   }
 }
+
+export { authorize, isAuthenticated };
