@@ -1,17 +1,10 @@
 <script setup type="module">
+import {getMaps} from '../utils/maps.ts';
 const user = localStorage.getItem("LoggedUser");
-const fields = ["Date","Subdomain","Resource", "Resource Type", "Options"];
-const maps = [
-  {
-    "_id":"1234",
-    "Date":"14/7/23",
-    "Subdomain":"domain-forge.mdgspace.org",
-    "Resource":"www.google.com",
-    "Resource Type":"URL",
-    "Options":""
-  },
-];
+const fields = ["date","subdomain","resource", "resource_type", "options"];
+const maps = await getMaps("Abhijna-Raghavendra");
 </script>
+
 <template>
   <div id = "navbar">
     <h5>Hey {{user}}!</h5>
@@ -37,6 +30,3 @@ const maps = [
     <button>+ Add</button>
     </div>
 </template>
-<script>
-
-</script>

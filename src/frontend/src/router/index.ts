@@ -13,7 +13,7 @@ const routes = [
     path: "/",
     name: "Home",
     component: Home,
-    /*beforeEnter(
+    beforeEnter(
       to: RouteLocationNormalized,
       from: RouteLocationNormalized,
       next: NavigationGuardNext,
@@ -22,7 +22,7 @@ const routes = [
       else {
         next();
       }
-    },*/
+    },
   },
   {
     path: "/login",

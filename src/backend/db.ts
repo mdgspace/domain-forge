@@ -1,7 +1,6 @@
 import getGithubUser from "./utils/github-user.ts";
 import { Context } from "./dependencies.ts";
 
-
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
 const APP_ID = Deno.env.get("MONGO_APP_ID");
 const BASE_URI =
@@ -48,13 +47,13 @@ async function checkUser(accessToken: string) {
 }
 
 async function getMaps(ctx: Context) {
-  const author = ctx.request.url.searchParams.get('user');
+  const author = ctx.request.url.searchParams.get("user");
   maps_query.filter = { "author": author };
   options.body = JSON.stringify(maps_query);
   const url = new URL(`${BASE_URI}/action/find`);
   const resp = await fetch(url.toString(), options);
   const data = await resp.json();
-  console.log(data.documents);
+  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
   ctx.response.body = data.documents;
 }
 function addMaps() {
