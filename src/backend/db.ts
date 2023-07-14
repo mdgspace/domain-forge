@@ -46,7 +46,7 @@ async function getMaps(ctx: Context) {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: author,
+    filter: {"author":author},
   };
   options.body = JSON.stringify(query);
   const url = new URL(`${BASE_URI}/action/find`);
