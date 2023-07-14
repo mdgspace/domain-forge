@@ -13,7 +13,7 @@ app.use(Session.initMiddleware());
 
 router
   .post("/auth/github", (ctx) => githubAuth(ctx, id, secret))
-  .get("/map", getMaps)
+  .get("/map", (ctx) => getMaps(ctx))
   .post("/map/:id", addMaps)
   .delete("/maps/:id", deleteMaps);
 

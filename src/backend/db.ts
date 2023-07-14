@@ -1,10 +1,13 @@
+import getGithubUser from "./utils/github-user.ts";
+import { Context } from "./dependencies.ts";
+
+
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
 const APP_ID = Deno.env.get("MONGO_APP_ID");
 const BASE_URI =
   `https://ap-south-1.aws.data.mongodb-api.com/app/${APP_ID}/endpoint/data/v1`;
 const DATA_SOURCE = "domain-forge-demo-db";
 const DATABASE = "df_test";
-const COLLECTION = "user_auth";
 const options = {
   method: "POST",
   headers: {
@@ -14,28 +17,26 @@ const options = {
   },
   body: "",
 };
-const query = {
-  collection: COLLECTION,
+const auth_query = {
+  collection: "user_auth",
   database: DATABASE,
   dataSource: DATA_SOURCE,
   filter: {},
   update: {},
 };
+const maps_query = {
+  collection: "content_maps",
+  database: DATABASE,
+  dataSource: DATA_SOURCE,
+  filter: {},
+};
+
 async function checkUser(accessToken: string) {
-  const user_resp = await fetch("https://api.github.com/user", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-  const user = await user_resp.json();
-  const githubId = user.login;
-  options.body = JSON.stringify(query);
-  query.filter = { "githubId": githubId };
-  const url = new URL(`${BASE_URI}/action/find`);
-  const resp = await fetch(url.toString(), options);
-  const data = await resp.json();
+  const githubId = await getGithubUser(accessToken);
+  options.body = JSON.stringify(auth_query);
+  auth_query.filter = { "githubId": githubId };
   const update_url = new URL(`${BASE_URI}/action/updateOne`);
-  query.update = {
+  auth_query.update = {
     "$set": {
       "authToken": accessToken,
       "githubId": githubId,
@@ -46,8 +47,15 @@ async function checkUser(accessToken: string) {
   return { status, githubId };
 }
 
-function getMaps() {
-  //code comes here
+async function getMaps(ctx: Context) {
+  const author = ctx.request.url.searchParams.get('user');
+  maps_query.filter = { "author": author };
+  options.body = JSON.stringify(maps_query);
+  const url = new URL(`${BASE_URI}/action/find`);
+  const resp = await fetch(url.toString(), options);
+  const data = await resp.json();
+  console.log(data.documents);
+  ctx.response.body = data.documents;
 }
 function addMaps() {
   //code comes here
