@@ -23,12 +23,6 @@ const auth_query = {
   filter: {},
   update: {},
 };
-const maps_query = {
-  collection: "content_maps",
-  database: DATABASE,
-  dataSource: DATA_SOURCE,
-  filter: {},
-};
 
 async function checkUser(accessToken: string) {
   const githubId = await getGithubUser(accessToken);
@@ -48,16 +42,36 @@ async function checkUser(accessToken: string) {
 
 async function getMaps(ctx: Context) {
   const author = ctx.request.url.searchParams.get("user");
-  maps_query.filter = { "author": author };
-  options.body = JSON.stringify(maps_query);
+  const query = {
+    collection: "content_maps",
+    database: DATABASE,
+    dataSource: DATA_SOURCE,
+    filter: author,
+  };
+  options.body = JSON.stringify(query);
   const url = new URL(`${BASE_URI}/action/find`);
   const resp = await fetch(url.toString(), options);
   const data = await resp.json();
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
   ctx.response.body = data.documents;
 }
-function addMaps() {
-  //code comes here
+async function addMaps(ctx: Context) {
+  if (!ctx.request.hasBody) {
+    ctx.throw(415);
+  }
+  const document = await ctx.request.body().value;
+  const query = {
+    collection: "content_maps",
+    database: DATABASE,
+    dataSource: DATA_SOURCE,
+    document: document,
+  };
+  options.body = JSON.stringify(query);
+  const url = new URL(`${BASE_URI}/action/insertOne`);
+  const resp = await fetch(url.toString(), options);
+  const data = await resp.json();
+  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+  (data.insertedId !== undefined)?ctx.response.body = data:ctx.response.body={"status":"failed"};
 }
 function deleteMaps() {
   //code comes here
