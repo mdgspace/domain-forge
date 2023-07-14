@@ -23,8 +23,8 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
     });
     const body = await resp.json();
     const { status, githubId } = await checkUser(body.access_token);
+    ctx.response.headers.set("Access-Control-Allow-Origin", "*");
     if (status.matchedCount == 1) {
-      ctx.response.headers.set("Access-Control-Allow-Origin", "*");
       ctx.response.body = githubId;
     } else {
       ctx.response.body = "not authorized";
