@@ -14,8 +14,8 @@ app.use(Session.initMiddleware());
 router
   .post("/auth/github", (ctx) => githubAuth(ctx, id, secret))
   .get("/map", (ctx) => getMaps(ctx))
-  .post("/map",(ctx) => addMaps(ctx))
-  .delete("/map/:id", deleteMaps);
+  .post("/map", (ctx) => addMaps(ctx))
+  .delete("/map", (ctx) => deleteMaps(ctx));
 
 app.use(router.routes());
 app.use(router.allowedMethods());

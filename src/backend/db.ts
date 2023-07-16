@@ -16,15 +16,15 @@ const options = {
   },
   body: "",
 };
-const auth_query = {
-  collection: "user_auth",
-  database: DATABASE,
-  dataSource: DATA_SOURCE,
-  filter: {},
-  update: {},
-};
 
 async function checkUser(accessToken: string) {
+  const auth_query = {
+    collection: "user_auth",
+    database: DATABASE,
+    dataSource: DATA_SOURCE,
+    filter: {},
+    update: {},
+  };
   const githubId = await getGithubUser(accessToken);
   options.body = JSON.stringify(auth_query);
   auth_query.filter = { "githubId": githubId };
@@ -46,7 +46,7 @@ async function getMaps(ctx: Context) {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: {"author":author},
+    filter: { "author": author },
   };
   options.body = JSON.stringify(query);
   const url = new URL(`${BASE_URI}/action/find`);
@@ -71,10 +71,27 @@ async function addMaps(ctx: Context) {
   const resp = await fetch(url.toString(), options);
   const data = await resp.json();
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
-  (data.insertedId !== undefined)?ctx.response.body = data:ctx.response.body={"status":"failed"};
+  (data.insertedId !== undefined)
+    ? ctx.response.body = data
+    : ctx.response.body = { "status": "failed" };
 }
-function deleteMaps() {
-  //code comes here
+async function deleteMaps(ctx: Context) {
+  if (!ctx.request.hasBody) {
+    ctx.throw(415);
+  }
+  const filter = await ctx.request.body().value;
+  const query = {
+    collection: "content_maps",
+    database: DATABASE,
+    dataSource: DATA_SOURCE,
+    filter: filter,
+  };
+  options.body = JSON.stringify(query);
+  const url = new URL(`${BASE_URI}/action/deleteOne`);
+  const resp = await fetch(url.toString(), options);
+  const data = await resp.json();
+  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+  ctx.response.body = data;
 }
 
 export { addMaps, checkUser, deleteMaps, getMaps };
