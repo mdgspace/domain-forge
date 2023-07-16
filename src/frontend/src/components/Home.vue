@@ -26,7 +26,19 @@ const maps = await getMaps("Abhijna-Raghavendra");
       </tr>
   </tbody>
 </table> 
-
-    <button>+ Add</button>
+<modal v-show="showModal" @close-modal="showModal = false"/>
+    <button @click="showModal = true">+ Add</button>
     </div>
 </template>
+<script>
+import modal from './modal.vue'
+
+export default {
+  components: { modal },
+  data() {
+    return {
+      showModal: false,
+    }
+  },
+}
+</script>
