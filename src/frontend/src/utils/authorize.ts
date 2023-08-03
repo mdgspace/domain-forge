@@ -1,7 +1,8 @@
 import router from "../router/index.ts";
 
 export async function authorize(code: string) {
-  const rootUrl = new URL("http://localhost:9999/auth/github");
+  const backend = import.meta.env.VITE_APP_BACKEND;
+  const rootUrl = new URL(`${backend}/auth/github`);
   if (code !== undefined) {
     const resp = await fetch(rootUrl.toString(), {
       method: "POST",
