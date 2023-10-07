@@ -2,7 +2,7 @@
 import {getMaps} from '../utils/maps.ts';
 const user = localStorage.getItem("LoggedUser");
 const fields = ["date","subdomain","resource", "resource_type", "options"];
-const maps = await getMaps("Abhijna-Raghavendra");
+const maps = await getMaps(user);
 </script>
 
 <template>

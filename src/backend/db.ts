@@ -10,6 +10,7 @@ const DATABASE = "df_test";
 const options = {
   method: "POST",
   headers: {
+    "Accept": "*/*",
     "Content-Type": "application/json",
     "Access-Control-Request-Headers": "*",
     "api-key": DATA_API_KEY,
@@ -26,15 +27,15 @@ async function checkUser(accessToken: string) {
     update: {},
   };
   const githubId = await getGithubUser(accessToken);
-  options.body = JSON.stringify(auth_query);
   auth_query.filter = { "githubId": githubId };
-  const update_url = new URL(`${BASE_URI}/action/updateOne`);
   auth_query.update = {
-    "$set": {
-      "authToken": accessToken,
+    $set: {
       "githubId": githubId,
+      "authToken": accessToken,
     },
   };
+  const update_url = new URL(`${BASE_URI}/action/updateOne`);
+  options.body = JSON.stringify(auth_query);
   const status_resp = await fetch(update_url.toString(), options);
   const status = await status_resp.json();
   return { status, githubId };
@@ -50,6 +51,7 @@ async function getMaps(ctx: Context) {
   };
   options.body = JSON.stringify(query);
   const url = new URL(`${BASE_URI}/action/find`);
+  console.log(options);
   const resp = await fetch(url.toString(), options);
   const data = await resp.json();
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
