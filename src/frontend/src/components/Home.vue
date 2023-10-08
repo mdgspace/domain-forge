@@ -1,6 +1,8 @@
 <script setup type="module">
 import {getMaps} from '../utils/maps.ts';
-const user = localStorage.getItem("LoggedUser");
+import {check_jwt} from '../utils/authorize.ts';
+const token = localStorage.getItem("JWTUser");
+const user = await check_jwt(token);
 const fields = ["date","subdomain","resource", "resource_type", "options"];
 const maps = await getMaps(user);
 </script>

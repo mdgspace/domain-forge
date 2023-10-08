@@ -1,7 +1,8 @@
 import router from "../router/index.ts";
 
-export async function authorize(code: string) {
-  const backend = import.meta.env.VITE_APP_BACKEND;
+const backend = import.meta.env.VITE_APP_BACKEND;
+
+async function authorize(code: string) {
   const rootUrl = new URL(`${backend}/auth/github`);
   if (code !== undefined) {
     const resp = await fetch(rootUrl.toString(), {
@@ -17,11 +18,30 @@ export async function authorize(code: string) {
       alert("Invalid Credentials");
       router.push("/login");
     } else {
-      localStorage.setItem("LoggedUser", status);
-      console.log(localStorage.getItem("LoggedUser"));
+      localStorage.setItem("JWTUser", status);
+      console.log(localStorage.getItem("JWTUser"));
       router.push("/");
     }
   } else {
     console.log("no token");
   }
 }
+
+async function check_jwt(token: string) {
+  const rootUrl = new URL(`${backend}/auth/jwt`);
+  if (token) {
+    const resp = await fetch(rootUrl.toString(), {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+      },
+      body: token,
+    });
+    const githubId = await resp.text();
+    if (githubId !== "not verified") {
+      return githubId;
+    } else return "";
+  } else return "";
+}
+
+export { authorize, check_jwt };

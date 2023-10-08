@@ -1,5 +1,5 @@
 import { Application, Router, Session } from "./dependencies.ts";
-import githubAuth from "./auth/github.ts";
+import { githubAuth, githubId } from "./auth/github.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
 
 const router = new Router();
@@ -13,6 +13,7 @@ app.use(Session.initMiddleware());
 
 router
   .post("/auth/github", (ctx) => githubAuth(ctx, id, secret))
+  .post("/auth/jwt", (ctx) => githubId(ctx))
   .get("/map", (ctx) => getMaps(ctx))
   .post("/map", (ctx) => addMaps(ctx))
   .delete("/map", (ctx) => deleteMaps(ctx));
