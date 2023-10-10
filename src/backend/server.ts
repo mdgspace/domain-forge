@@ -1,5 +1,5 @@
-import { Application, Router } from "./dependencies.ts";
-import githubAuth from "./auth/github.ts";
+import { Application, Router, Session } from "./dependencies.ts";
+import { githubAuth, githubId } from "./auth/github.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
 
 const router = new Router();
@@ -9,11 +9,14 @@ const PORT = 7000;
 const id: string = Deno.env.get("GITHUB_OAUTH_CLIENT_ID")!;
 const secret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET")!;
 
+app.use(Session.initMiddleware());
+
 router
-  .get("/auth", (ctx) => githubAuth(ctx, id, secret))
-  .get("/map", getMaps)
-  .post("/map/:id", addMaps)
-  .delete("/maps/:id", deleteMaps);
+  .post("/auth/github", (ctx) => githubAuth(ctx, id, secret))
+  .post("/auth/jwt", (ctx) => githubId(ctx))
+  .get("/map", (ctx) => getMaps(ctx))
+  .post("/map", (ctx) => addMaps(ctx))
+  .delete("/map", (ctx) => deleteMaps(ctx));
 
 app.use(router.routes());
 app.use(router.allowedMethods());
