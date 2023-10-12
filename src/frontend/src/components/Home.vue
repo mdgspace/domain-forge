@@ -11,10 +11,12 @@ const maps = await getMaps(user);
   <div id = "navbar">
     <h5>Hey {{user}}!</h5>
   </div>
-    <div id="container">
+  <div id="home-container">
+      <div id="home-heading">
       <h3>Your subdomains: </h3>
+      </div>
     <br>
-    <table id="tableComponent" style="display:table; width:100%; padding: 1%;border: #FFC947;">
+    <table id="tableComponent" style="display:table; width:100%;border: #FFC947;">
   <thead>
     <tr>
       <th  v-for="field in fields" style="padding:1px;background-color: #FFC947; color: #0A1931;"> 
