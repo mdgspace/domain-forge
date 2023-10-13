@@ -62,10 +62,10 @@ async function addMaps(ctx: Context) {
   }
   let document;
   const body = await ctx.request.body().value;
-  try{
-   document = JSON.parse(body);
-  }catch(e){
-   document = body;
+  try {
+    document = JSON.parse(body);
+  } catch (e) {
+    document = body;
   }
   const query = {
     collection: "content_maps",
@@ -86,7 +86,14 @@ async function deleteMaps(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
-  const filter = await ctx.request.body().value;
+  let filter;
+  const body = await ctx.request.body().value;
+  try {
+    filter = JSON.parse(body);
+  } catch (e) {
+    filter = body;
+  }
+
   const query = {
     collection: "content_maps",
     database: DATABASE,

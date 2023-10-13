@@ -16,7 +16,7 @@ router
   .post("/auth/jwt", (ctx) => githubId(ctx))
   .get("/map", (ctx) => getMaps(ctx))
   .post("/map", (ctx) => addMaps(ctx))
-  .delete("/map", (ctx) => deleteMaps(ctx));
+  .post("/mapdel", (ctx) => deleteMaps(ctx));
 
 app.use(router.routes());
 app.use(router.allowedMethods());

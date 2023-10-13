@@ -100,6 +100,21 @@ button {
   width: 20rem;
   text-align: center;
 }
+.delete {
+  margin: 0.75rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.75rem;
+  font-family: inherit;
+  background-color: #FFC947;
+  color: #0A1931;
+  cursor: pointer;
+  transition: border-color 0.25s;
+  width: 10rem;
+  text-align: center;
+}
 
 button:focus,
 button:focus-visible {

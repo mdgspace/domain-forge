@@ -1,58 +1,61 @@
 
 <template>
-    <div class="modal-overlay">
-      <div class="modal">
-        <h5>Enter the details for creating your subdomain:</h5>
-        <p>Subdomain:<br><input class="subdomain" v-model="subdomain"/>.mdgspace.org</p>
-        <p>Resource Type:<br>
-            <select class="dropdown" v-model="resource_type">
-            <option>URL</option>
-            <option>PORT</option>
-            <option>GITHUB</option>
-          </select>
-        </p>
-        <p>Resource:<br><input class="resource-link" v-model="resource"/></p>
-        <button @click="subimitForm()">Submit</button>
-      </div>
-      <div class="close">
-        <button style="width: 20px;" @click="$emit('close-modal')">X</button>
-      </div>
+  <div class="modal-overlay">
+    <div class="modal">
+      <h5>Enter the details for creating your subdomain:</h5>
+      <p>Subdomain:<br><input class="subdomain" v-model="subdomain" />.mdgspace.org</p>
+      <p>Resource Type:<br>
+        <select class="dropdown" v-model="resource_type">
+          <option>URL</option>
+          <option>PORT</option>
+          <option>GITHUB</option>
+        </select>
+      </p>
+      <p>Resource:<br><input class="resource-link" v-model="resource" /></p>
+      <button @click="subimitForm()">Submit</button>
     </div>
-  </template>
+    <div class="close">
+      <button style="width: 20px;" @click="$emit('close-modal')">X</button>
+    </div>
+  </div>
+</template>
 <script>
-import {create} from '../utils/create.ts'; 
-  export default {
-    data() {
-      return {
-        subdomain: "",
-        resource_type: "",
-        resource: "",
+import { create } from '../utils/create.ts';
+export default {
+  data() {
+    return {
+      subdomain: "",
+      resource_type: "",
+      resource: "",
 
-      };
-    },
-    methods:{
-      subimitForm(){
-        console.log(this.subdomain, this.resource_type, this.resource)
-        create(this.subdomain, this.resource_type, this.resource).then((res) => {
-          console.log(res);
-          this.$emit('close-modal');
+    };
+  },
+  methods: {
+    subimitForm() {
+      console.log(this.subdomain, this.resource_type, this.resource)
+      create(this.subdomain, this.resource_type, this.resource).then((res) => {
+        console.log(res);
+        this.$emit('close-modal');
         window.location.reload();
-        });
-        
-      }
+      });
+
     }
-  };
-  </script>
+  }
+};
+</script>
 <style scoped>
-.subdomain{
+.subdomain {
   width: 75%;
 }
-.dropdown{
-  width:100%;
+
+.dropdown {
+  width: 100%;
 }
-.resource-link{
-  width:100%;
+
+.resource-link {
+  width: 100%;
 }
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -73,6 +76,7 @@ import {create} from '../utils/create.ts';
   padding: 10px 0;
   border-radius: 20px;
 }
+
 .close {
   margin: 5% 0 0 16px;
   cursor: pointer;
@@ -85,13 +89,13 @@ p {
   margin: 30px 25px;
 }
 
-.modal h5{
-    font-size: 20px;
-    margin: 20px 20px;
+.modal h5 {
+  font-size: 20px;
+  margin: 20px 20px;
 }
 
-label{
-    margin: 5px 5px;
+label {
+  margin: 5px 5px;
 }
 
 button {
@@ -101,6 +105,5 @@ button {
   font-size: 14px;
   border-radius: 16px;
   margin-top: 50px;
-}
-</style>
+}</style>
   

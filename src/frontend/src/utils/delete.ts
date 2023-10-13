@@ -1,18 +1,11 @@
 import { check_jwt } from "./authorize";
-export async function create(
-  subdomain: string,
-  resource_type: string,
-  resource: string,
-) {
+export async function deleteSubDomain(subdomain: string) {
   const user = await check_jwt(localStorage.getItem("JWTUser")!);
   const backend = import.meta.env.VITE_APP_BACKEND;
-  const rootUrl = new URL(`${backend}/map`);
+  const rootUrl = new URL(`${backend}/mapdel`);
   const body = {
-    "subdomain": subdomain + ".mdgspace.org",
-    "resource_type": resource_type,
-    "resource": resource,
+    "subdomain": subdomain,
     "author": user,
-    "date": new Date().toLocaleDateString(),
   };
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",
