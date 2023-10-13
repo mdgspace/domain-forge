@@ -1,17 +1,18 @@
+
 <template>
     <div class="modal-overlay">
       <div class="modal">
         <h5>Enter the details for creating your subdomain:</h5>
-        <p>Subdomain:<br><input v-model="subdomain"/>.mdgspace.org</p>
+        <p>Subdomain:<br><input class="subdomain" v-model="subdomain"/>.mdgspace.org</p>
         <p>Resource Type:<br>
-            <select v-model="resource_type">
+            <select class="dropdown" v-model="resource_type">
             <option>URL</option>
             <option>PORT</option>
             <option>GITHUB</option>
           </select>
         </p>
-        <p>Resource:<br><input v-model="resource"/></p>
-        <button @click="$emit('close-modal')">Submit</button>
+        <p>Resource:<br><input class="resource-link" v-model="resource"/></p>
+        <button @click="subimitForm()">Submit</button>
       </div>
       <div class="close">
         <button style="width: 20px;" @click="$emit('close-modal')">X</button>
@@ -19,18 +20,39 @@
     </div>
   </template>
 <script>
+import {create} from '../utils/create.ts'; 
   export default {
     data() {
       return {
         subdomain: "",
         resource_type: "",
         resource: "",
+
       };
     },
+    methods:{
+      subimitForm(){
+        console.log(this.subdomain, this.resource_type, this.resource)
+        create(this.subdomain, this.resource_type, this.resource).then((res) => {
+          console.log(res);
+          this.$emit('close-modal');
+        window.location.reload();
+        });
+        
+      }
+    }
   };
-</script>
+  </script>
 <style scoped>
-
+.subdomain{
+  width: 75%;
+}
+.dropdown{
+  width:100%;
+}
+.resource-link{
+  width:100%;
+}
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -63,7 +85,7 @@ p {
   margin: 30px 25px;
 }
 
-h5{
+.modal h5{
     font-size: 20px;
     margin: 20px 20px;
 }
