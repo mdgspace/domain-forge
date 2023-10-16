@@ -51,7 +51,6 @@ async function getMaps(ctx: Context) {
   };
   options.body = JSON.stringify(query);
   const url = new URL(`${BASE_URI}/action/find`);
-  console.log(options);
   const resp = await fetch(url.toString(), options);
   const data = await resp.json();
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
@@ -61,7 +60,13 @@ async function addMaps(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
-  const document = await ctx.request.body().value;
+  let document;
+  const body = await ctx.request.body().value;
+  try {
+    document = JSON.parse(body);
+  } catch (e) {
+    document = body;
+  }
   const query = {
     collection: "content_maps",
     database: DATABASE,
@@ -81,7 +86,14 @@ async function deleteMaps(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
-  const filter = await ctx.request.body().value;
+  let filter;
+  const body = await ctx.request.body().value;
+  try {
+    filter = JSON.parse(body);
+  } catch (e) {
+    filter = body;
+  }
+
   const query = {
     collection: "content_maps",
     database: DATABASE,
