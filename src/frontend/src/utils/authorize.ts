@@ -1,9 +1,19 @@
-import router from "../router/index.ts";
+import router from "../router/index";
 
 const backend = import.meta.env.VITE_APP_BACKEND;
 
-async function authorize(code: string) {
-  const rootUrl = new URL(`${backend}/auth/github`);
+async function authorize(code: string, provider: string) {
+  let backendUrl: string;
+  if (provider === "github") {
+    backendUrl = `${backend}/auth/github`;
+  } else if (provider === "gitlab") {
+    backendUrl = `${backend}/auth/gitlab`;
+  } else {
+    console.error("Unsupported authentication provider");
+    return;
+  }
+
+  const rootUrl = new URL(backendUrl);
   if (code !== undefined) {
     const resp = await fetch(rootUrl.toString(), {
       method: "POST",
@@ -14,7 +24,7 @@ async function authorize(code: string) {
     });
     console.log(resp);
     const status = await resp.text();
-    if (status == "not authorized") {
+    if (status === "not authorized") {
       alert("Invalid Credentials");
       router.push("/login");
     } else {

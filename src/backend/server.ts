@@ -1,23 +1,31 @@
-import { Application, Router, Session } from "./dependencies.ts";
-import { githubAuth, githubId } from "./auth/github.ts";
+import { Application, Router, Session, oakCors } from "./dependencies.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
+import { githubAuth, gitlabAuth, handleJwtAuthentication } from "./auth/github.ts";
 
 const router = new Router();
 const app = new Application();
-const PORT = 7000;
+const PORT = 8000;
 
-const id: string = Deno.env.get("GITHUB_OAUTH_CLIENT_ID")!;
-const secret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET")!;
+const githubClientId: string = Deno.env.get("GITHUB_OAUTH_CLIENT_ID")!;
+const githubClientSecret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET")!;
+const gitlabClientId: string = Deno.env.get("GITLAB_OAUTH_CLIENT_ID")!;
+const gitlabClientSecret: string = Deno.env.get("GITLAB_OAUTH_CLIENT_SECRET")!;
 
 app.use(Session.initMiddleware());
 
 router
-  .post("/auth/github", (ctx) => githubAuth(ctx, id, secret))
-  .post("/auth/jwt", (ctx) => githubId(ctx))
+  .post("/auth/github", (ctx) =>
+    githubAuth(ctx, githubClientId, githubClientSecret)
+  )
+  .post("/auth/gitlab", (ctx) =>
+    gitlabAuth(ctx, gitlabClientId, gitlabClientSecret)
+  )
+  .post("/auth/jwt", (ctx) => handleJwtAuthentication(ctx))
   .get("/map", (ctx) => getMaps(ctx))
   .post("/map", (ctx) => addMaps(ctx))
   .post("/mapdel", (ctx) => deleteMaps(ctx));
 
+app.use(oakCors());
 app.use(router.routes());
 app.use(router.allowedMethods());
 app.listen({ port: PORT });

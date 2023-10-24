@@ -7,7 +7,7 @@ import {
 import Home from "../components/Home.vue";
 import Login from "../components/Login.vue";
 import NotFound from "../components/404.vue";
-import { check_jwt } from "../utils/authorize.ts";
+import { check_jwt } from "../utils/authorize";
 
 const routes = [
   {

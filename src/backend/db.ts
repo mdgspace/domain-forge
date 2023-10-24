@@ -1,4 +1,4 @@
-import getGithubUser from "./utils/github-user.ts";
+import getProviderUser from "./utils/get-user.ts";
 import { Context } from "./dependencies.ts";
 
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
@@ -18,7 +18,7 @@ const options = {
   body: "",
 };
 
-async function checkUser(accessToken: string) {
+async function checkUser(accessToken: string, provider: string) {
   const auth_query = {
     collection: "user_auth",
     database: DATABASE,
@@ -26,11 +26,11 @@ async function checkUser(accessToken: string) {
     filter: {},
     update: {},
   };
-  const githubId = await getGithubUser(accessToken);
-  auth_query.filter = { "githubId": githubId };
+  const userId = await getProviderUser(accessToken, provider);
+  auth_query.filter = { [`${provider}Id`]: userId };
   auth_query.update = {
     $set: {
-      "githubId": githubId,
+      [`${provider}Id`]: userId,
       "authToken": accessToken,
     },
   };
@@ -38,7 +38,7 @@ async function checkUser(accessToken: string) {
   options.body = JSON.stringify(auth_query);
   const status_resp = await fetch(update_url.toString(), options);
   const status = await status_resp.json();
-  return { status, githubId };
+  return { status, userId };
 }
 
 async function getMaps(ctx: Context) {
