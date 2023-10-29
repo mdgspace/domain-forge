@@ -28,7 +28,8 @@ const maps = await getMaps(user);
         <tr v-for="item in maps" :key='item'>
           <td v-for="field in fields" :key='field'><span v-if="item[field] != undefined">{{ item[field] }}</span>
             <span v-else>
-              <button class="delete" @click="deleteEntry(item['subdomain'])">Delete !</button>
+              <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
+              <button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete !</button>
 
             </span>
           </td>
@@ -41,21 +42,16 @@ const maps = await getMaps(user);
 </template>
 <script>
 import modal from './modal.vue'
+import deletemodal from './deletemodal.vue'
 import { deleteSubDomain } from '../utils/delete.ts'
 export default {
-  components: { modal },
+  components: { modal,deletemodal },
   data() {
     return {
+      showDeleteModal: false,
       showModal: false,
+      selectedItem : null,
     }
   },
-  methods: {
-    deleteEntry(subdomain) {
-      deleteSubDomain(subdomain).then((response) => {
-        console.log(response)
-        window.location.reload()
-      })
-    },
-  }
 }
 </script>
