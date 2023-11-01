@@ -1,6 +1,6 @@
 import getGithubUser from "./utils/github-user.ts";
 import { Context } from "./dependencies.ts";
-import { exec } from "https://deno.land/x/exec/mod.ts";
+import { exec } from "./dependencies.ts";
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
 const APP_ID = Deno.env.get("MONGO_APP_ID");
 const BASE_URI =
@@ -78,12 +78,15 @@ async function addMaps(ctx: Context) {
   const resp = await fetch(url.toString(), options);
   const data = await resp.json();
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
-  console.log(document.resource_type)
-  if(document.resource_type === "URL"){
-  await exec(`sh /src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}`);
-  }
-  else if(document.resource_type === "PORT"){
-  await exec(`sh /src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}`);
+  console.log(document.resource_type);
+  if (document.resource_type === "URL") {
+    await exec(
+      `sh /src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}`,
+    );
+  } else if (document.resource_type === "PORT") {
+    await exec(
+      `sh /src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}`,
+    );
   }
 
   (data.insertedId !== undefined)

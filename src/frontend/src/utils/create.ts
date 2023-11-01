@@ -1,7 +1,7 @@
 import { check_jwt } from "./authorize";
 
 function secure_input(s: string) {
-  const blockedPhrases = [';', '&', '|', '&&', '||', '>', '>>', '<', '<<', '$', '(', ')', '{', '}', '`', '\\', '\'', '"', '!', '~', '*', '?', '[', ']', '#', '%', '+', '/','curl','wget','rm','tail','cat','grep','nc','xxd','apt','echo','pwd','ping','more','tail','usermod','bash','sudo',','];
+  const blockedPhrases = [';', '&', '|', '&&', '||', '>', '>>', '<', '<<', '$', '(', ')', '{', '}', '`', '"', '!', '~', '*', '?', '[', ']', '#', '%', '+','curl','wget','rm','tail','cat','grep','nc','xxd','apt','echo','pwd','ping','more','tail','usermod','bash','sudo',','];
 
   for (let phrase of blockedPhrases) {
     if (s.includes(phrase)) {
