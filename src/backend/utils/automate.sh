@@ -26,13 +26,14 @@ if [ "$arg1" = "-u" ]; then
     echo "  server {
       listen 80;
       listen [::]:80;
-      server_name example.com;
+      server_name $arg3.mdgserver.com;
      
       location / {
           return 307 $arg2;
       }
    }" > /etc/nginx/sites-available/$arg3.conf;
      ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
+     systemctl reload nginx;
 elif [ "$arg1" = "-p" ]; then
     echo "Generating port.conf"
     echo "redirect: $arg2"
@@ -40,7 +41,7 @@ elif [ "$arg1" = "-p" ]; then
   server {
      listen 80;
      listen [::]:80;
-     server_name example.com;
+     server_name $arg3.mdgserver.com;
      location / {
         proxy_pass http://localhost:$arg2;
         proxy_http_version 1.1;
@@ -51,6 +52,7 @@ elif [ "$arg1" = "-p" ]; then
      }
      }" > /etc/nginx/sites-available/$arg3.conf;
      ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
+     systemctl reload nginx;
 
 else
     echo "Generating port.conf"
