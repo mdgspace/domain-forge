@@ -35,9 +35,18 @@ export default {
       console.log(this.subdomain, this.resource_type, this.resource)
       create(this.subdomain, this.resource_type, this.resource).then((res) => {
         console.log(res);
+        if(res=="Submitted"){
         this.$emit('close-modal');
         window.location.reload();
-      });
+        }else{
+          this.$emit('close-modal');
+          alert("failed to create subdomain")
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+
+        }
+      })
 
     }
   }
