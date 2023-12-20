@@ -61,11 +61,17 @@ async function addMaps(ctx: Context) {
     ctx.throw(415);
   }
   let document;
+  let env_content;
   const body = await ctx.request.body().value;
   try {
     document = JSON.parse(body);
+    //env_contents not getting saved to db
+    env_content = document.env_content
+    delete document.env_content
   } catch (e) {
     document = body;
+    env_content = document.env_content
+    delete document.env_content
   }
   const query = {
     collection: "content_maps",
