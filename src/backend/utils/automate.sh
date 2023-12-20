@@ -28,7 +28,7 @@ if [ "$arg1" = "-u" ]; then
     sudo echo "  server {
       listen 80;
       listen [::]:80;
-      server_name $arg3.mdgserver.com;
+      server_name $arg3;
      
       location / {
           return 307 $arg2;
@@ -45,7 +45,7 @@ elif [ "$arg1" = "-p" ]; then
   server {
      listen 80;
      listen [::]:80;
-     server_name $arg3.mdgserver.com;
+     server_name $arg3;
      location / {
         proxy_pass http://localhost:$arg2;
         proxy_http_version 1.1;
