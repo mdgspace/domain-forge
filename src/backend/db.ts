@@ -81,11 +81,11 @@ async function addMaps(ctx: Context) {
   console.log(document.resource_type);
   if (document.resource_type === "URL") {
     await exec(
-      `sh /src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}`,
+      `bash -c "echo 'sh ../../src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "PORT") {
     await exec(
-      `sh /src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}`,
+      `bash -c "echo 'sh ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
     );
   }
 
