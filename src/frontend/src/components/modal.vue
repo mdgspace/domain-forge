@@ -3,7 +3,7 @@
   <div class="modal-overlay">
     <div class="modal">
       <h5>Enter the details for creating your subdomain:</h5>
-      <p>Subdomain:<br><input class="subdomain" v-model="subdomain" />.mdgspace.org</p>
+      <p>Subdomain:<br><input class="subdomain" v-model="subdomain" />.df.mdgspace.org</p>
       <p>Resource Type:<br>
         <select class="dropdown" v-model="resource_type">
           <option>URL</option>
