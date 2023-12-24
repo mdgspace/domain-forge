@@ -59,5 +59,5 @@ if [ $flag = "-g" ]; then
         AVAILABLE+=1
     fi
     rm -rf $name
-    ./automate.sh -p ${available_ports[$AVAILABLE]} $name
+    bash ./automate.sh -p ${available_ports[$AVAILABLE]} $2
 fi
