@@ -59,5 +59,5 @@ if [ $flag = "-g" ]; then
         AVAILABLE+=1
     fi
     rm -rf $name
-    bash ./automate.sh -p ${available_ports[$AVAILABLE]} $2
+    bash -c "echo 'bash ./automate.sh -p ${available_ports[$AVAILABLE]} $2' > /hostpipe/pipe"
 fi
