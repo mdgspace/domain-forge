@@ -73,16 +73,27 @@ async function addMaps(ctx: Context) {
     env_content = document.env_content
     delete document.env_content
   }
+  let query = {
+    collection: "content_maps",
+    database: DATABASE,
+    dataSource: DATA_SOURCE,
+    filter: { "subdomain": document.subdomain },
+  };
+  options.body = JSON.stringify(query);
+  let url = new URL(`${BASE_URI}/action/find`);
+  let resp = await fetch(url.toString(), options);
+  let data = await resp.json();
+  if(data.length == 0){
   const query = {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    document: document,
+    document: document.subdomain,
   };
   options.body = JSON.stringify(query);
-  const url = new URL(`${BASE_URI}/action/insertOne`);
-  const resp = await fetch(url.toString(), options);
-  const data = await resp.json();
+  url = new URL(`${BASE_URI}/action/insertOne`);
+  resp = await fetch(url.toString(), options);
+  data = await resp.json();
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
   console.log(document.resource_type);
   if (document.resource_type === "URL") {
@@ -104,7 +115,12 @@ async function addMaps(ctx: Context) {
   (data.insertedId !== undefined)
     ? ctx.response.body = data
     : ctx.response.body = { "status": "failed" };
+}else{
+  ctx.response.body = { "status": "failed" };
 }
+
+}
+
 async function deleteMaps(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
