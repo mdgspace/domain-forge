@@ -127,24 +127,28 @@ async function deleteMaps(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
-  let filter;
+  let document;
   const body = await ctx.request.body().value;
   try {
-    filter = JSON.parse(body);
+    document = JSON.parse(body);
   } catch (e) {
-    filter = body;
+    document = body;
   }
 
   const query = {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: filter,
+    filter: document,
   };
   options.body = JSON.stringify(query);
   const url = new URL(`${BASE_URI}/action/deleteOne`);
   const resp = await fetch(url.toString(), options);
   const data = await resp.json();
+  if(data.deletedCount){
+    await exec(`bash -c "echo 'bash ../../src/backend/utils/delete.sh ${document.subdomain}' > /hostpipe/pipe"`)
+  }
+
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
   ctx.response.body = data;
 }
