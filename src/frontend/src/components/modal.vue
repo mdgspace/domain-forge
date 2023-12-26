@@ -12,6 +12,9 @@
         </select>
       </p>
       <p>Resource:<br><input class="resource-link" v-model="resource" /></p>
+      <p v-show="resource_type =='GITHUB'">Your env contents in format<br>key1=value1<br>key2=value2<br>
+        <textarea name="env" id="" cols="50" rows="10" v-model="env_content" value="key1=value1"></textarea>
+      </p>
       <button @click="subimitForm()">Submit</button>
     </div>
     <div class="close">
@@ -27,13 +30,14 @@ export default {
       subdomain: "",
       resource_type: "",
       resource: "",
+      env_content: ""
 
     };
   },
   methods: {
     subimitForm() {
       console.log(this.subdomain, this.resource_type, this.resource)
-      create(this.subdomain, this.resource_type, this.resource).then((res) => {
+      create(this.subdomain, this.resource_type, this.resource,this.env_content).then((res) => {
         console.log(res);
         if(res=="Submitted"){
         this.$emit('close-modal');

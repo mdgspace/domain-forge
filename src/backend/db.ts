@@ -61,11 +61,17 @@ async function addMaps(ctx: Context) {
     ctx.throw(415);
   }
   let document;
+  let env_content;
   const body = await ctx.request.body().value;
   try {
     document = JSON.parse(body);
+    //env_contents not getting saved to db
+    env_content = document.env_content
+    delete document.env_content
   } catch (e) {
     document = body;
+    env_content = document.env_content
+    delete document.env_content
   }
   const query = {
     collection: "content_maps",
@@ -81,13 +87,19 @@ async function addMaps(ctx: Context) {
   console.log(document.resource_type);
   if (document.resource_type === "URL") {
     await exec(
-      `bash -c "echo 'sh ../../src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
+      `bash -c "echo 'bash ../../src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "PORT") {
     await exec(
-      `bash -c "echo 'sh ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
+      `bash -c "echo 'bash ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
     );
   }
+    else if (document.resource_type === "GITHUB") {
+      await exec(
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
+      );
+    }
+  
 
   (data.insertedId !== undefined)
     ? ctx.response.body = data

@@ -14,6 +14,7 @@ export async function create(
   subdomain: string,
   resource_type: string,
   resource: string,
+  env_content: string,
 ) {
   if(secure_input(subdomain) === false){
     return "failed";
@@ -31,6 +32,7 @@ export async function create(
     "subdomain": subdomain + ".df.mdgspace.org",
     "resource_type": resource_type,
     "resource": resource,
+    "env_content": env_content,
     "author": user,
     "date": new Date().toLocaleDateString(),
   };
