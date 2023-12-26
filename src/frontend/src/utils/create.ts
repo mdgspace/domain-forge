@@ -44,5 +44,8 @@ export async function create(
     body: JSON.stringify(body),
   });
   const data = await resp.json();
+  if(data.status === "failed"){
+    return "Failed"
+  }
   return "Submitted";
 }

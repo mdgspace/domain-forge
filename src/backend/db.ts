@@ -83,12 +83,12 @@ async function addMaps(ctx: Context) {
   let url = new URL(`${BASE_URI}/action/find`);
   let resp = await fetch(url.toString(), options);
   let data = await resp.json();
-  if(data.length == 0){
-  const query = {
+  if(data.documents.length == 0){
+   let query = {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    document: document.subdomain,
+    document: document,
   };
   options.body = JSON.stringify(query);
   url = new URL(`${BASE_URI}/action/insertOne`);
@@ -113,9 +113,11 @@ async function addMaps(ctx: Context) {
   
 
   (data.insertedId !== undefined)
-    ? ctx.response.body = data
+    ? ctx.response.body = {"status":"success"}
     : ctx.response.body = { "status": "failed" };
 }else{
+  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
   ctx.response.body = { "status": "failed" };
 }
 
