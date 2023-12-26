@@ -29,7 +29,7 @@ export async function create(
   const backend = import.meta.env.VITE_APP_BACKEND;
   const rootUrl = new URL(`${backend}/map`);
   const body = {
-    "subdomain": subdomain + ".mdgspace.org",
+    "subdomain": subdomain + ".df.mdgspace.org",
     "resource_type": resource_type,
     "resource": resource,
     "env_content": env_content,
