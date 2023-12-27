@@ -62,16 +62,21 @@ async function addMaps(ctx: Context) {
   }
   let document;
   let env_content;
+  let static_content;
   const body = await ctx.request.body().value;
   try {
     document = JSON.parse(body);
     //env_contents not getting saved to db
     env_content = document.env_content
+    static_content = document.static_content
     delete document.env_content
+    delete document.static_content
   } catch (e) {
     document = body;
     env_content = document.env_content
+    static_content = document.static_content
     delete document.env_content
+    delete document.static_content
   }
   let query = {
     collection: "content_maps",
@@ -95,7 +100,7 @@ async function addMaps(ctx: Context) {
   resp = await fetch(url.toString(), options);
   data = await resp.json();
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
-  console.log(document.resource_type);
+  console.log(static_content);
   if (document.resource_type === "URL") {
     await exec(
       `bash -c "echo 'bash ../../src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
@@ -105,7 +110,11 @@ async function addMaps(ctx: Context) {
       `bash -c "echo 'bash ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
     );
   }
-    else if (document.resource_type === "GITHUB") {
+    else if (document.resource_type === "GITHUB" && static_content=="Yes") {
+      await exec(
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
+      );
+    }else if (document.resource_type === "GITHUB") {
       await exec(
         `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
       );

@@ -13,6 +13,11 @@
       </p>
       <p>Resource:<br><input class="resource-link" v-model="resource" /></p>
       <p v-show="resource_type =='GITHUB'">Your env contents in format<br>key1=value1<br>key2=value2<br>
+        <label for="static">Do you have static content on your repo?</label>
+        <br>
+<label for="radio">Yes/No</label>
+        <input name="radio" type="radio" value="Yes" v-model="static_content">
+        <input name="radio" type="radio" value="No" v-model="static_content">
         <textarea name="env" id="" cols="50" rows="10" v-model="env_content" value="key1=value1"></textarea>
       </p>
       <button @click="subimitForm()">Submit</button>
@@ -30,14 +35,15 @@ export default {
       subdomain: "",
       resource_type: "",
       resource: "",
-      env_content: ""
+      env_content: "",
+      static_content:"False"
 
     };
   },
   methods: {
     subimitForm() {
       console.log(this.subdomain, this.resource_type, this.resource)
-      create(this.subdomain, this.resource_type, this.resource,this.env_content).then((res) => {
+      create(this.subdomain, this.resource_type, this.resource,this.env_content,this.static_content).then((res) => {
         console.log(res);
         if(res=="Submitted"){
         this.$emit('close-modal');
