@@ -15,7 +15,10 @@ export async function create(
   resource_type: string,
   resource: string,
   env_content: string,
-  static_content:string
+  static_content:string,
+  port:string,
+  stack:string,
+  build_cmds:string,
 ) {
   if(secure_input(subdomain) === false){
     return "failed";
@@ -35,6 +38,9 @@ export async function create(
     "resource": resource,
     "env_content": env_content,
     "static_content": static_content,
+    "port":port,
+    "build_cmds":build_cmds,
+    "stack":stack,
     "author": user,
     "date": new Date().toLocaleDateString(),
   };

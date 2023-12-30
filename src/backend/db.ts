@@ -1,6 +1,7 @@
 import getGithubUser from "./utils/github-user.ts";
 import { Context } from "./dependencies.ts";
 import { exec } from "./dependencies.ts";
+import dockerize from "./utils/container.ts";
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
 const APP_ID = Deno.env.get("MONGO_APP_ID");
 const BASE_URI =
@@ -63,18 +64,33 @@ async function addMaps(ctx: Context) {
   let document;
   let env_content;
   let static_content;
+  let stack;
+  let port;
+  let build_cmds
   const body = await ctx.request.body().value;
   try {
     document = JSON.parse(body);
     //env_contents not getting saved to db
     env_content = document.env_content
     static_content = document.static_content
+    stack = document.stack
+    port = document.port
+    build_cmds = document.build_cmds
+    delete document.port
+    delete document.build_cmds
+    delete document.stack
     delete document.env_content
     delete document.static_content
   } catch (e) {
     document = body;
     env_content = document.env_content
     static_content = document.static_content
+    stack = document.stack
+    port = document.port
+    build_cmds = document.build_cmds
+    delete document.port
+    delete document.build_cmds
+    delete document.stack
     delete document.env_content
     delete document.static_content
   }
@@ -114,10 +130,13 @@ async function addMaps(ctx: Context) {
       await exec(
         `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
       );
-    }else if (document.resource_type === "GITHUB") {
-      await exec(
-        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
-      );
+    }else if (document.resource_type === "GITHUB" && static_content=="No" ) {
+      let dockerfile = dockerize(stack,port,build_cmds)
+
+
+      // await exec(
+      //   `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
+      // );
     }
   
 

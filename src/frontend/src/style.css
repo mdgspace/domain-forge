@@ -12,7 +12,7 @@
 
   color: #FFC947;
   background-color: #1d2750;
-
+  overflow-y: scroll;
   font-synthesis: none;
   font-family: 'Chakra Petch', sans-serif;
   text-rendering: optimizeLegibility;

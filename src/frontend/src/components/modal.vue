@@ -19,6 +19,16 @@
         <input name="radio" type="radio" value="Yes" v-model="static_content">
         <input name="radio" type="radio" value="No" v-model="static_content">
         <textarea name="env" id="" cols="50" rows="10" v-model="env_content" value="key1=value1"></textarea>
+        </p>
+        <p v-show="static_content=='No'">
+          Stack:<br>
+        <select class="dropdown" v-model="stack">
+          <option>Python</option>
+          <option>NodeJS</option>
+        </select>
+        <br>
+          Port:<br><input v-model="port" />
+          <textarea name="build_cmds" id="" cols="50" rows="10" v-model="build_cmds" value="Enter each build command on a new line  assuming you are inside the project directory"></textarea>
       </p>
       <button @click="subimitForm()">Submit</button>
     </div>
@@ -36,14 +46,18 @@ export default {
       resource_type: "",
       resource: "",
       env_content: "",
-      static_content:"False"
+      static_content:"False",
+      port:"",
+      stack:"",
+      build_cmds:"",
+
 
     };
   },
   methods: {
     subimitForm() {
       console.log(this.subdomain, this.resource_type, this.resource)
-      create(this.subdomain, this.resource_type, this.resource,this.env_content,this.static_content).then((res) => {
+      create(this.subdomain, this.resource_type, this.resource,this.env_content,this.static_content,this.port,this.stack,this.build_cmds).then((res) => {
         console.log(res);
         if(res=="Submitted"){
         this.$emit('close-modal');
@@ -89,11 +103,12 @@ export default {
 .modal {
   text-align: center;
   background-color: #0A1931;
-  height: 60%;
+  height: 100%;
   width: 500px;
   margin-top: 8%;
   padding: 10px 0;
   border-radius: 20px;
+  overflow-y: scroll;
 }
 
 .close {

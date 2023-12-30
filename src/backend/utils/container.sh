@@ -34,50 +34,7 @@ echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 if [ $flag = "-g" ]; then
     git clone $resource $name
-    if [ -f "$name/docker-compose.yml" ]; then
-        echo "docker-compose.yml exists in $name"
-    elif [ -f "$name/Dockerfile" ]; then
-        echo "Dockerfile exists in $name"
-        sudo docker build -t $name $name
-        sudo docker stop test-img
-        sudo docker rm test-img
-        sudo docker run -d --name test-img $name
-        test=$(sudo docker exec -it test-img lsof -i -P -n | grep LISTEN | awk -F'[:(]' '{print $2}')
-        sudo docker stop test-img
-        sudo docker run -d --name $name -p ${available_ports[$AVAILABLE]}:$test $name
-        echo "Container $name running on port $AVAILABLE"
-        test=$(sudo docker exec -it test-img lsof -i -P -n | grep LISTEN | awk -F'[:(]' '{print $2}')
-    else
-        sudo pack build $name --path $name --builder paketobuildpacks/builder-jammy-full 
-        echo "Port ${available_ports[$AVAILABLE]} is available";
-        sudo docker stop test-img
-        sudo docker rm test-img
-        sudo docker run -d --name test-img $name
-        test=$(sudo docker exec -it test-img lsof -i -P -n | grep LISTEN | grep IPv6 | awk -F'[:(]' '{print $2}')
-        sudo docker stop test-img
-        sudo docker run -d --name $name -p ${available_ports[$AVAILABLE]}:$test $name
-        echo "Container $name running on port ${available_ports[$AVAILABLE]}"
-        AVAILABLE+=1
-    fi
-    rm -rf $name
-    sudo touch /etc/nginx/sites-available/$2.conf
-    sudo chmod 666 /etc/nginx/sites-available/$2.conf
-    sudo echo "# Virtual Host configuration for example.com
-  server {
-     listen 80;
-     listen [::]:80;
-     server_name $2;
-     location / {
-        proxy_pass http://localhost:${available_ports[$AVAILABLE]};
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-     }
-     }" > /etc/nginx/sites-available/$2.conf;
-     sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf;
-     sudo systemctl reload nginx;
+    
 else
     git clone $resource $name
     cd $name
