@@ -132,11 +132,11 @@ async function addMaps(ctx: Context) {
       );
     }else if (document.resource_type === "GITHUB" && static_content=="No" ) {
       let dockerfile = dockerize(stack,port,build_cmds)
-
-
-      // await exec(
-      //   `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
-      // );
+      console.log(dockerfile)
+      console.log("idar")
+      await exec(
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ${dockerfile} ${port}' > /hostpipe/pipe"`,
+      );
     }
   
 
@@ -182,3 +182,11 @@ async function deleteMaps(ctx: Context) {
 }
 
 export { addMaps, checkUser, deleteMaps, getMaps };
+
+// FROM python:3.11 
+// WORKDIR /app 
+// COPY requirements.txt . 
+// RUN pip install --no-cache-dir -r requirements.txt 
+// COPY . .
+// EXPOSE 8000 
+// CMD ["python3","manage.py","runserver"]
