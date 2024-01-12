@@ -10,8 +10,8 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color: #FFC947;
-  background-color: #1d2750;
+  color: #121212;
+  background-color: #ffffff;
 
   font-synthesis: none;
   font-family: 'Chakra Petch', sans-serif;
@@ -79,22 +79,22 @@ body {
 }
 
 #navbar{
-  background-color: #FFC947;
-  color: #0A1931;
+  background-color: #ffffff;
+  color: #121212;
   font-size: 1.8em;
-  font-weight: bold;
+  font-weight:800;
   width: 100vw;
 }
 
 button {
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 2px solid #121212;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #FFC947;
-  color: #0A1931;
+  background-color: #2080F6;
+  color: #ffffff;
   cursor: pointer;
   transition: border-color 0.25s;
   width: 20rem;
@@ -108,8 +108,8 @@ button {
   padding: 0.6rem 1.2rem;
   font-size: 0.75rem;
   font-family: inherit;
-  background-color: #FFC947;
-  color: #0A1931;
+  background-color: #2080F6;
+  color: #ffffff;
   cursor: pointer;
   transition: border-color 0.25s;
   width: 10rem;
@@ -144,4 +144,6 @@ h4{
 
 h5{
   padding: 1%;
+  font-size: xx-large;
+  font-weight: 900;
 }

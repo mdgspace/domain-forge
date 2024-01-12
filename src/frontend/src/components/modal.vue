@@ -15,10 +15,15 @@
       <p v-show="resource_type =='GITHUB'">Your env contents in format<br>key1=value1<br>key2=value2<br>
         <textarea name="env" id="" cols="50" rows="10" v-model="env_content" value="key1=value1"></textarea>
       </p>
-      <button @click="subimitForm()">Submit</button>
+      <table style="width: 100%;">
+        <tr>
+          <td style="text-align: center;"><button style="background-color: #ffffff; color: #2080F6;" @click="$emit('close-modal')">Cancel</button></td>
+          <td style="text-align: center;"><button @click="subimitForm()">Submit</button></td>
+        </tr>
+      </table>
     </div>
     <div class="close">
-      <button style="width: 20px;" @click="$emit('close-modal')">X</button>
+      <button style="width: 20px;background-color: #ffffff; color: #121212; " @click="$emit('close-modal')">X</button>
     </div>
   </div>
 </template>
@@ -82,23 +87,22 @@ export default {
 
 .modal {
   text-align: center;
-  background-color: #0A1931;
-  height: 60%;
-  width: 500px;
+  background-color: #ffffff;
+  height: 75%;
+  width: 600px;
   margin-top: 8%;
   padding: 10px 0;
   border-radius: 20px;
 }
 
 .close {
-  margin: 5% 0 0 16px;
+  margin: 9% 0 0 15px;
   cursor: pointer;
-  color: #FFC947;
 }
 
 p {
   font-size: 16px;
-  color: #FFC947;
+  color: #121212;
   margin: 30px 25px;
 }
 
@@ -116,7 +120,7 @@ button {
   padding: 2%;
   margin: 1%;
   font-size: 14px;
-  border-radius: 16px;
-  margin-top: 50px;
+  margin-top: 10px;
+  width: 250px;
 }</style>
   
