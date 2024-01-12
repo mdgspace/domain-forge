@@ -14,7 +14,7 @@
       </table>
       </div>
       <div class="close">
-        <button style="width: 20px;" @click="$emit('close-modal')">X</button>
+        <button style="width: 20px;background-color: #ffffff; color: #121212; " @click="$emit('close-modal')">X</button>
       </div>
     </div>
   </template>
@@ -63,7 +63,7 @@ import { deleteSubDomain } from '../utils/delete.ts'
   right: 0;
   display: flex;
   justify-content: center;
-  background-color: #00000000;
+  background-color: #00000050;
 }
 
 .modal {
