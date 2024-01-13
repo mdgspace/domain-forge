@@ -69,6 +69,8 @@ if [ $flag = "-g" ]; then
 else
     git clone $resource $name
     cd $name
+    touch .env
+    echo "$env_content" > .env
     touch Dockerfile
     echo "
     FROM nginx:alpine
