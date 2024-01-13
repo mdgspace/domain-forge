@@ -128,14 +128,14 @@ async function addMaps(ctx: Context) {
   }
     else if (document.resource_type === "GITHUB" && static_content=="Yes") {
       await exec(
-        `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource} ${env_content}' > /hostpipe/pipe"`,
       );
     }else if (document.resource_type === "GITHUB" && static_content=="No" ) {
       let dockerfile = dockerize(stack,port,build_cmds)
       console.log(dockerfile)
       console.log("idar")
       await exec(
-        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ${dockerfile} ${port}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ${env_content} ${dockerfile} ${port}' > /hostpipe/pipe"`,
       );
     }
   

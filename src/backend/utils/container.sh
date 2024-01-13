@@ -18,9 +18,10 @@ host="mdgiitr"
 http_upgrade="mdgiitr"
 flag=$1
 name=$2-$suffix
-resource=$3
-dockerfile=$4 
-exp_port=$5 
+env_content=$3
+resource=$4
+dockerfile=$5 
+exp_port=$6
 
 available_ports=()
 
@@ -35,6 +36,8 @@ AVAILABLE=0
 if [ $flag = "-g" ]; then
     git clone $resource $name
     cd $name
+    touch .env
+    echo "$env_content" > .env
     touch Dockerfile
     echo "
     $dockerfile
