@@ -19,7 +19,7 @@ const maps = await getMaps(user);
     <table id="tableComponent" style="display:table; width:100%;">
       <thead>
         <tr>
-          <th v-for="field in fields" style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212">
+          <th v-for="field in fields" style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212; border-top:1px solid #121212;font-weight: 900;">
             <h3>{{ field }}</h3>
           </th>
         </tr>
