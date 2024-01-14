@@ -13,7 +13,22 @@
       </p>
       <p>Resource:<br><input class="resource-link" v-model="resource" /></p>
       <p v-show="resource_type =='GITHUB'">Your env contents in format<br>key1=value1<br>key2=value2<br>
+        <label for="static">Do you have static content on your repo?</label>
+        <br>
+<label for="radio">Yes/No</label>
+        <input name="radio" type="radio" value="Yes" v-model="static_content">
+        <input name="radio" type="radio" value="No" v-model="static_content">
         <textarea name="env" id="" cols="50" rows="10" v-model="env_content" value="key1=value1"></textarea>
+        </p>
+        <p v-show="static_content=='No'">
+          Stack:<br>
+        <select class="dropdown" v-model="stack">
+          <option>Python</option>
+          <option>NodeJS</option>
+        </select>
+        <br>
+          Port:<br><input v-model="port" />
+          <textarea name="build_cmds" id="" cols="50" rows="10" v-model="build_cmds" value="Enter each build command on a new line  assuming you are inside the project directory"></textarea>
       </p>
       <table style="width: 100%;">
         <tr>
@@ -35,14 +50,19 @@ export default {
       subdomain: "",
       resource_type: "",
       resource: "",
-      env_content: ""
+      env_content: "",
+      static_content:"False",
+      port:"",
+      stack:"",
+      build_cmds:"",
+
 
     };
   },
   methods: {
     subimitForm() {
       console.log(this.subdomain, this.resource_type, this.resource)
-      create(this.subdomain, this.resource_type, this.resource,this.env_content).then((res) => {
+      create(this.subdomain, this.resource_type, this.resource,this.env_content,this.static_content,this.port,this.stack,this.build_cmds).then((res) => {
         console.log(res);
         if(res=="Submitted"){
         this.$emit('close-modal');
@@ -93,6 +113,7 @@ export default {
   margin-top: 8%;
   padding: 10px 0;
   border-radius: 20px;
+  overflow-y: scroll;
 }
 
 .close {

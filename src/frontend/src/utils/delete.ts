@@ -6,6 +6,7 @@ export async function deleteSubDomain(subdomain: string) {
   const body = {
     "subdomain": subdomain,
     "author": user,
+    "token": localStorage.getItem("JWTUser"),
   };
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",

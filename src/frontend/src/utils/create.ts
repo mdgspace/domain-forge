@@ -1,7 +1,51 @@
 import { check_jwt } from "./authorize";
 
 function secure_input(s: string) {
-  const blockedPhrases = [';', '&', '|', '&&', '||', '>', '>>', '<', '<<', '$', '(', ')', '{', '}', '`', '"', '!', '~', '*', '?', '[', ']', '#', '%', '+','curl','wget','rm','tail','cat','grep','nc','xxd','apt','echo','pwd','ping','more','tail','usermod','bash','sudo',','];
+  const blockedPhrases = [
+    ";",
+    "&",
+    "|",
+    "&&",
+    "||",
+    ">",
+    ">>",
+    "<",
+    "<<",
+    "$",
+    "(",
+    ")",
+    "{",
+    "}",
+    "`",
+    '"',
+    "!",
+    "~",
+    "*",
+    "?",
+    "[",
+    "]",
+    "#",
+    "%",
+    "+",
+    "curl",
+    "wget",
+    "rm",
+    "tail",
+    "cat",
+    "grep",
+    "nc",
+    "xxd",
+    "apt",
+    "echo",
+    "pwd",
+    "ping",
+    "more",
+    "tail",
+    "usermod",
+    "bash",
+    "sudo",
+    ",",
+  ];
 
   for (let phrase of blockedPhrases) {
     if (s.includes(phrase)) {
@@ -15,14 +59,18 @@ export async function create(
   resource_type: string,
   resource: string,
   env_content: string,
+  static_content: string,
+  port: string,
+  stack: string,
+  build_cmds: string,
 ) {
-  if(secure_input(subdomain) === false){
+  if (secure_input(subdomain) === false) {
     return "failed";
   }
-  if(secure_input(resource_type) === false){
+  if (secure_input(resource_type) === false) {
     return "failed";
   }
-  if(secure_input(resource) === false){
+  if (secure_input(resource) === false) {
     return "failed";
   }
   const user = await check_jwt(localStorage.getItem("JWTUser")!);
@@ -33,8 +81,13 @@ export async function create(
     "resource_type": resource_type,
     "resource": resource,
     "env_content": env_content,
+    "static_content": static_content,
+    "port": port,
+    "build_cmds": build_cmds,
+    "stack": stack,
     "author": user,
     "date": new Date().toLocaleDateString(),
+    "token": localStorage.getItem("JWTUser"),
   };
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",
@@ -44,5 +97,8 @@ export async function create(
     body: JSON.stringify(body),
   });
   const data = await resp.json();
+  if (data.status === "failed") {
+    return "Failed";
+  }
   return "Submitted";
 }

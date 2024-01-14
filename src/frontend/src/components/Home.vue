@@ -26,7 +26,12 @@ const maps = await getMaps(user);
       </thead>
       <tbody>
         <tr v-for="item in maps" :key='item'>
-          <td v-for="field in fields" :key='field' style="border-bottom: 1px solid #121212"><span v-if="item[field] != undefined">{{ item[field] }}</span>
+          <td v-for="field in fields" :key='field' style="border-bottom: 1px solid #121212">
+            <span v-if="item[field] != undefined && field != 'subdomain'">{{ item[field] }}</span>
+            <span v-else-if="field === 'subdomain'">
+    <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
+</span>
+
             <span v-else>
               <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
               <div style="text-align: center;"><button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete !</button></div>
