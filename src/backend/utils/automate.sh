@@ -28,11 +28,19 @@ if [ "$arg1" = "-u" ]; then
     sudo echo "  server {
       listen 80;
       listen [::]:80;
+      listen 443 ssl;
+     listen [::]:443 ssl;
       server_name $arg3;
      
       location / {
           return 307 $arg2;
       }
+      charset utf-8;
+      client_max_body_size 20M;
+      ssl_certificate /etc/letsencrypt/live/df.mdgspace.org-0001/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
+      include /etc/letsencrypt/options-ssl-nginx.conf;
+      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
    }" > /etc/nginx/sites-available/$arg3.conf;
      sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
@@ -45,6 +53,8 @@ elif [ "$arg1" = "-p" ]; then
   server {
      listen 80;
      listen [::]:80;
+     listen 443 ssl;
+     listen [::]:443 ssl;
      server_name $arg3;
      location / {
         proxy_pass http://localhost:$arg2;
@@ -54,6 +64,12 @@ elif [ "$arg1" = "-p" ]; then
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
      }
+     charset utf-8;
+     client_max_body_size 20M;
+     ssl_certificate /etc/letsencrypt/live/df.mdgspace.org-0001/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
+     include /etc/letsencrypt/options-ssl-nginx.conf;
+     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
      }" > /etc/nginx/sites-available/$arg3.conf;
      ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
