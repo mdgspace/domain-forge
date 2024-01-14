@@ -21,7 +21,12 @@ name=$2-$suffix
 env_content=$3
 resource=$4
 dockerfile=$5 
-exp_port=$6
+exp_port=$6 
+echo $flag
+echo $name
+echo $resource
+echo $dockerfile
+echo $exp_port
 
 available_ports=()
 
@@ -34,6 +39,7 @@ done
 echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 if [ $flag = "-g" ]; then
+    echo "hello"
     git clone $resource $name
     cd $name
     touch .env
@@ -78,6 +84,7 @@ else
     " > Dockerfile
     sudo docker build -t $name .
     sudo docker run -d -p ${available_ports[$AVAILABLE]}:80 $name
+    sudo rm Dockerfile
     cd ..
     rm -rf $name
     sudo touch /etc/nginx/sites-available/$2.conf
@@ -99,5 +106,6 @@ else
      sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf;
      sudo systemctl reload nginx;
 fi
+
 
 
