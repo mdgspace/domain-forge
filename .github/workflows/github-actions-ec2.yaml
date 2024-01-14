@@ -1,0 +1,25 @@
+name: Push-to-EC2
+
+# Trigger deployment only on push to master branch
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy to EC2 on master branch push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/project-domain-forge/domain-forge/docker
+            docker compose down
+            git pull origin master
+            docker compose up -d --build            
