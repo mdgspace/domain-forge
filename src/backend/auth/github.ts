@@ -1,11 +1,6 @@
-import { Context, create, verify } from "../dependencies.ts";
+import { Context } from "../dependencies.ts";
 import { checkUser } from "../db.ts";
-
-const key = await crypto.subtle.generateKey(
-  { name: "HMAC", hash: "SHA-512" },
-  true,
-  ["sign", "verify"],
-);
+import { checkJWT, createJWT } from "../utils/jwt.ts";
 
 async function githubAuth(ctx: Context, id: string, secret: string) {
   if (!ctx.request.hasBody) {
@@ -31,9 +26,7 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
     const { status, githubId } = await checkUser(body.access_token);
     ctx.response.headers.set("Access-Control-Allow-Origin", "*");
     if (status.matchedCount == 1) {
-      const id_jwt = await create({ alg: "HS512", typ: "JWT" }, {
-        githubId: githubId,
-      }, key);
+      const id_jwt = await createJWT(githubId);
       ctx.response.body = id_jwt;
     } else {
       ctx.response.body = "not authorized";
@@ -49,12 +42,7 @@ async function githubId(ctx: Context) {
     ctx.throw(415);
   }
   const jwt_token = await ctx.request.body().value;
-  try {
-    const payload = await verify(jwt_token, key);
-    ctx.response.body = payload.githubId!;
-  } catch (error) {
-    ctx.response.body = "not verified";
-  }
+  ctx.response.body = await checkJWT(jwt_token);
 }
 
 export { githubAuth, githubId };
