@@ -9,20 +9,26 @@ _DomainForge serves as a versatile tool for creating dynamic subdomains, while a
 > Find product related research
 [here](https://obvious-acrylic-f12.notion.site/DomainForge-A-dynamic-sub-domain-creator-e860af60894e4a3bb0482ea3dd746451)
 
-### Installation
+## Installation
 
-This section is relevant for organizational administrators. For detailed information on the installation process, please refer to this [documentation](./docs/admin/README.md)
 
-### Usage
+This section is designated for organizational administrators who leverage this tool to facilitate the creation of dynamic subdomains, while also furnishing storage and computing functionalities to members of the organization. For comprehensive installation guidelines, please refer to this [documentation](./docs/admin/README.md).
 
-This section pertains to users. For comprehensive guidance on utilizing this tool, please consult the [documentation](./docs/users/README.md)
+## Usage
 
-### License
+This section is relevant to the users of the tool. For detailed guidance on effectively leveraging this tool to deploy your projects within your organization, please refer to this [documentation](./docs/users/README.md) for comprehensive instructions. 
+
+## License
 
 [MIT](./LICENSE.md)
 
-### Contributors
+## Contributing
 
+We welcome pull requests. If you're considering significant changes, please initiate a discussion by opening an issue first. Additionally, please ensure your commits follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) format.
+
+Thank you to everyone who's already contributed!
 ![](https://contrib.rocks/image?repo=mdgspace/domain-forge)
 
-//ToDo: Add contributing guidelines
+If you find this tool useful, please consider giving it a star :star:.
+
+Made with :heart: by MDG Space
