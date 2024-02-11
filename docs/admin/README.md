@@ -1,17 +1,13 @@
-# Domain Forge
+# Installation
 
-*DomainForge serves as a versatile tool for creating dynamic subdomains, while also providing storage and computing capabilities to members of your organization. Moreover, it simplifies the setup process by seamlessly transitioning from a GitHub repository to the build phase. This all-inclusive solution enhances operational efficiency, empowering members with a streamlined and automated workflow from repository setup to deployment.*
-
-### Setup
-
-##### 1. Clone the Repository
+### 1. Clone the Repository
 
 Run the following command on your server to clone the repository.
 ```bash
     git clone https://github.com/mdgspace/domain-forge.git
 ```
 
-##### 2. Configuring the Environment Variables
+### 2. Configuring the Environment Variables
 
 This step involves the configuration of three `.env` files:
 - Docker env:   
@@ -37,7 +33,7 @@ This step involves the configuration of three `.env` files:
     VITE_APP_BACKEND_PORT=XXXX
     ```
 
-##### 3. Build Docker Image
+### 3. Build Docker Image
 
 > If you do not have docker installed on your system, visit [this](https://docs.docker.com/engine/install/).   
  
@@ -47,7 +43,7 @@ cd docker/
 docker compose up --build -d
 ```
 
-##### 4. Setup Named Pipes
+### 4. Setup Named Pipes
 
 Navigate to the `docker/named_pipe` directory and execute the `listen.sh` script to allow the application to run commands on the host.
 ```bash
@@ -56,16 +52,13 @@ cd docker/named_pipe
 ```
 > Make sure to check the permissions of the `listen.sh` file. You can change them using the `chmod` command.
 
-##### 5. Installing and Configuring NGINX
+### 5. Installing and Configuring NGINX
 
 Install NGINX on your server from [here](https://www.nginx.com/resources/wiki/start/topics/tutorials/install/).   
 Refer to [this](https://www.digitalocean.com/community/tutorials/how-to-set-up-nginx-server-blocks-virtual-hosts-on-ubuntu-16-04) to configure NGINX to serve your application.
 
-##### 6. Adding the DNS Records and Issue SSL Certificates
+### 6. Adding the DNS Records and Issue SSL Certificates
 
 Refer to [this](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/) to add DNS records for *df.yourorgname.com* and also a wildcard DNS record for **.df.yourorgname.com*
 
 You can use [letsencrypt](https://letsencrypt.org/) to issue SSL certificates for *df.yourorgname.com* and a wildcard SSL certificate for **.df.yourorgname.com*.
-
-
-***If you use this tool and like it, consider leaving a :star: on this repo***
