@@ -22,7 +22,7 @@ This section is relevant to the users of the tool. For detailed guidance on effe
 
 ## License
 
-[MIT](./LICENSE.md)
+[AGPL v3](./LICENSE.md)
 
 ## Contributing
 
@@ -30,7 +30,7 @@ We welcome pull requests. If you're considering significant changes, please init
 
 Thank you to everyone who's already contributed!   
 
-![](https://contrib.rocks/image?repo=mdgspace/domain-forge)
+[![](https://contrib.rocks/image?repo=mdgspace/domain-forge)](https://github.com/mdgspace/domain-forge/graphs/contributors)
 
 *If you find this tool useful, consider leaving a :star:.*   
 Made with :heart: by **MDG Space**
