@@ -1,4 +1,4 @@
-import { Context } from "../dependencies.ts";
+import { Context, Sentry } from "../dependencies.ts";
 import { checkUser } from "../db.ts";
 import { checkJWT, createJWT } from "../utils/jwt.ts";
 
@@ -27,6 +27,7 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
     ctx.response.headers.set("Access-Control-Allow-Origin", "*");
     if (status.matchedCount == 1) {
       const id_jwt = await createJWT(githubId);
+      Sentry.captureMessage("User " + githubId + " logged in", "info");
       ctx.response.body = id_jwt;
     } else {
       ctx.response.body = "not authorized";
