@@ -1,9 +1,11 @@
 import {
   Application,
   Context,
+  isHttpError,
   Router,
   Sentry,
   Session,
+  Status,
 } from "./dependencies.ts";
 import { githubAuth, githubId } from "./auth/github.ts";
 import { addSubdomain, deleteSubdomain, getSubdomains } from "./main.ts";
@@ -23,6 +25,20 @@ Sentry.init({
   ],
   debug: true,
   tracesSampleRate: 1.0,
+});
+
+app.use(async (ctx: Context, next) => {
+  try {
+    await next();
+  } catch (err) {
+    if (isHttpError(err)) {
+      ctx.response.status = err.status;
+    } else {
+      ctx.response.status = Status.InternalServerError;
+    }
+    Sentry.captureException(err);
+    ctx.response.body = { error: err.message };
+  }
 });
 
 app.use(Session.initMiddleware());
