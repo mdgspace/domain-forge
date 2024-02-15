@@ -143,9 +143,7 @@ async function addMaps(ctx: Context) {
         `bash -c "echo 'bash ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
       );
     } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
-      env_content = env_content.replace(/\n/g, '#');
-      Deno.mkdir(`/hostpipe/${document.subdomain}`)
-      Deno.writeTextFile(`/hostpipe/${document.subdomain}/.env`,env_content)
+      Deno.writeTextFile(`/hostpipe/.env`,env_content)
       await exec(
         `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
       );
@@ -154,7 +152,6 @@ async function addMaps(ctx: Context) {
       console.log(dockerfile);
       console.log(env_content);
       console.log("fuck you bitch");
-      env_content = env_content.replace(/\n/g, '#');
       Deno.writeTextFile(`/hostpipe/Dockerfile`,dockerfile)
       Deno.writeTextFile(`/hostpipe/.env`,env_content)
       await exec(

@@ -59,10 +59,10 @@ elif [ "$arg1" = "-p" ]; then
      location / {
         proxy_pass http://localhost:$arg2;
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
      }
      charset utf-8;
      client_max_body_size 20M;
@@ -71,7 +71,7 @@ elif [ "$arg1" = "-p" ]; then
      include /etc/letsencrypt/options-ssl-nginx.conf;
      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
      }" > /etc/nginx/sites-available/$arg3.conf;
-     ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
+     sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
 
 else

@@ -1,7 +1,5 @@
 PORT_MIN=8010
 PORT_MAX=8099
-host="mdgiitr"
-http_upgrade="mdgiitr"
 flag=$1
 name=$2
 resource=$3
@@ -34,18 +32,20 @@ if [ $flag = "-g" ]; then
 
     sudo touch /etc/nginx/sites-available/$2.conf
     sudo chmod 666 /etc/nginx/sites-available/$2.conf
-    sudo echo '# Virtual Host configuration for example.com
+    sudo echo "# Virtual Host configuration for example.com
     server {
     listen 80;
     listen [::]:80;
+    listen 443 ssl;
+    listen [::]:443 ssl;
     server_name $2;
     location / {
         proxy_pass http://localhost:${available_ports[$AVAILABLE]};
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
     }
     charset utf-8;
     client_max_body_size 20M;
@@ -53,14 +53,13 @@ if [ $flag = "-g" ]; then
     ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-    }' > /etc/nginx/sites-available/$2.conf
+    }" > /etc/nginx/sites-available/$2.conf
     sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf
     sudo systemctl reload nginx
 
 else
     git clone $resource $name
-    cp Dockerfile $name/
-    cp .env $name/
+    sudo cp .env $name/
     cd $name
     sudo echo "
     FROM nginx:alpine
@@ -69,7 +68,6 @@ else
     sudo docker build -t $name .
     sudo docker run -d -p ${available_ports[$AVAILABLE]}:80 $name
     cd ..
-    sudo rm Dockerfile
     sudo rm .env
     sudo rm -rf $name
     sudo touch /etc/nginx/sites-available/$2.conf
@@ -78,14 +76,16 @@ else
   server {
      listen 80;
      listen [::]:80;
+     listen 443 ssl;
+     listen [::]:443 ssl;
      server_name $2;
      location / {
         proxy_pass http://localhost:${available_ports[$AVAILABLE]};
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
      }
      charset utf-8;
      client_max_body_size 20M;
