@@ -6,4 +6,4 @@ COPY . ./
 
 RUN deno cache src/backend/dependencies.ts
 
-CMD ["run", "--allow-net", "--allow-env", "--allow-read","--allow-run","src/backend/server.ts"]
+CMD ["run", "--allow-net", "--allow-env", "--allow-read","--allow-run","--allow-write","src/backend/server.ts"]

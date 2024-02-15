@@ -2,7 +2,6 @@ import getGithubUser from "./utils/github-user.ts";
 import { Context, exec } from "./dependencies.ts";
 import dockerize from "./utils/container.ts";
 import { checkJWT } from "./utils/jwt.ts";
-
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
 const APP_ID = Deno.env.get("MONGO_APP_ID");
 const BASE_URI =
@@ -133,6 +132,7 @@ async function addMaps(ctx: Context) {
     url = new URL(`${BASE_URI}/action/insertOne`);
     resp = await fetch(url.toString(), options);
     data = await resp.json();
+    
     ctx.response.headers.set("Access-Control-Allow-Origin", "*");
     if (document.resource_type === "URL") {
       await exec(
@@ -143,14 +143,25 @@ async function addMaps(ctx: Context) {
         `bash -c "echo 'bash ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
       );
     } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
+      env_content = env_content.replace(/\n/g, '#');
+      Deno.mkdir(`/hostpipe/${document.subdomain}`)
+      Deno.writeTextFile(`/hostpipe/${document.subdomain}/.env`,env_content)
       await exec(
-        `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource} ${env_content}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
       );
     } else if (document.resource_type === "GITHUB" && static_content == "No") {
       let dockerfile = dockerize(stack, port, build_cmds);
+      console.log(dockerfile);
+      console.log(env_content);
+      console.log("fuck you bitch");
+      env_content = env_content.replace(/\n/g, '#');
+      Deno.writeTextFile(`/hostpipe/Dockerfile`,dockerfile)
+      Deno.writeTextFile(`/hostpipe/.env`,env_content)
       await exec(
-        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ${env_content} ${dockerfile} ${port}' > /hostpipe/pipe"`,
-      );
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ${port}' > /hostpipe/pipe"`);
+      // await exec(
+      //   `bash ../../domain-forge/src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ./Dockerfile ./envtmp ${port}`
+      // );
     }
 
     (data.insertedId !== undefined)
