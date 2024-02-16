@@ -1,7 +1,4 @@
 import getGithubUser from "./utils/github-user.ts";
-import { Context, exec, Sentry } from "./dependencies.ts";
-import dockerize from "./utils/container.ts";
-import { checkJWT } from "./utils/jwt.ts";
 import DfContentMap from "./types/maps_interface.ts";
 
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;

@@ -16,8 +16,6 @@ done
 echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 if [ $flag = "-g" ]; then
-    echo "idhar";
-    echo 'hello'
     git clone $resource $name
     sudo cp Dockerfile $name/
     sudo cp .env $name/
