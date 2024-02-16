@@ -25,7 +25,7 @@ async function addSubdomain(ctx: Context) {
   } catch (e) {
     document = body;
   }
-  const copy = document;
+  const copy = { ...document };
   const token = document.token;
   delete document.token;
   delete document.port;
