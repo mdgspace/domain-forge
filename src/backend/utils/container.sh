@@ -1,32 +1,9 @@
-#!/bin/bash
-if ! command -v git >/dev/null 2>&1; then
-    echo "Git is not installed. Exiting."
-    exit 1
-fi
-if ! command -v pack >/dev/null 2>&1; then
-    echo "Buildpack cli not installed. Exiting."
-    exit 1
-fi
-if ! command -v docker >/dev/null 2>&1; then
-    echo "docker not installed. Exiting"
-    exit 1
-fi
 PORT_MIN=8010
 PORT_MAX=8099
-suffix=$(echo $RANDOM | md5sum | head -c 20)
-host="mdgiitr"
-http_upgrade="mdgiitr"
 flag=$1
-name=$2-$suffix
-env_content=$3
-resource=$4
-dockerfile=$5 
-exp_port=$6 
-echo $flag
-echo $name
-echo $resource
-echo $dockerfile
-echo $exp_port
+name=$2
+resource=$3
+exp_port=$4 
 
 available_ports=()
 
@@ -39,69 +16,83 @@ done
 echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 if [ $flag = "-g" ]; then
-    echo "hello"
+    echo "idhar";
+    echo 'hello'
     git clone $resource $name
+    sudo cp Dockerfile $name/
+    sudo cp .env $name/
     cd $name
-    touch .env
-    echo "$env_content" > .env
-    touch Dockerfile
-    echo "
-    $dockerfile
-    " > Dockerfile
     sudo docker build -t $name .
-    echo $port
-    sudo docker run -d -p ${available_ports[$AVAILABLE]}:$exp_port $name
+    echo ${available_ports[$AVAILABLE]};
+    sudo docker run -d -p ${available_ports[$AVAILABLE]}:$exp_port $2
     cd ..
-    rm -rf $name
+    sudo rm -rf $name
+    sudo rm Dockerfile
+    sudo rm .env
+
     sudo touch /etc/nginx/sites-available/$2.conf
     sudo chmod 666 /etc/nginx/sites-available/$2.conf
     sudo echo "# Virtual Host configuration for example.com
-  server {
-     listen 80;
-     listen [::]:80;
-     server_name $2;
-     location / {
+    server {
+    listen 80;
+    listen [::]:80;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name $2;
+    location / {
         proxy_pass http://localhost:${available_ports[$AVAILABLE]};
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-     }
-     }" > /etc/nginx/sites-available/$2.conf;
-     sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf;
-     sudo systemctl reload nginx;
-    
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
+    charset utf-8;
+    client_max_body_size 20M;
+    ssl_certificate /etc/letsencrypt/live/df.mdgspace.org-0001/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    }" > /etc/nginx/sites-available/$2.conf
+    sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf
+    sudo systemctl reload nginx
+
 else
     git clone $resource $name
+    sudo cp .env $name/
     cd $name
-    touch .env
-    echo "$env_content" > .env
-    touch Dockerfile
-    echo "
+    sudo echo "
     FROM nginx:alpine
     COPY . /usr/share/nginx/html
     " > Dockerfile
     sudo docker build -t $name .
     sudo docker run -d -p ${available_ports[$AVAILABLE]}:80 $name
-    sudo rm Dockerfile
     cd ..
-    rm -rf $name
+    sudo rm .env
+    sudo rm -rf $name
     sudo touch /etc/nginx/sites-available/$2.conf
     sudo chmod 666 /etc/nginx/sites-available/$2.conf
     sudo echo "# Virtual Host configuration for example.com
   server {
      listen 80;
      listen [::]:80;
+     listen 443 ssl;
+     listen [::]:443 ssl;
      server_name $2;
      location / {
         proxy_pass http://localhost:${available_ports[$AVAILABLE]};
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
      }
+     charset utf-8;
+     client_max_body_size 20M;
+     ssl_certificate /etc/letsencrypt/live/df.mdgspace.org-0001/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
+     include /etc/letsencrypt/options-ssl-nginx.conf;
+     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
      }" > /etc/nginx/sites-available/$2.conf;
      sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf;
      sudo systemctl reload nginx;

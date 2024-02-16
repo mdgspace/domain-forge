@@ -11,14 +11,16 @@ export default function dockerize(
   }).join("\n");
   if (stack == "Python") {
     dockerfile =
-      "FROM python:3.11 \n WORKDIR /app \n COPY requirements.txt . \n RUN pip install --no-cache-dir -r requirements.txt \n COPY . ." +
-      build_cmds_mapped + `\n EXPOSE ${port}\n` + execute_cmd;
+      "FROM python:3.11 \nWORKDIR /app \nCOPY requirements.txt . \nRUN pip install --no-cache-dir -r requirements.txt \nCOPY . ." +
+      build_cmds_mapped + `\nEXPOSE ${port}\n` + execute_cmd;
   } else if (stack == "NodeJS") {
     dockerfile =
-      "FROM node:latest \n WORKDIR /app \n COPY ./package*.json . \n RUN npm install \n" +
+      "FROM node:latest \n WORKDIR /app \n COPY ./package*.json . \n RUN npm install \n COPY . ." +
       build_cmds_mapped + `\n EXPOSE ${port} \n` + execute_cmd;
+    console.log(port)
   }
-  return dockerfile;
+  // dockerfile = btoa(dockerfile);
+  return dockerfile.toString();
 }
 
 // bash ./container.sh -g hack "https://github.com/angelmittal03/mdg-text.git" 'FROM node:latest
