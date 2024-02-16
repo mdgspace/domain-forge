@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  deno:
+    container_name: df_backend
+    image: df_backend
+    restart: always
+    volumes:
+      - type: bind
+        source: ../docker/named_pipe
+        target: /hostpipe
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      target: base
+    ports:
+      - "${PORT_BACKEND}:7000"
+    env_file:
+      - ../src/backend/.env
+  vue:
+    container_name: df_frontend
+    image: df_frontend
+    restart: always
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      target: base
+    ports:
+      - "${PORT_FRONTEND}:8000"
