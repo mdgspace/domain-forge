@@ -10,24 +10,26 @@ async function addScript(
   port: string,
   build_cmds: string,
 ) {
-  if (document.resource_type === "URL") {
-    await exec(
-      `bash -c "echo 'bash ../../src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
-    );
-  } else if (document.resource_type === "PORT") {
-    await exec(
-      `bash -c "echo 'bash ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
-    );
-  } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
-    await exec(
-      `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource} ${env_content}' > /hostpipe/pipe"`,
-    );
-  } else if (document.resource_type === "GITHUB" && static_content == "No") {
-    const dockerfile = dockerize(stack, port, build_cmds);
-    await exec(
-      `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ${env_content} ${dockerfile} ${port}' > /hostpipe/pipe"`,
-    );
-  }
+    if (document.resource_type === "URL") {
+      await exec(
+        `bash -c "echo 'bash ../../src/backend/utils/automate.sh -u ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
+      );
+    } else if (document.resource_type === "PORT") {
+      await exec(
+        `bash -c "echo 'bash ../../src/backend/utils/automate.sh -p ${document.resource} ${document.subdomain}' > /hostpipe/pipe"`,
+      );
+    } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
+      Deno.writeTextFile(`/hostpipe/.env`,env_content)
+      await exec(
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -s ${document.subdomain} ${document.resource}' > /hostpipe/pipe"`,
+      );
+    } else if (document.resource_type === "GITHUB" && static_content == "No") {
+      let dockerfile = dockerize(stack, port, build_cmds);
+      Deno.writeTextFile(`/hostpipe/Dockerfile`,dockerfile)
+      Deno.writeTextFile(`/hostpipe/.env`,env_content)
+      await exec(
+        `bash -c "echo 'bash ../../src/backend/utils/container.sh -g ${document.subdomain} ${document.resource} ${port}' > /hostpipe/pipe"`);
+    }
 }
 
 async function deleteScript(document: DfContentMap) {
