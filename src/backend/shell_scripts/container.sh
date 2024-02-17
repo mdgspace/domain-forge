@@ -16,13 +16,14 @@ done
 echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 if [ $flag = "-g" ]; then
+    echo "Creating subdomain $name"
     git clone $resource $name
     sudo cp Dockerfile $name/
     sudo cp .env $name/
     cd $name
     sudo docker build -t $name .
     echo ${available_ports[$AVAILABLE]};
-    sudo docker run -d -p ${available_ports[$AVAILABLE]}:$exp_port $2
+    sudo docker run --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $2
     cd ..
     sudo rm -rf $name
     sudo rm Dockerfile
@@ -56,6 +57,7 @@ if [ $flag = "-g" ]; then
     sudo systemctl reload nginx
 
 else
+    echo "Creating subdomain $name"
     git clone $resource $name
     sudo cp .env $name/
     cd $name
@@ -64,7 +66,7 @@ else
     COPY . /usr/share/nginx/html
     " > Dockerfile
     sudo docker build -t $name .
-    sudo docker run -d -p ${available_ports[$AVAILABLE]}:80 $name
+    sudo docker run --name=$name -d -p ${available_ports[$AVAILABLE]}:80 $name
     cd ..
     sudo rm .env
     sudo rm -rf $name

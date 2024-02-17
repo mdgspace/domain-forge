@@ -7,12 +7,13 @@ id -u
 
 # Assign the arguments to variables
 arg1=$1
-host="mdgiitr"
-# Print the arguments
-echo "Argument 1: $arg1"
 
+echo "Deleting... $arg1"
 
 sudo rm /etc/nginx/sites-available/$1.conf
 sudo rm /etc/nginx/sites-enabled/$1.conf
+sudo docker stop $1
+sudo docker rm $1
+sudo docker rmi $1
 
 sudo systemctl reload nginx
