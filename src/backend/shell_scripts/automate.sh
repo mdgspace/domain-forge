@@ -13,14 +13,9 @@ fi
 arg1=$1
 arg2=$2
 arg3=$3
-host="mdgiitr"
-http_upgrade="mdgiitr"
-# Print the arguments
-echo "Argument 1: $arg1"
-echo "Argument 2: $arg2"
-echo "Argument 3: $arg3"
 
 if [ "$arg1" = "-u" ]; then
+    echo "Creating subdomain $arg3 which redirects to $arg2"
     echo "Generating url.conf"
     echo "url: $arg2"
     sudo touch /etc/nginx/sites-available/$arg3.conf
@@ -45,6 +40,7 @@ if [ "$arg1" = "-u" ]; then
      sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
 elif [ "$arg1" = "-p" ]; then
+    echo "Creating subdomain $arg3 which redirects to port $2"
     echo "Generating port.conf"
     echo "redirect: $arg2"
     sudo touch /etc/nginx/sites-available/$arg3.conf
