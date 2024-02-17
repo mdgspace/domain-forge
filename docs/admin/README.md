@@ -17,12 +17,13 @@ This step involves the configuration of three `.env` files:
     PORT_FRONTEND=XXXX
     ```
 - Backend env:   
-      As suggested in the `.env.sample` present at the `src/backend` directory, create a file named `.env` and copy the contents as shown, replacing *"..."* with the respective values for your registered github oauth application's **GITHUB_OAUTH_CLIENT_ID** and **GITHUB_OAUTH_CLIENT_SECRET**. Fill in the **MONGO_API_KEY** and **MONGO_APP_ID** you obtain upon creating a cluster in *MongoDB Atlas*
+      As suggested in the `.env.sample` present at the `src/backend` directory, create a file named `.env` and copy the contents as shown, replacing *"..."* with the respective values for your registered github oauth application's **GITHUB_OAUTH_CLIENT_ID** and **GITHUB_OAUTH_CLIENT_SECRET**. Fill in the **MONGO_API_KEY** and **MONGO_APP_ID** you obtain upon creating a cluster in *MongoDB Atlas*. Also fill in **SENTRY_DSN**.
     ```
     GITHUB_OAUTH_CLIENT_ID=...
     GITHUB_OAUTH_CLIENT_SECRET=...
     MONGO_API_KEY=...
     MONGO_APP_ID=...
+    SENTRY_DSN=...
     ```
 - Frontend env:   
       As suggested in the `.env.sample` present at the `src/frontend` directory, create a file named `.env` and copy the contents as shown, replacing *"..."* with the respective values for your registered github oauth application's **VITE_APP_GITHUB_OAUTH_CLIENT_ID** and **VITE_APP_GITHUB_OAUTH_CLIENT_SECRET**. For the **VITE_APP_GITHUB_OAUTH_REDIRECT_URL** enter the public url of the application's `/login` route. (Example: `http://df.mdgspace.org/login`). Also, add the port at which your backend is running in place of *"XXXX"*.
@@ -45,12 +46,13 @@ docker compose up --build -d
 
 ### 4. Setup Named Pipes
 
+Create a pipe in the `docker/named_pipe` directory by executing `mkfifo docker/named_pipe/pipe`.
 Navigate to the `docker/named_pipe` directory and execute the `listen.sh` script to allow the application to run commands on the host.
 ```bash
 cd docker/named_pipe
 ./listen.sh
 ```
-> Make sure to check the permissions of the `listen.sh` file. You can change them using the `chmod` command.
+> Make sure to check the permissions of the `listen.sh` file. You can change them using the `chmod` command. You can also add this to `crontab` to execute script on reboot of your server.
 
 ### 5. Installing and Configuring NGINX
 
