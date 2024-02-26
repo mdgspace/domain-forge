@@ -22,6 +22,8 @@
 
 body {
   display: inline;
+  overflow: hidden; 
+  margin: 0; 
 }
 
 #app {
@@ -51,6 +53,7 @@ body {
   display:flex;
   flex-direction: column;
   width:40rem;
+  margin-top: 30px;
 }
 #home-container{
   display:flex;
