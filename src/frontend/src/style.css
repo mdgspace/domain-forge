@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk&display=swap');
 * {
   text-align: left;
   padding: 0;
@@ -13,7 +13,7 @@
   background-color: #ffffff;
   overflow-y: scroll;
   font-synthesis: none;
-  font-family: 'Chakra Petch', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -22,6 +22,8 @@
 
 body {
   display: inline;
+  overflow: hidden; 
+  margin: 0; 
 }
 
 #app {
@@ -51,6 +53,7 @@ body {
   display:flex;
   flex-direction: column;
   width:40rem;
+  margin-top: 30px;
 }
 #home-container{
   display:flex;

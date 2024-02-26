@@ -1,99 +1,89 @@
-
 <template>
   <div class="modal-overlay">
     <div class="modal">
       <h5>Enter the details for creating your subdomain:</h5>
-      <p>Subdomain:<br><input class="subdomain" v-model="subdomain" />.df.mdgspace.org</p>
+      <p>Subdomain:<br><input class="input-field" v-model="subdomain" />.df.mdgspace.org</p>
       <p>Resource Type:<br>
         <select class="dropdown" v-model="resource_type">
-          <option>URL</option>
-          <option>PORT</option>
-          <option>GITHUB</option>
+          <option v-for="option in resourceTypes" :key="option">{{ option }}</option>
         </select>
       </p>
-      <p>Resource:<br><input class="resource-link" v-model="resource" /></p>
-      <p v-show="resource_type =='GITHUB'">Your env contents in format<br>key1=value1<br>key2=value2<br>
-        <label for="static">Do you have static content on your repo?</label>
-        <br>
-<label for="radio">Yes/No</label>
-        <input name="radio" type="radio" value="Yes" v-model="static_content">
-        <input name="radio" type="radio" value="No" v-model="static_content">
-        <textarea name="env" id="" cols="50" rows="10" v-model="env_content" value="key1=value1"></textarea>
-        </p>
-        <p v-show="static_content=='No'">
-          Stack:<br>
+      <p>Resource:<br><input class="input-field" v-model="resource" /></p>
+      <div v-if="resource_type === 'GITHUB'" class="github-section">
+        <p>Your env contents:</p>
+        <textarea class="code-textarea" cols="50" rows="10" v-model="env_content"></textarea>
+        <div class="static-content">
+          <label for="static">Do you have static content on your repo?</label><br>
+          <input name="radio" type="radio" value="Yes" v-model="static_content"> Yes
+          <input name="radio" type="radio" value="No" v-model="static_content"> No
+        </div>
+        <div v-if="static_content === 'No'" class="stack-section">
+        <p>Stack:</p>
         <select class="dropdown" v-model="stack">
-          <option>Python</option>
-          <option>NodeJS</option>
+          <option v-for="option in stacks" :key="option">{{ option }}</option>
         </select>
-        <br>
-          Port:<br><input v-model="port" />
-          <textarea name="build_cmds" id="" cols="50" rows="10" v-model="build_cmds" value="Enter each build command on a new line  assuming you are inside the project directory"></textarea>
-      </p>
-      <table style="width: 100%;">
-        <tr>
-          <td style="text-align: center;"><button style="background-color: #ffffff; color: #2080F6;" @click="$emit('close-modal')">Cancel</button></td>
-          <td style="text-align: center;"><button @click="subimitForm()">Submit</button></td>
-        </tr>
-      </table>
+        <p>Port:<br><input class="input-field" v-model="port" /></p>
+        <p>Build Commands:<br><textarea class="textarea-field" cols="50" rows="10" v-model="build_cmds"></textarea></p>
+      </div>
+      </div>
+      <div class="button-container">
+        <button class="cancel-button" @click="closeModal">Cancel</button>
+        <button class="submit-button" @click="submitForm">Submit</button>
+      </div>
     </div>
     <div class="close">
-      <button style="width: 20px;background-color: #ffffff; color: #121212; " @click="$emit('close-modal')">X</button>
+      <button class="close-button" @click="closeModal">X</button>
     </div>
   </div>
 </template>
+
 <script>
 import { create } from '../utils/create.ts';
+
 export default {
   data() {
     return {
-      subdomain: "",
-      resource_type: "",
-      resource: "",
-      env_content: "",
-      static_content:"False",
-      port:"",
-      stack:"",
-      build_cmds:"",
-
-
+      subdomain: '',
+      resource_type: '',
+      resource: '',
+      env_content: 'key1 = value1', // Default prompt text
+      static_content: 'No',
+      port: '',
+      stack: '',
+      build_cmds: '',
+      resourceTypes: ['URL', 'PORT', 'GITHUB'],
+      stacks: ['Python', 'NodeJS']
     };
   },
   methods: {
-    subimitForm() {
-      console.log(this.subdomain, this.resource_type, this.resource)
-      create(this.subdomain, this.resource_type, this.resource,this.env_content,this.static_content,this.port,this.stack,this.build_cmds).then((res) => {
-        console.log(res);
-        if(res=="Submitted"){
-        this.$emit('close-modal');
-        window.location.reload();
-        }else{
-          this.$emit('close-modal');
-          alert("failed to create subdomain")
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-
-        }
-      })
-
+    submitForm() {
+      console.log(this.subdomain, this.resource_type, this.resource);
+      create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content, this.port, this.stack, this.build_cmds)
+        .then((res) => {
+          console.log(res);
+          if (res === 'Submitted') {
+            this.closeModalAndReload();
+          } else {
+            this.closeModal();
+            alert('Failed to create subdomain');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        });
+    },
+    closeModal() {
+      this.$emit('close-modal');
+    },
+    closeModalAndReload() {
+      this.closeModal();
+      window.location.reload();
     }
   }
 };
 </script>
+
 <style scoped>
-.subdomain {
-  width: 75%;
-}
-
-.dropdown {
-  width: 100%;
-}
-
-.resource-link {
-  width: 100%;
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -102,46 +92,90 @@ export default {
   right: 0;
   display: flex;
   justify-content: center;
-  background-color: #000000da;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal {
-  text-align: center;
   background-color: #ffffff;
-  height: 75%;
-  width: 600px;
-  margin-top: 8%;
-  padding: 10px 0;
-  border-radius: 20px;
-  overflow-y: scroll;
-}
-
-.close {
-  margin: 9% 0 0 15px;
-  cursor: pointer;
-}
-
-p {
-  font-size: 16px;
-  color: #121212;
-  margin: 30px 25px;
+  border-radius: 10px;
+  padding: 20px;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+  overflow-y: auto; /* Enable vertical scroll if content exceeds height */
+  max-height: 80vh; /* Limit height and enable scroll if content exceeds viewport height */
 }
 
 .modal h5 {
-  font-size: 20px;
-  margin: 20px 20px;
+  font-size: 18px;
+  margin-bottom: 15px;
 }
 
-label {
-  margin: 5px 5px;
-}
-
-button {
-  text-align: center;
-  padding: 2%;
-  margin: 1%;
+.input-field,
+.dropdown,
+.textarea-field,
+.code-textarea {
+  width: 100%;
+  margin-bottom: 15px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
   font-size: 14px;
+}
+
+.code-textarea {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #f7f7f7;
+}
+
+.github-section {
+  margin-top: 15px;
+}
+
+.stack-section {
+  margin-top: 15px;
+}
+
+.static-content {
   margin-top: 10px;
-  width: 250px;
-}</style>
-  
+  margin-bottom: 15px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.cancel-button,
+.submit-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cancel-button {
+  background-color: #ccc;
+  color: #000;
+}
+
+.submit-button {
+  background-color: #2080f6;
+  color: #fff;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.close-button {
+  border: none;
+  background-color: transparent;
+  font-size: 20px;
+  cursor: pointer;
+}
+</style>

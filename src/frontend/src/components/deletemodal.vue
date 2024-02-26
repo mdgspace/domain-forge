@@ -1,60 +1,49 @@
-  <template>
-    <div class="modal-overlay" v-if="selectedItem != null">
-      <div class="modal">
-        <h5>Delete Item</h5>
-        <p>Are you sure you want to delete this item?</p>
-        <p>Subdomain: {{ selectedItem.subdomain }}</p>
-        <p>Resource Type: {{ selectedItem.resource_type }}</p>
-        <p>Resource: {{ selectedItem.resource }}</p>
-      <table style="width: 100%;">
-        <tr>
-          <td style="text-align: center;"><button style="background-color: #ffffff; color: #2080F6;" @click="$emit('close-modal')">Cancel</button></td>
-          <td style="text-align: center;"><button @click="deleteItem">Delete</button></td>
-        </tr>
-      </table>
-      </div>
-      <div class="close">
-        <button style="width: 20px;background-color: #ffffff; color: #121212; " @click="$emit('close-modal')">X</button>
+<template>
+  <div class="modal-overlay" v-if="selectedItem">
+    <div class="modal">
+      <h5>Delete Item</h5>
+      <p>Are you sure you want to delete this item?</p>
+      <p>Subdomain: {{ selectedItem.subdomain }}</p>
+      <p>Resource Type: {{ selectedItem.resource_type }}</p>
+      <p>Resource: {{ selectedItem.resource }}</p>
+      <div class="button-container">
+        <button class="cancel-button" @click="closeModal">Cancel</button>
+        <button class="delete-button" @click="deleteItem">Delete</button>
       </div>
     </div>
-  </template>
-  
-  <script>
-import { deleteSubDomain } from '../utils/delete.ts'
+    <div class="close">
+      <button class="close-button" @click="closeModal">X</button>
+    </div>
+  </div>
+</template>
 
-  export default {
-    props: {
-      selectedItem: {
-        type: Object,
-        required: true
-      }
-    },
-    methods: {
-      deleteItem() {
-        console.log(`Deleting item: ${JSON.stringify(this.selectedItem)}`);
-        deleteSubDomain(this.selectedItem.subdomain).then((response) => {
-        console.log(response)
-        window.location.reload()
-      })
-        this.$emit('close-modal');
-      }
+<script>
+import { deleteSubDomain } from '../utils/delete.ts';
+
+export default {
+  props: {
+    selectedItem: {
+      type: Object,
+      required: true
     }
-  };
-  </script>
+  },
+  methods: {
+    deleteItem() {
+      console.log(`Deleting item: ${JSON.stringify(this.selectedItem)}`);
+      deleteSubDomain(this.selectedItem.subdomain).then((response) => {
+        console.log(response);
+        window.location.reload();
+      });
+      this.closeModal();
+    },
+    closeModal() {
+      this.$emit('close-modal');
+    }
+  }
+};
+</script>
 
 <style scoped>
-.subdomain {
-  width: 75%;
-}
-
-.dropdown {
-  width: 100%;
-}
-
-.resource-link {
-  width: 100%;
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -63,7 +52,8 @@ import { deleteSubDomain } from '../utils/delete.ts'
   right: 0;
   display: flex;
   justify-content: center;
-  background-color: #00000050;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal {
@@ -72,35 +62,44 @@ import { deleteSubDomain } from '../utils/delete.ts'
   height: 60%;
   width: 600px;
   margin-top: 8%;
-  padding: 10px 0;
+  padding: 20px;
   border-radius: 20px;
 }
 
 .close {
-  margin: 9% 0 0 15px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.cancel-button,
+.delete-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
   cursor: pointer;
 }
 
-p {
-  font-size: 16px;
-  color: #121212;
-  margin: 30px 25px;
+.cancel-button {
+  background-color: #ccc;
+  color: #000;
 }
 
-.modal h5 {
+.delete-button {
+  background-color: #2080f6;
+  color: #fff;
+}
+
+.close-button {
+  border: none;
+  background-color: transparent;
   font-size: 20px;
-  margin: 20px 20px;
+  cursor: pointer;
 }
-
-label {
-  margin: 5px 5px;
-}
-
-button {
-  text-align: center;
-  padding: 2%;
-  margin: 1%;
-  font-size: 14px;
-  margin-top: 30px;
-  width: 250px;
-}</style>
+</style>
