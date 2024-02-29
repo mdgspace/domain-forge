@@ -7,7 +7,7 @@ import {
 import Home from "../components/Home.vue";
 import Login from "../components/Login.vue";
 import NotFound from "../components/404.vue";
-import { check_jwt } from "../utils/authorize";
+import { check_jwt } from "../utils/authorize.ts";
 
 const routes = [
   {
@@ -19,9 +19,9 @@ const routes = [
       from: RouteLocationNormalized,
       next: NavigationGuardNext,
     ) {
-      if (!localStorage.getItem("JWTUser")) next({ name: "Login" });
+      if (!localStorage.getItem("JWTUser") || !localStorage.getItem("provider")) next({ name: "Login" });
       else {
-        const user = await check_jwt(localStorage.getItem("JWTUser")!);
+        const user = await check_jwt(localStorage.getItem("JWTUser")!,localStorage.getItem("provider")!);
         console.log(user);
         if (user == "") next({ name: "Login" });
         else next();

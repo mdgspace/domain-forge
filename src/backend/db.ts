@@ -1,8 +1,9 @@
 import getProviderUser from "./utils/get-user.ts";
-import { Context } from "./dependencies.ts";
+import DfContentMap from "./types/maps_interface.ts";
 
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
 const APP_ID = Deno.env.get("MONGO_APP_ID");
+
 const BASE_URI =
   `https://ap-south-1.aws.data.mongodb-api.com/app/${APP_ID}/endpoint/data/v1`;
 const DATA_SOURCE = "domain-forge-demo-db";
@@ -18,31 +19,39 @@ const options = {
   body: "",
 };
 
+const MONGO_URLs = {
+  update: new URL(`${BASE_URI}/action/updateOne`),
+  find: new URL(`${BASE_URI}/action/find`),
+  insert: new URL(`${BASE_URI}/action/insertOne`),
+  delete: new URL(`${BASE_URI}/action/deleteOne`),
+};
+
+// Function to update access token on db if user exists
 async function checkUser(accessToken: string, provider: string) {
-  const auth_query = {
+  const userId = await getProviderUser(accessToken, provider);
+
+  const query = {
     collection: "user_auth",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: {},
-    update: {},
-  };
-  const userId = await getProviderUser(accessToken, provider);
-  auth_query.filter = { [`${provider}Id`]: userId };
-  auth_query.update = {
-    $set: {
-      [`${provider}Id`]: userId,
-      "authToken": accessToken,
+    filter: { [`${provider}Id`]: userId },
+    update: {
+      $set: {
+        [`${provider}Id`]: userId,
+        "authToken": accessToken,
+      },
     },
   };
-  const update_url = new URL(`${BASE_URI}/action/updateOne`);
-  options.body = JSON.stringify(auth_query);
-  const status_resp = await fetch(update_url.toString(), options);
+
+  options.body = JSON.stringify(query);
+
+  const status_resp = await fetch(MONGO_URLs.update.toString(), options);
   const status = await status_resp.json();
   return { status, userId };
 }
 
-async function getMaps(ctx: Context) {
-  const author = ctx.request.url.searchParams.get("user");
+// Get all content maps corresponding to user
+async function getMaps(author: string) {
   const query = {
     collection: "content_maps",
     database: DATABASE,
@@ -50,62 +59,56 @@ async function getMaps(ctx: Context) {
     filter: { "author": author },
   };
   options.body = JSON.stringify(query);
-  const url = new URL(`${BASE_URI}/action/find`);
-  const resp = await fetch(url.toString(), options);
+  const resp = await fetch(MONGO_URLs.find.toString(), options);
   const data = await resp.json();
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
-  ctx.response.body = data.documents;
+  return data;
 }
-async function addMaps(ctx: Context) {
-  if (!ctx.request.hasBody) {
-    ctx.throw(415);
-  }
-  let document;
-  const body = await ctx.request.body().value;
-  try {
-    document = JSON.parse(body);
-  } catch (e) {
-    document = body;
-  }
-  const query = {
-    collection: "content_maps",
-    database: DATABASE,
-    dataSource: DATA_SOURCE,
-    document: document,
-  };
-  options.body = JSON.stringify(query);
-  const url = new URL(`${BASE_URI}/action/insertOne`);
-  const resp = await fetch(url.toString(), options);
-  const data = await resp.json();
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
-  (data.insertedId !== undefined)
-    ? ctx.response.body = data
-    : ctx.response.body = { "status": "failed" };
-}
-async function deleteMaps(ctx: Context) {
-  if (!ctx.request.hasBody) {
-    ctx.throw(415);
-  }
-  let filter;
-  const body = await ctx.request.body().value;
-  try {
-    filter = JSON.parse(body);
-  } catch (e) {
-    filter = body;
-  }
 
+// Add content maps
+async function addMaps(document: DfContentMap) {
   const query = {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: filter,
+    filter: { "subdomain": document.subdomain },
   };
   options.body = JSON.stringify(query);
-  const url = new URL(`${BASE_URI}/action/deleteOne`);
-  const resp = await fetch(url.toString(), options);
+
+  let resp = await fetch(MONGO_URLs.find.toString(), options);
+  let data = await resp.json();
+
+  if (data.documents.length == 0) {
+    const query = {
+      collection: "content_maps",
+      database: DATABASE,
+      dataSource: DATA_SOURCE,
+      document: document,
+    };
+
+    options.body = JSON.stringify(query);
+    resp = await fetch(MONGO_URLs.insert.toString(), options);
+    data = await resp.json();
+
+    return (data.insertedId !== undefined);
+  } else {
+    return false;
+  }
+}
+
+// Delete content maps
+async function deleteMaps(document: DfContentMap) {
+  const query = {
+    collection: "content_maps",
+    database: DATABASE,
+    dataSource: DATA_SOURCE,
+    filter: document,
+  };
+  options.body = JSON.stringify(query);
+
+  const resp = await fetch(MONGO_URLs.delete.toString(), options);
   const data = await resp.json();
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
-  ctx.response.body = data;
+
+  return data;
 }
 
 export { addMaps, checkUser, deleteMaps, getMaps };

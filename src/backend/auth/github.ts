@@ -1,11 +1,6 @@
-import { Context, create, verify } from "../dependencies.ts";
+import { Context, Sentry } from "../dependencies.ts";
 import { checkUser } from "../db.ts";
-
-const key = await crypto.subtle.generateKey(
-  { name: "HMAC", hash: "SHA-512" },
-  true,
-  ["sign", "verify"]
-);
+import { checkJWT, createJWT } from "../utils/jwt.ts";
 
 async function githubAuth(ctx: Context, id: string, secret: string) {
   await authenticateAndCreateJWT(ctx, id, secret, "github");
@@ -25,7 +20,6 @@ async function authenticateAndCreateJWT(
     ctx.throw(415);
   }
   const code = await ctx.request.body().value;
-  console.log(code);
   const oauthUrl =
     provider === "github"
       ? "https://github.com/login/oauth/access_token"
@@ -40,11 +34,17 @@ async function authenticateAndCreateJWT(
 
   if (code !== null) {
     const rootUrl = new URL(oauthUrl);
-    rootUrl.search = new URLSearchParams({
+    rootUrl.search = provider === "github"? new URLSearchParams({
       client_id: id,
       client_secret: secret,
       code,
-    }).toString();
+    }).toString() : provider === "gitlab"? new URLSearchParams({
+      client_id: id,
+      client_secret: secret,
+      code,
+      grant_type: "authorization_code",
+      redirect_uri: "http://localhost:7777/login"
+    }).toString() : "";
 
     const resp = await fetch(rootUrl.toString(), {
       method: "POST",
@@ -54,18 +54,14 @@ async function authenticateAndCreateJWT(
     });
 
     const body = await resp.json();
+
     const { status, userId } = await checkUser(body.access_token, provider);
 
     ctx.response.headers.set("Access-Control-Allow-Origin", "*");
 
     if (status.matchedCount == 1) {
-      const id_jwt = await create(
-        { alg: "HS512", typ: "JWT" },
-        {
-          [`${provider}Id`]: userId,
-        },
-        key
-      );
+      const id_jwt = await createJWT(provider, userId);
+      Sentry.captureMessage("User " + userId + " logged in", "info");
       ctx.response.body = id_jwt;
     } else {
       ctx.response.body = "not authorized";
@@ -80,14 +76,16 @@ async function handleJwtAuthentication(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
-  const jwt_token = await ctx.request.body().value;
-  const provider = jwt_token.startsWith("github") ? "github" : "gitlab";
+  const body = await ctx.request.body().value;
+  let document;
   try {
-    const payload = await verify(jwt_token, key);
-    ctx.response.body = payload[`${provider}Id`]!;
-  } catch (error) {
-    ctx.response.body = "not verified";
+    document = JSON.parse(body);
+  } catch (e) {
+    document = body;
   }
+  const jwt_token = document.jwt_token;
+  const provider = document.provider;
+  ctx.response.body = await checkJWT(provider, jwt_token);
 }
 
 export { githubAuth, gitlabAuth, handleJwtAuthentication };

@@ -5,6 +5,10 @@ services:
     container_name: df_backend
     image: df_backend
     restart: always
+    volumes:
+      - type: bind
+        source: ../docker/named_pipe
+        target: /hostpipe
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend

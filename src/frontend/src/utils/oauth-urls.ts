@@ -1,6 +1,7 @@
 function oauthUrl(provider: string) {
   let rootUrl: string, clientId: string, redirectUri: string, scope: string;
   const responseType = "code"; 
+  console.log(provider);
   if (provider === "github") {
     rootUrl = "https://github.com/login/oauth/authorize";
     clientId = import.meta.env.VITE_APP_GITHUB_OAUTH_CLIENT_ID;

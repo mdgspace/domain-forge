@@ -1,4 +1,4 @@
-import router from "../router/index";
+import router from "../router/index.ts";
 
 const backend = import.meta.env.VITE_APP_BACKEND;
 
@@ -37,7 +37,7 @@ async function authorize(code: string, provider: string) {
   }
 }
 
-async function check_jwt(token: string) {
+async function check_jwt(token: string, provider: string) {
   const rootUrl = new URL(`${backend}/auth/jwt`);
   if (token) {
     const resp = await fetch(rootUrl.toString(), {
@@ -45,11 +45,14 @@ async function check_jwt(token: string) {
       headers: {
         "Accept": "application/json",
       },
-      body: token,
+      body: JSON.stringify({
+        "jwt_token": token,
+        "provider": provider,
+      }),
     });
-    const githubId = await resp.text();
-    if (githubId !== "not verified") {
-      return githubId;
+    const userId = await resp.text();
+    if (userId !== "not verified") {
+      return userId;
     } else return "";
   } else return "";
 }
