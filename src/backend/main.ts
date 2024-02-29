@@ -6,7 +6,8 @@ import { addMaps, deleteMaps, getMaps } from "./db.ts";
 async function getSubdomains(ctx: Context) {
   const author = ctx.request.url.searchParams.get("user");
   const token = ctx.request.url.searchParams.get("token");
-  if (author != await checkJWT(token!)) {
+  const provider = ctx.request.url.searchParams.get("provider");
+  if (author != await checkJWT(provider!,token!)) {
     ctx.throw(401);
   }
   const data = await getMaps(author);
@@ -27,13 +28,15 @@ async function addSubdomain(ctx: Context) {
   }
   const copy = { ...document };
   const token = document.token;
+  const provider = document.provider;
   delete document.token;
+  delete document.provider;
   delete document.port;
   delete document.build_cmds;
   delete document.stack;
   delete document.env_content;
   delete document.static_content;
-  if (document.author != await checkJWT(token)) {
+  if (document.author != await checkJWT(provider,token)) {
     ctx.throw(401);
   }
   const success: boolean = await addMaps(document);
@@ -71,8 +74,10 @@ async function deleteSubdomain(ctx: Context) {
   }
   const author = document.author;
   const token = document.token;
+  const provider = document.provider;
   delete document.token;
-  if (author != await checkJWT(token)) {
+  delete document.provider;
+  if (author != await checkJWT(provider,token)) {
     ctx.throw(401);
   }
   const data = await deleteMaps(document);

@@ -1,4 +1,4 @@
-import getGithubUser from "./utils/github-user.ts";
+import getProviderUser from "./utils/get-user.ts";
 import DfContentMap from "./types/maps_interface.ts";
 
 const DATA_API_KEY = Deno.env.get("MONGO_API_KEY")!;
@@ -27,17 +27,17 @@ const MONGO_URLs = {
 };
 
 // Function to update access token on db if user exists
-async function checkUser(accessToken: string) {
-  const githubId = await getGithubUser(accessToken);
+async function checkUser(accessToken: string, provider: string) {
+  const userId = await getProviderUser(accessToken, provider);
 
   const query = {
     collection: "user_auth",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: { "githubId": githubId },
+    filter: { [`${provider}Id`]: userId },
     update: {
       $set: {
-        "githubId": githubId,
+        [`${provider}Id`]: userId,
         "authToken": accessToken,
       },
     },
@@ -47,7 +47,7 @@ async function checkUser(accessToken: string) {
 
   const status_resp = await fetch(MONGO_URLs.update.toString(), options);
   const status = await status_resp.json();
-  return { status, githubId };
+  return { status, userId };
 }
 
 // Get all content maps corresponding to user

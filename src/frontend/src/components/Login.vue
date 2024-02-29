@@ -32,8 +32,14 @@
 import { authorize } from '../utils/authorize';
 import { useRouter } from "vue-router";
 
-const code = useRouter().currentRoute.value.query.code;
-authorize(code);
+
+const route = useRouter().currentRoute.value;
+const code = route.query.code;
+const provider = localStorage.getItem("provider");
+
+if (code && provider) {
+  authorize(code, provider);
+}
 </script>
 <script>
 import loginmodal from './loginmodal.vue';

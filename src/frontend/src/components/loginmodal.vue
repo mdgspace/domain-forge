@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { githubUrl } from '../utils/github-url.ts';
+import { oauthUrl } from '../utils/oauth-urls';
 </script>
 
 <script>
@@ -31,11 +31,8 @@ export default {
       window.location.reload();
     },
     loginWith(service) {
-      if (service === 'github') {
-        window.location.href = githubUrl();
-      } else if (service === 'gitlab') {
-        // Implement Gitlab login logic
-      }
+      localStorage.setItem("provider", service);
+      window.location.href = oauthUrl(service);
     }
   }
 };

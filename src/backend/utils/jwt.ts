@@ -6,17 +6,17 @@ const key = await crypto.subtle.generateKey(
   ["sign", "verify"],
 );
 
-async function createJWT(githubId: string) {
+async function createJWT(provider: string, githubId: string) {
   const token = await create({ alg: "HS512", typ: "JWT" }, {
-    githubId: githubId,
+    [`${provider}Id`] : githubId,
   }, key);
   return token;
 }
 
-async function checkJWT(token: string) {
+async function checkJWT(provider: string, token: string) {
   try {
     const payload = await verify(token, key);
-    return payload.githubId!;
+    return payload[`${provider}Id`]!;
   } catch (error) {
     return "not verified";
   }
