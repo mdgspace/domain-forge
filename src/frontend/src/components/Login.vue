@@ -54,10 +54,6 @@ export default {
 </script>
 
 <style scoped>
-button {
-  width: 10rem;
-}
-
 .brand-logo {
   height: 30px;
   margin-right: 10px; 
@@ -136,6 +132,7 @@ header {
 }
 
 .login-button {
+  width: 10rem;
   padding: 8px 4px;
   font-size: 14px;
   background-color: #007bff;
@@ -162,6 +159,8 @@ footer {
   width: 100%;
   background-color: #ffffff;
   padding: 20px 0;
+  align-items: center;
+  align-self: center;
 }
 
 footer p {

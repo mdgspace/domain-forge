@@ -6,26 +6,31 @@ async function githubAuth(ctx: Context, id: string, secret: string) {
   await authenticateAndCreateJWT(ctx, id, secret, "github");
 }
 
-async function gitlabAuth(ctx: Context, id: string, secret: string) {
-  await authenticateAndCreateJWT(ctx, id, secret, "gitlab");
+async function gitlabAuth(
+  ctx: Context,
+  id: string,
+  secret: string,
+  frontend: string,
+) {
+  await authenticateAndCreateJWT(ctx, id, secret, "gitlab", frontend);
 }
 
 async function authenticateAndCreateJWT(
   ctx: Context,
   id: string,
   secret: string,
-  provider: string
+  provider: string,
+  frontend = "",
 ) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
   const code = await ctx.request.body().value;
-  const oauthUrl =
-    provider === "github"
-      ? "https://github.com/login/oauth/access_token"
-      : provider === "gitlab"
-      ? "https://gitlab.com/oauth/token"
-      : null;
+  const oauthUrl = provider === "github"
+    ? "https://github.com/login/oauth/access_token"
+    : provider === "gitlab"
+    ? "https://gitlab.com/oauth/token"
+    : null;
 
   if (oauthUrl === null) {
     ctx.response.body = "Unsupported provider";
@@ -34,17 +39,21 @@ async function authenticateAndCreateJWT(
 
   if (code !== null) {
     const rootUrl = new URL(oauthUrl);
-    rootUrl.search = provider === "github"? new URLSearchParams({
-      client_id: id,
-      client_secret: secret,
-      code,
-    }).toString() : provider === "gitlab"? new URLSearchParams({
-      client_id: id,
-      client_secret: secret,
-      code,
-      grant_type: "authorization_code",
-      redirect_uri: "http://localhost:7777/login"
-    }).toString() : "";
+    rootUrl.search = provider === "github"
+      ? new URLSearchParams({
+        client_id: id,
+        client_secret: secret,
+        code,
+      }).toString()
+      : provider === "gitlab"
+      ? new URLSearchParams({
+        client_id: id,
+        client_secret: secret,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: `${frontend}/login`,
+      }).toString()
+      : "";
 
     const resp = await fetch(rootUrl.toString(), {
       method: "POST",

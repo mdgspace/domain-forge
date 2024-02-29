@@ -17,9 +17,10 @@ export {
   create,
   exec,
   isHttpError,
+  oakCors,
   Router,
   Sentry,
   Session,
   Status,
-  verify, oakCors,
+  verify,
 };

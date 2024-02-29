@@ -2,12 +2,17 @@ import {
   Application,
   Context,
   isHttpError,
+  oakCors,
   Router,
   Sentry,
   Session,
-  Status, oakCors
+  Status,
 } from "./dependencies.ts";
-import { githubAuth, gitlabAuth, handleJwtAuthentication } from "./auth/github.ts";
+import {
+  githubAuth,
+  gitlabAuth,
+  handleJwtAuthentication,
+} from "./auth/github.ts";
 import { addSubdomain, deleteSubdomain, getSubdomains } from "./main.ts";
 
 const router = new Router();
@@ -19,6 +24,7 @@ const githubClientSecret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET")!;
 const gitlabClientId: string = Deno.env.get("GITLAB_OAUTH_CLIENT_ID")!;
 const gitlabClientSecret: string = Deno.env.get("GITLAB_OAUTH_CLIENT_SECRET")!;
 const dsn: string = Deno.env.get("SENTRY_DSN")!;
+const frontend: string = Deno.env.get("FRONTEND")!;
 
 Sentry.init({
   dsn: dsn,
@@ -46,11 +52,13 @@ app.use(async (ctx: Context, next) => {
 app.use(Session.initMiddleware());
 
 router
-  .post("/auth/github", (ctx) =>
-    githubAuth(ctx, githubClientId, githubClientSecret)
+  .post(
+    "/auth/github",
+    (ctx) => githubAuth(ctx, githubClientId, githubClientSecret),
   )
-  .post("/auth/gitlab", (ctx) =>
-    gitlabAuth(ctx, gitlabClientId, gitlabClientSecret)
+  .post(
+    "/auth/gitlab",
+    (ctx) => gitlabAuth(ctx, gitlabClientId, gitlabClientSecret, frontend),
   )
   .post("/auth/jwt", (ctx) => handleJwtAuthentication(ctx))
   .get("/map", (ctx) => getSubdomains(ctx))

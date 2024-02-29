@@ -1,4 +1,7 @@
-export default async function getProviderUser(accessToken: string, provider: string) {
+export default async function getProviderUser(
+  accessToken: string,
+  provider: string,
+) {
   let apiUrl = "";
   let authorizationHeader = "";
 

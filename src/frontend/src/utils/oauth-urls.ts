@@ -1,6 +1,6 @@
 function oauthUrl(provider: string) {
   let rootUrl: string, clientId: string, redirectUri: string, scope: string;
-  const responseType = "code"; 
+  const responseType = "code";
   console.log(provider);
   if (provider === "github") {
     rootUrl = "https://github.com/login/oauth/authorize";
@@ -21,7 +21,7 @@ function oauthUrl(provider: string) {
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: scope,
-    response_type: responseType
+    response_type: responseType,
   };
   const qs = new URLSearchParams(options);
   return `${rootUrl}?${qs.toString()}`;

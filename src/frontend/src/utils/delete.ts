@@ -1,6 +1,9 @@
 import { check_jwt } from "./authorize.ts";
 export async function deleteSubDomain(subdomain: string) {
-  const user = await check_jwt(localStorage.getItem("JWTUser")!,localStorage.getItem("provider")!);
+  const user = await check_jwt(
+    localStorage.getItem("JWTUser")!,
+    localStorage.getItem("provider")!,
+  );
   const backend = import.meta.env.VITE_APP_BACKEND;
   const rootUrl = new URL(`${backend}/mapdel`);
   const body = {

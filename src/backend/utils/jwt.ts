@@ -8,7 +8,7 @@ const key = await crypto.subtle.generateKey(
 
 async function createJWT(provider: string, githubId: string) {
   const token = await create({ alg: "HS512", typ: "JWT" }, {
-    [`${provider}Id`] : githubId,
+    [`${provider}Id`]: githubId,
   }, key);
   return token;
 }

@@ -12,9 +12,15 @@ const maps = await getMaps(user);
   <header>
     <nav>
       <div class="nav-wrapper">
-        <p class="brand">Domain Forge</p>
+        <div class="brand-container">
+          <img src="/df-logo.png" class="brand-logo" alt="logo">
+          <p class="brand">Domain Forge</p>
+        </div>
         <ul class="nav-links">
           <li><a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md">Docs</a></li>
+          <li class="login-provider">
+            <button @click="logoutAndRedirect" class="logout-button">Logout</button>
+          </li>
         </ul>
       </div>
     </nav>
@@ -68,19 +74,38 @@ export default {
       selectedItem : null,
     }
   },
+  methods: {
+    logoutAndRedirect() {
+      localStorage.clear();
+      this.$router.push({ path: '/login' });
+    }
+  }
 }
 </script>
 <style scoped>
+.brand-logo {
+  height: 30px;
+  margin-right: 10px; 
+}
+
+body {
+  overflow: hidden; 
+  margin: 0; 
+}
 
 nav {
   width: 100%; 
   position: fixed; 
   top: 0;
+  padding-bottom: 5px;
+  padding-top: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 header {
   margin-bottom: 20px;
 }
+
 .nav-wrapper {
   display: flex;
   justify-content: space-between;
@@ -92,7 +117,10 @@ header {
   margin: 0;
   font-size: 24px;
 }
-
+.brand-container {
+  display: flex;
+  align-items: center;
+}
 .nav-links {
   list-style: none;
   margin: 0;
@@ -115,16 +143,33 @@ header {
   font-weight: bold;
   padding: 10px; 
 }
+
+.logout-button {
+  width: 10rem;
+  padding: 8px 4px;
+  font-size: 14px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: #0056b3;
+}
+
 footer {
-  position: fixed;
-  bottom: 0;
   width: 100%;
   background-color: #ffffff;
   padding: 20px 0;
+  bottom: 0;
 }
 
 footer p {
   margin: 0;
   text-align: center;
 }
+
 </style>

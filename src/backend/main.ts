@@ -7,7 +7,7 @@ async function getSubdomains(ctx: Context) {
   const author = ctx.request.url.searchParams.get("user");
   const token = ctx.request.url.searchParams.get("token");
   const provider = ctx.request.url.searchParams.get("provider");
-  if (author != await checkJWT(provider!,token!)) {
+  if (author != await checkJWT(provider!, token!)) {
     ctx.throw(401);
   }
   const data = await getMaps(author);
@@ -36,7 +36,7 @@ async function addSubdomain(ctx: Context) {
   delete document.stack;
   delete document.env_content;
   delete document.static_content;
-  if (document.author != await checkJWT(provider,token)) {
+  if (document.author != await checkJWT(provider, token)) {
     ctx.throw(401);
   }
   const success: boolean = await addMaps(document);
@@ -77,7 +77,7 @@ async function deleteSubdomain(ctx: Context) {
   const provider = document.provider;
   delete document.token;
   delete document.provider;
-  if (author != await checkJWT(provider,token)) {
+  if (author != await checkJWT(provider, token)) {
     ctx.throw(401);
   }
   const data = await deleteMaps(document);

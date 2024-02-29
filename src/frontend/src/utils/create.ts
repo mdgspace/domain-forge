@@ -73,7 +73,10 @@ export async function create(
   if (secure_input(resource) === false) {
     return "failed";
   }
-  const user = await check_jwt(localStorage.getItem("JWTUser")!, localStorage.getItem("provider")!);
+  const user = await check_jwt(
+    localStorage.getItem("JWTUser")!,
+    localStorage.getItem("provider")!,
+  );
   const backend = import.meta.env.VITE_APP_BACKEND;
   const rootUrl = new URL(`${backend}/map`);
   const body = {

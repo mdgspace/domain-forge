@@ -1,6 +1,9 @@
 <template>
   <div class="modal-overlay">
     <div class="modal">
+      <div class="close">
+        <button class="close-button" @click="closeModal">X</button>
+      </div>
       <h5>Enter the details for creating your subdomain:</h5>
       <p>Subdomain:<br><input class="input-field" v-model="subdomain" />.df.mdgspace.org</p>
       <p>Resource Type:<br>
@@ -30,9 +33,6 @@
         <button class="cancel-button" @click="closeModal">Cancel</button>
         <button class="submit-button" @click="submitForm">Submit</button>
       </div>
-    </div>
-    <div class="close">
-      <button class="close-button" @click="closeModal">X</button>
     </div>
   </div>
 </template>
@@ -102,14 +102,30 @@ export default {
   padding: 20px;
   max-width: 600px;
   width: 90%;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
-  overflow-y: auto; /* Enable vertical scroll if content exceeds height */
-  max-height: 80vh; /* Limit height and enable scroll if content exceeds viewport height */
+  overflow-y: auto; 
+  max-height: 80vh;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+  position: relative;
 }
 
-.modal h5 {
-  font-size: 18px;
-  margin-bottom: 15px;
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.close-button {
+  border: none;
+  background-color: transparent;
+  color: #777;
+  font-size: 24px;
+  width: 30px; 
+  height: 30px; 
+  cursor: pointer;
+}
+
+.close-button:hover {
+  color: #333;
 }
 
 .input-field,
@@ -164,18 +180,5 @@ export default {
 .submit-button {
   background-color: #2080f6;
   color: #fff;
-}
-
-.close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.close-button {
-  border: none;
-  background-color: transparent;
-  font-size: 20px;
-  cursor: pointer;
 }
 </style>
