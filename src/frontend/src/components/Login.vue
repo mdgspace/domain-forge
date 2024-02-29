@@ -2,11 +2,14 @@
   <header>
     <nav>
       <div class="nav-wrapper">
-        <p class="brand">Domain Forge</p>
+        <div class="brand-container">
+          <img src="/df-logo.png" class="brand-logo" alt="logo">
+          <p class="brand">Domain Forge</p>
+        </div>
         <ul class="nav-links">
           <li><a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md">Docs</a></li>
           <li class="login-provider">
-            <a :href="githubUrl()"><button class="login-button">Login with Github</button></a>
+            <button @click="showModal = true" class="login-button">Login</button>
           </li>
         </ul>
       </div>
@@ -18,6 +21,7 @@
       <h1 class="main-title">Empower your online presence with Domain Forge</h1>  
       <h2><span class="highlight">Subdomain generation</span> integrated with robust <span class="highlight">hosting infrastructure</span> for seamless website management</h2>
     </main>
+    <loginmodal v-show="showModal" @close-modal="showModal = false" />
   </div>
   <footer>
     <p>Made with ❤️ by MDG Space</p>
@@ -25,15 +29,36 @@
 </template>
 
 <script setup>
-import { githubUrl } from '../utils/github-url';
 import { authorize } from '../utils/authorize';
 import { useRouter } from "vue-router";
 
-const code = useRouter().currentRoute.value.query.code;
-authorize(code);
+
+const route = useRouter().currentRoute.value;
+const code = route.query.code;
+const provider = localStorage.getItem("provider");
+
+if (code && provider) {
+  authorize(code, provider);
+}
+</script>
+<script>
+import loginmodal from './loginmodal.vue';
+export default {
+  components: { loginmodal },
+  data() {
+    return {
+      showModal: false,
+    }
+  },
+}
 </script>
 
 <style scoped>
+.brand-logo {
+  height: 30px;
+  margin-right: 10px; 
+}
+
 body {
   overflow: hidden; 
   margin: 0; 
@@ -43,6 +68,9 @@ nav {
   width: 100%; 
   position: fixed; 
   top: 0;
+  padding-bottom: 5px;
+  padding-top: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 #container {
@@ -76,7 +104,10 @@ header {
   margin: 0;
   font-size: 24px;
 }
-
+.brand-container {
+  display: flex;
+  align-items: center;
+}
 .nav-links {
   list-style: none;
   margin: 0;
@@ -101,6 +132,7 @@ header {
 }
 
 .login-button {
+  width: 10rem;
   padding: 8px 4px;
   font-size: 14px;
   background-color: #007bff;
@@ -124,11 +156,11 @@ h1.main-title {
 }
 
 footer {
-  position: fixed;
-  bottom: 0;
   width: 100%;
   background-color: #ffffff;
   padding: 20px 0;
+  align-items: center;
+  align-self: center;
 }
 
 footer p {

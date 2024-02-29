@@ -17,7 +17,6 @@ export default function dockerize(
     dockerfile =
       "FROM node:latest \n WORKDIR /app \n COPY ./package*.json . \n RUN npm install \n COPY . ." +
       build_cmds_mapped + `\n EXPOSE ${port} \n` + execute_cmd;
-    console.log(port);
   }
   return dockerfile.toString();
 }

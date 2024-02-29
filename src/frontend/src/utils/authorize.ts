@@ -2,8 +2,18 @@ import router from "../router/index.ts";
 
 const backend = import.meta.env.VITE_APP_BACKEND;
 
-async function authorize(code: string) {
-  const rootUrl = new URL(`${backend}/auth/github`);
+async function authorize(code: string, provider: string) {
+  let backendUrl: string;
+  if (provider === "github") {
+    backendUrl = `${backend}/auth/github`;
+  } else if (provider === "gitlab") {
+    backendUrl = `${backend}/auth/gitlab`;
+  } else {
+    console.error("Unsupported authentication provider");
+    return;
+  }
+
+  const rootUrl = new URL(backendUrl);
   if (code !== undefined) {
     const resp = await fetch(rootUrl.toString(), {
       method: "POST",
@@ -14,7 +24,7 @@ async function authorize(code: string) {
     });
     console.log(resp);
     const status = await resp.text();
-    if (status == "not authorized") {
+    if (status === "not authorized") {
       alert("Invalid Credentials");
       router.push("/login");
     } else {
@@ -27,7 +37,7 @@ async function authorize(code: string) {
   }
 }
 
-async function check_jwt(token: string) {
+async function check_jwt(token: string, provider: string) {
   const rootUrl = new URL(`${backend}/auth/jwt`);
   if (token) {
     const resp = await fetch(rootUrl.toString(), {
@@ -35,11 +45,14 @@ async function check_jwt(token: string) {
       headers: {
         "Accept": "application/json",
       },
-      body: token,
+      body: JSON.stringify({
+        "jwt_token": token,
+        "provider": provider,
+      }),
     });
-    const githubId = await resp.text();
-    if (githubId !== "not verified") {
-      return githubId;
+    const userId = await resp.text();
+    if (userId !== "not verified") {
+      return userId;
     } else return "";
   } else return "";
 }

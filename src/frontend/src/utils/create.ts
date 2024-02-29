@@ -1,4 +1,4 @@
-import { check_jwt } from "./authorize";
+import { check_jwt } from "./authorize.ts";
 
 function secure_input(s: string) {
   const blockedPhrases = [
@@ -47,7 +47,7 @@ function secure_input(s: string) {
     ",",
   ];
 
-  for (let phrase of blockedPhrases) {
+  for (const phrase of blockedPhrases) {
     if (s.includes(phrase)) {
       return false;
     }
@@ -73,7 +73,10 @@ export async function create(
   if (secure_input(resource) === false) {
     return "failed";
   }
-  const user = await check_jwt(localStorage.getItem("JWTUser")!);
+  const user = await check_jwt(
+    localStorage.getItem("JWTUser")!,
+    localStorage.getItem("provider")!,
+  );
   const backend = import.meta.env.VITE_APP_BACKEND;
   const rootUrl = new URL(`${backend}/map`);
   const body = {
@@ -88,6 +91,7 @@ export async function create(
     "author": user,
     "date": new Date().toLocaleDateString(),
     "token": localStorage.getItem("JWTUser"),
+    "provider": localStorage.getItem("provider"),
   };
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",

@@ -1,6 +1,9 @@
 <template>
   <div class="modal-overlay" v-if="selectedItem">
     <div class="modal">
+      <div class="close">
+        <button class="close-button" @click="closeModal">X</button>
+      </div>
       <h5>Delete Item</h5>
       <p>Are you sure you want to delete this item?</p>
       <p>Subdomain: {{ selectedItem.subdomain }}</p>
@@ -10,9 +13,6 @@
         <button class="cancel-button" @click="closeModal">Cancel</button>
         <button class="delete-button" @click="deleteItem">Delete</button>
       </div>
-    </div>
-    <div class="close">
-      <button class="close-button" @click="closeModal">X</button>
     </div>
   </div>
 </template>
@@ -57,19 +57,36 @@ export default {
 }
 
 .modal {
-  text-align: center;
   background-color: #ffffff;
-  height: 60%;
-  width: 600px;
-  margin-top: 8%;
+  border-radius: 10px;
+  text-align: center;
   padding: 20px;
-  border-radius: 20px;
+  max-width: 600px;
+  width: 90%;
+  overflow-y: auto; 
+  max-height: 80vh;
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+  position: relative;
 }
 
 .close {
   position: absolute;
   top: 10px;
   right: 10px;
+}
+
+.close-button {
+  border: none;
+  background-color: transparent;
+  color: #777;
+  font-size: 24px;
+  width: 30px; 
+  height: 30px; 
+  cursor: pointer;
+}
+
+.close-button:hover {
+  color: #333;
 }
 
 .button-container {
@@ -94,12 +111,5 @@ export default {
 .delete-button {
   background-color: #2080f6;
   color: #fff;
-}
-
-.close-button {
-  border: none;
-  background-color: transparent;
-  font-size: 20px;
-  cursor: pointer;
 }
 </style>

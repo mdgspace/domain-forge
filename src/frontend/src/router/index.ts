@@ -19,9 +19,14 @@ const routes = [
       from: RouteLocationNormalized,
       next: NavigationGuardNext,
     ) {
-      if (!localStorage.getItem("JWTUser")) next({ name: "Login" });
+      if (
+        !localStorage.getItem("JWTUser") || !localStorage.getItem("provider")
+      ) next({ name: "Login" });
       else {
-        const user = await check_jwt(localStorage.getItem("JWTUser")!);
+        const user = await check_jwt(
+          localStorage.getItem("JWTUser")!,
+          localStorage.getItem("provider")!,
+        );
         console.log(user);
         if (user == "") next({ name: "Login" });
         else next();
