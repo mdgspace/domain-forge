@@ -23,11 +23,11 @@ cd $name
 
 if [ $flag = "-g" ]; then
     sudo cp ../Dockerfile ./
-else
+elif [ $flag = "-s" ]; then
     sudo echo "
     FROM nginx:alpine
     COPY . /usr/share/nginx/html
-    " > Dockerfile
+    " > Dockerfile    
 fi
 
 sudo docker build -t $name .

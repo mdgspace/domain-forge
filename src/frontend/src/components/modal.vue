@@ -21,12 +21,21 @@
           <input name="radio" type="radio" value="No" v-model="static_content"> No
         </div>
         <div v-if="static_content === 'No'" class="stack-section">
+          <div class="docker-content">
+            <label for="dockerfile-content">Do you have dockerfile in your repo ?</label><br>
+            <input name="radio" type="radio" value="Yes" v-model="dockerfile_present"> Yes
+            <input name="radio" type="radio" value="No" v-model="dockerfile_present"> No
+          </div>
+          <div v-if="dockerfile_present === 'No'" class="dockerfile-section">
         <p>Stack:</p>
         <select class="dropdown" v-model="stack">
           <option v-for="option in stacks" :key="option">{{ option }}</option>
         </select>
+        </div>
         <p>Port:<br><input class="input-field" v-model="port" /></p>
+        <div v-if="dockerfile_present === 'No'" class="dockerfile-section">
         <p>Build Commands:<br><textarea class="textarea-field" cols="50" rows="10" v-model="build_cmds"></textarea></p>
+        </div>
       </div>
       </div>
       <div class="button-container">
@@ -48,6 +57,7 @@ export default {
       resource: '',
       env_content: 'key1 = value1', // Default prompt text
       static_content: 'No',
+      dockerfile_present :'No',
       port: '',
       stack: '',
       build_cmds: '',
@@ -58,7 +68,7 @@ export default {
   methods: {
     submitForm() {
       console.log(this.subdomain, this.resource_type, this.resource);
-      create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content, this.port, this.stack, this.build_cmds)
+      create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content,this.dockerfile_present,this.port, this.stack, this.build_cmds)
         .then((res) => {
           console.log(res);
           if (res === 'Submitted') {

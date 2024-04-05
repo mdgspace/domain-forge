@@ -35,9 +35,11 @@ async function addSubdomain(ctx: Context) {
   delete document.provider;
   delete document.port;
   delete document.build_cmds;
+  delete document.dockerfile_present;
   delete document.stack;
   delete document.env_content;
   delete document.static_content;
+
   if (document.author != await checkJWT(provider, token)) {
     ctx.throw(401);
   }
@@ -49,6 +51,7 @@ async function addSubdomain(ctx: Context) {
       document,
       copy.env_content,
       copy.static_content,
+      copy.dockerfile_present,
       copy.stack,
       copy.port,
       copy.build_cmds,
