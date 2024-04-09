@@ -79,9 +79,10 @@ export async function create(
     localStorage.getItem("provider")!,
   );
   const backend = import.meta.env.VITE_APP_BACKEND;
+  const domain = import.meta.env.VITE_APP_DOMAIN;
   const rootUrl = new URL(`${backend}/map`);
   const body = {
-    "subdomain": subdomain + ".df.mdgspace.org",
+    "subdomain": subdomain + "." + domain,
     "resource_type": resource_type,
     "resource": resource,
     "env_content": env_content,

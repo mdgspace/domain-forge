@@ -1,3 +1,6 @@
+<script setup>
+const domain = import.meta.env.VITE_APP_DOMAIN
+</script>
 <template>
   <div class="modal-overlay">
     <div class="modal">
@@ -5,7 +8,7 @@
         <button class="close-button" @click="closeModal">X</button>
       </div>
       <h5>Enter the details for creating your subdomain:</h5>
-      <p>Subdomain:<br><input class="input-field" v-model="subdomain" />.df.mdgspace.org</p>
+      <p>Subdomain:<br><input class="input-field" v-model="subdomain" />.{{ domain }}</p>
       <p>Resource Type:<br>
         <select class="dropdown" v-model="resource_type">
           <option v-for="option in resourceTypes" :key="option">{{ option }}</option>
