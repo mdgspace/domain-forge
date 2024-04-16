@@ -2,6 +2,10 @@
 
 # This script takes in 3 command line arguments
 
+source "$parent_dir/..env"
+
+# Now you can use variables from your environment
+echo "Variable from parent directory: $SOME_VARIABLE"
 # Check if the number of arguments is correct
 id -u
 if [ "$#" -ne 3 ]; then
@@ -24,7 +28,7 @@ if [ "$arg1" = "-u" ]; then
       listen 80;
       listen [::]:80;
       listen 443 ssl;
-     listen [::]:443 ssl;
+      listen [::]:443 ssl;
       server_name $arg3;
      
       location / {
@@ -32,8 +36,8 @@ if [ "$arg1" = "-u" ]; then
       }
       charset utf-8;
       client_max_body_size 20M;
-      ssl_certificate /etc/letsencrypt/live/df.mdgspace.org-0001/fullchain.pem;
-      ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
+      ssl_certificate $FULLCHAIN_LOCATION;
+      ssl_certificate_key $PRIVKEY_LOCATION;
       include /etc/letsencrypt/options-ssl-nginx.conf;
       ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
    }" > /etc/nginx/sites-available/$arg3.conf;
@@ -62,8 +66,8 @@ elif [ "$arg1" = "-p" ]; then
      }
      charset utf-8;
      client_max_body_size 20M;
-     ssl_certificate /etc/letsencrypt/live/df.mdgspace.org-0001/fullchain.pem;
-     ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
+     ssl_certificate $FULLCHAIN_LOCATION;
+     ssl_certificate_key $PRIVKEY_LOCATION;
      include /etc/letsencrypt/options-ssl-nginx.conf;
      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
      }" > /etc/nginx/sites-available/$arg3.conf;

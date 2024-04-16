@@ -55,8 +55,8 @@ sudo echo "# Virtual Host configuration for $2
     }
     charset utf-8;
     client_max_body_size 20M;
-    ssl_certificate /etc/letsencrypt/live/df.mdgspace.org-0001/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/df.mdgspace.org-0001/privkey.pem;
+    ssl_certificate $FULLCHAIN_LOCATION;
+    ssl_certificate_key $PRIVKEY_LOCATION;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     }" > /etc/nginx/sites-available/$2.conf
