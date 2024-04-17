@@ -2,10 +2,9 @@
 
 # This script takes in 3 command line arguments
 
-source "$parent_dir/..env"
+FULLCHAIN_LOCATION=$(cat ../.env | grep FULLCHAIN_LOCATION= | cut -d '=' -f2)
+PRIVKEY_LOCATION=$(cat ../.env | grep PRIVKEY_LOCATION= | cut -d '=' -f2)
 
-# Now you can use variables from your environment
-echo "Variable from parent directory: $SOME_VARIABLE"
 # Check if the number of arguments is correct
 id -u
 if [ "$#" -ne 3 ]; then

@@ -6,6 +6,9 @@ resource=$3
 exp_port=$4
 max_mem=$5 
 
+FULLCHAIN_LOCATION=$(cat ../.env | grep FULLCHAIN_LOCATION= | cut -d '=' -f2)
+PRIVKEY_LOCATION=$(cat ../.env | grep PRIVKEY_LOCATION= | cut -d '=' -f2)
+
 available_ports=()
 
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
