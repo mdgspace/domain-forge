@@ -32,8 +32,8 @@ if [ "$arg1" = "-u" ]; then
       }
       charset utf-8;
       client_max_body_size 20M;
-      ssl_certificate $FULLCHAIN_LOCATION;
-      ssl_certificate_key $PRIVKEY_LOCATION;
+      ssl_certificate /etc/letsencrypt/live/domains.mdgspace.org-0002/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/domains.mdgspace.org-0002/privkey.pem;
       include /etc/letsencrypt/options-ssl-nginx.conf;
       ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
    }" > /etc/nginx/sites-available/$arg3.conf;
