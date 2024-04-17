@@ -6,9 +6,6 @@ resource=$3
 exp_port=$4
 max_mem=$5 
 
-FULLCHAIN_LOCATION=$(cat ../.env | grep FULLCHAIN_LOCATION= | cut -d '=' -f2)
-PRIVKEY_LOCATION=$(cat ../.env | grep PRIVKEY_LOCATION= | cut -d '=' -f2)
-
 available_ports=()
 
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
@@ -58,8 +55,8 @@ sudo echo "# Virtual Host configuration for $2
     }
     charset utf-8;
     client_max_body_size 20M;
-    ssl_certificate $FULLCHAIN_LOCATION;
-    ssl_certificate_key $PRIVKEY_LOCATION;
+    ssl_certificate /etc/letsencrypt/live/domains.mdgspace.org-0002/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/domains.mdgspace.org-0002/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     }" > /etc/nginx/sites-available/$2.conf

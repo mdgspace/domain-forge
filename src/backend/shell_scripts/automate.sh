@@ -2,9 +2,6 @@
 
 # This script takes in 3 command line arguments
 
-FULLCHAIN_LOCATION=$(cat ../.env | grep FULLCHAIN_LOCATION= | cut -d '=' -f2)
-PRIVKEY_LOCATION=$(cat ../.env | grep PRIVKEY_LOCATION= | cut -d '=' -f2)
-
 # Check if the number of arguments is correct
 id -u
 if [ "$#" -ne 3 ]; then
@@ -65,8 +62,8 @@ elif [ "$arg1" = "-p" ]; then
      }
      charset utf-8;
      client_max_body_size 20M;
-     ssl_certificate $FULLCHAIN_LOCATION;
-     ssl_certificate_key $PRIVKEY_LOCATION;
+     ssl_certificate /etc/letsencrypt/live/domains.mdgspace.org-0002/fullchain.pem;
+     ssl_certificate_key /etc/letsencrypt/live/domains.mdgspace.org-0002/privkey.pem;
      include /etc/letsencrypt/options-ssl-nginx.conf;
      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
      }" > /etc/nginx/sites-available/$arg3.conf;
