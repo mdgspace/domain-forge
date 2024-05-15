@@ -26,7 +26,7 @@ This step involves the configuration of three `.env` files:
     SENTRY_DSN=...
     ```
 - Frontend env:   
-      As suggested in the `.env.sample` present at the `src/frontend` directory, create a file named `.env` and copy the contents as shown, replacing *"..."* with the respective values for your registered github oauth application's **VITE_APP_GITHUB_OAUTH_CLIENT_ID** and **VITE_APP_GITHUB_OAUTH_CLIENT_SECRET**. For the **VITE_APP_GITHUB_OAUTH_REDIRECT_URL** enter the public url of the application's `/login` route. (Example: `http://df.mdgspace.org/login`). Also, add the port at which your backend is running in place of *"XXXX"*.
+      As suggested in the `.env.sample` present at the `src/frontend` directory, create a file named `.env` and copy the contents as shown, replacing *"..."* with the respective values for your registered github oauth application's **VITE_APP_GITHUB_OAUTH_CLIENT_ID** and **VITE_APP_GITHUB_OAUTH_CLIENT_SECRET**. For the **VITE_APP_GITHUB_OAUTH_REDIRECT_URL** enter the public url of the application's `/login` route. (Example: `https://domains.mdgspace.org/login`). Also, add the port at which your backend is running in place of *"XXXX"*.
     ```
     VITE_APP_GITHUB_OAUTH_CLIENT_ID=...
     VITE_APP_GITHUB_OAUTH_CLIENT_SECRET=...
@@ -61,6 +61,6 @@ Refer to [this](https://www.digitalocean.com/community/tutorials/how-to-set-up-n
 
 ### 6. Adding the DNS Records and Issue SSL Certificates
 
-Refer to [this](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/) to add DNS records for *df.yourorgname.com* and also a wildcard DNS record for **.df.yourorgname.com*
+Refer to [this](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/) to add DNS records for *domains.yourorgname.com* and also a wildcard DNS record for **.domains.yourorgname.com*
 
-You can use [letsencrypt](https://letsencrypt.org/) to issue SSL certificates for *df.yourorgname.com* and a wildcard SSL certificate for **.df.yourorgname.com*.
+You can use [letsencrypt](https://letsencrypt.org/) to issue SSL certificates for *domains.yourorgname.com* and a wildcard SSL certificate for **.domains.yourorgname.com*.

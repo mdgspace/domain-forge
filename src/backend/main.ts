@@ -3,6 +3,8 @@ import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
 
+const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|");
+
 async function getSubdomains(ctx: Context) {
   const author = ctx.request.url.searchParams.get("user");
   const token = ctx.request.url.searchParams.get("token");
@@ -10,7 +12,7 @@ async function getSubdomains(ctx: Context) {
   if (author != await checkJWT(provider!, token!)) {
     ctx.throw(401);
   }
-  const data = await getMaps(author);
+  const data = await getMaps(author, ADMIN_LIST!);
   ctx.response.headers.set("Access-Control-Allow-Origin", "*");
   ctx.response.body = data.documents;
 }
@@ -33,9 +35,11 @@ async function addSubdomain(ctx: Context) {
   delete document.provider;
   delete document.port;
   delete document.build_cmds;
+  delete document.dockerfile_present;
   delete document.stack;
   delete document.env_content;
   delete document.static_content;
+
   if (document.author != await checkJWT(provider, token)) {
     ctx.throw(401);
   }
@@ -47,6 +51,7 @@ async function addSubdomain(ctx: Context) {
       document,
       copy.env_content,
       copy.static_content,
+      copy.dockerfile_present,
       copy.stack,
       copy.port,
       copy.build_cmds,
@@ -80,7 +85,7 @@ async function deleteSubdomain(ctx: Context) {
   if (author != await checkJWT(provider, token)) {
     ctx.throw(401);
   }
-  const data = await deleteMaps(document);
+  const data = await deleteMaps(document, ADMIN_LIST!);
   if (data.deletedCount) {
     deleteScript(document);
     Sentry.captureMessage(

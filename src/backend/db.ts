@@ -51,12 +51,13 @@ async function checkUser(accessToken: string, provider: string) {
 }
 
 // Get all content maps corresponding to user
-async function getMaps(author: string) {
+async function getMaps(author: string, ADMIN_LIST: string[]) {
+  const filter = ADMIN_LIST?.includes(author) ? {} : { "author": author };
   const query = {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: { "author": author },
+    filter: filter,
   };
   options.body = JSON.stringify(query);
   const resp = await fetch(MONGO_URLs.find.toString(), options);
@@ -96,12 +97,16 @@ async function addMaps(document: DfContentMap) {
 }
 
 // Delete content maps
-async function deleteMaps(document: DfContentMap) {
+async function deleteMaps(document: DfContentMap, ADMIN_LIST: string[]) {
+  const filter = JSON.parse(JSON.stringify(document));
+  if (ADMIN_LIST.includes(document.author)) {
+    delete filter.author;
+  }
   const query = {
     collection: "content_maps",
     database: DATABASE,
     dataSource: DATA_SOURCE,
-    filter: document,
+    filter: filter,
   };
   options.body = JSON.stringify(query);
 

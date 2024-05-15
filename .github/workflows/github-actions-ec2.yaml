@@ -19,7 +19,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/project-domain-forge/domain-forge/docker
+            cd ~/domain-forge/docker
             docker compose down
             git pull origin master
             docker compose up -d --build            

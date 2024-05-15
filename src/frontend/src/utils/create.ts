@@ -60,6 +60,7 @@ export async function create(
   resource: string,
   env_content: string,
   static_content: string,
+  dockerfile_present:string,
   port: string,
   stack: string,
   build_cmds: string,
@@ -78,13 +79,15 @@ export async function create(
     localStorage.getItem("provider")!,
   );
   const backend = import.meta.env.VITE_APP_BACKEND;
+  const domain = import.meta.env.VITE_APP_DOMAIN;
   const rootUrl = new URL(`${backend}/map`);
   const body = {
-    "subdomain": subdomain + ".df.mdgspace.org",
+    "subdomain": subdomain + "." + domain,
     "resource_type": resource_type,
     "resource": resource,
     "env_content": env_content,
     "static_content": static_content,
+    "dockerfile_present":dockerfile_present,
     "port": port,
     "build_cmds": build_cmds,
     "stack": stack,
