@@ -1,0 +1,169 @@
+1000
+Deleting... news.domains.mdgspace.org
+rm: cannot remove '/etc/nginx/sites-available/news.domains.mdgspace.org.conf': No such file or directory
+rm: cannot remove '/etc/nginx/sites-enabled/news.domains.mdgspace.org.conf': No such file or directory
+Error response from daemon: No such container: news.domains.mdgspace.org
+Error response from daemon: No such container: news.domains.mdgspace.org
+Error response from daemon: No such image: news.domains.mdgspace.org:latest
+1000
+Creating subdomain news.domains.mdgspace.org which redirects to https://news.ycombinator.com/
+Generating url.conf
+url: https://news.ycombinator.com/
+1000
+Creating subdomain github.domains.mdgspace.org which redirects to https://github.com/
+Generating url.conf
+url: https://github.com/
+1000
+Deleting... github.domains.mdgspace.org
+Error response from daemon: No such container: github.domains.mdgspace.org
+Error response from daemon: No such container: github.domains.mdgspace.org
+Error response from daemon: No such image: github.domains.mdgspace.org:latest
+1000
+Deleting... nik-55.domains.mdgspace.org
+Error response from daemon: No such container: nik-55.domains.mdgspace.org
+Error response from daemon: No such container: nik-55.domains.mdgspace.org
+Error response from daemon: No such image: nik-55.domains.mdgspace.org:latest
+1000
+Creating subdomain kituuu.mdgspace.org.domains.mdgspace.org which redirects to https://your-personal-gallery.vercel.app/
+Generating url.conf
+url: https://your-personal-gallery.vercel.app/
+1000
+Deleting... kituuu.mdgspace.org.domains.mdgspace.org
+Error response from daemon: No such container: kituuu.mdgspace.org.domains.mdgspace.org
+Error response from daemon: No such container: kituuu.mdgspace.org.domains.mdgspace.org
+Error response from daemon: No such image: kituuu.mdgspace.org.domains.mdgspace.org:latest
+1000
+Creating subdomain kituuu.domains.mdgspace.org which redirects to https://your-personal-gallery.vercel.app/
+Generating url.conf
+url: https://your-personal-gallery.vercel.app/
+1000
+Deleting... kituuu.domains.mdgspace.org
+Error response from daemon: No such container: kituuu.domains.mdgspace.org
+Error response from daemon: No such container: kituuu.domains.mdgspace.org
+Error response from daemon: No such image: kituuu.domains.mdgspace.org:latest
+1000
+Creating subdomain google.domains.mdgspace.org which redirects to https://www.google.com/
+Generating url.conf
+url: https://www.google.com/
+1000
+Creating subdomain nano-test.domains.mdgspace.org which redirects to https://nanonish.github.io/
+Generating url.conf
+url: https://nanonish.github.io/
+1000
+Creating subdomain wiki.domains.mdgspace.org which redirects to https://www.wikipedia.org/
+Generating url.conf
+url: https://www.wikipedia.org/
+1000
+Creating subdomain wiki.domains.mdgspace.org which redirects to https://www.wikipedia.org/
+Generating url.conf
+url: https://www.wikipedia.org/
+1000
+Deleting... todo.domains.mdgspace.org
+Error response from daemon: No such container: todo.domains.mdgspace.org
+Error response from daemon: No such container: todo.domains.mdgspace.org
+Error response from daemon: No such image: todo.domains.mdgspace.org:latest
+1000
+Deleting... hey.domains.mdgspace.org
+Error response from daemon: No such container: hey.domains.mdgspace.org
+Error response from daemon: No such container: hey.domains.mdgspace.org
+Error response from daemon: No such image: hey.domains.mdgspace.org:latest
+Available ports: 8067
+Creating subdomain hey.domains.mdgspace.org
+Cloning into 'hey.domains.mdgspace.org'...
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 225B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:latest
+#2 DONE 2.2s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/5] FROM docker.io/library/python:latest@sha256:7859853e7607927aa1d1b1a5a2f9e580ac90c2b66feeb1b77da97fed03b1ccbe
+#4 resolve docker.io/library/python:latest@sha256:7859853e7607927aa1d1b1a5a2f9e580ac90c2b66feeb1b77da97fed03b1ccbe 0.0s done
+#4 sha256:2e66a70da0bec13fb3d492fcdef60fd8a5ef0a1a65c4e8a4909e26742852f0f2 0B / 64.15MB 0.1s
+#4 sha256:7859853e7607927aa1d1b1a5a2f9e580ac90c2b66feeb1b77da97fed03b1ccbe 9.72kB / 9.72kB done
+#4 sha256:ea2ebd905ab246ece277be25520ca0cfe82758b3d2b369e2fd69b374c1d6c7fa 5.86kB / 5.86kB done
+#4 sha256:2e6afa3f266c11e8960349e7866203a9df478a50362bb5488c45fe39d99b2707 0B / 24.05MB 0.1s
+#4 sha256:f6b1cea9aa1bba7fdf508248d1ab303a4cb11274997f39c9a0d6646f221379da 2.32kB / 2.32kB done
+#4 sha256:8cd46d290033f265db57fd808ac81c444ec5a5b3f189c3d6d85043b647336913 0B / 49.56MB 0.1s
+#4 CANCELED
+
+#5 [internal] load build context
+#5 transferring context: 16.77MB 0.2s done
+#5 DONE 0.3s
+
+#6 [2/5] WORKDIR /app
+#6 CACHED
+
+#7 [3/5] COPY requirements.txt .
+#7 ERROR: failed to calculate checksum of ref 44b139ae-3131-4796-9538-e5f44b9c0408::pe7dzgi8kpgbwg9fr8gsw1js8: "/requirements.txt": not found
+------
+ > [3/5] COPY requirements.txt .:
+------
+Dockerfile:3
+--------------------
+   1 |     FROM python:latest 
+   2 |     WORKDIR /app 
+   3 | >>> COPY requirements.txt . 
+   4 |     RUN pip install --no-cache-dir -r requirements.txt 
+   5 |     COPY . .
+--------------------
+ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref 44b139ae-3131-4796-9538-e5f44b9c0408::pe7dzgi8kpgbwg9fr8gsw1js8: "/requirements.txt": not found
+Unable to find image 'hey.domains.mdgspace.org:latest' locally
+docker: Error response from daemon: pull access denied for hey.domains.mdgspace.org, repository does not exist or may require 'docker login': denied: requested access to the resource is denied.
+See 'docker run --help'.
+Available ports: 8067
+Creating subdomain hy.domains.mdgspace.org
+Cloning into 'hy.domains.mdgspace.org'...
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 225B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:latest
+#2 DONE 0.7s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/5] FROM docker.io/library/python:latest@sha256:7859853e7607927aa1d1b1a5a2f9e580ac90c2b66feeb1b77da97fed03b1ccbe
+#4 resolve docker.io/library/python:latest@sha256:7859853e7607927aa1d1b1a5a2f9e580ac90c2b66feeb1b77da97fed03b1ccbe 0.0s done
+#4 sha256:f6b1cea9aa1bba7fdf508248d1ab303a4cb11274997f39c9a0d6646f221379da 2.32kB / 2.32kB done
+#4 sha256:ea2ebd905ab246ece277be25520ca0cfe82758b3d2b369e2fd69b374c1d6c7fa 5.86kB / 5.86kB done
+#4 sha256:2e6afa3f266c11e8960349e7866203a9df478a50362bb5488c45fe39d99b2707 0B / 24.05MB 0.1s
+#4 sha256:7859853e7607927aa1d1b1a5a2f9e580ac90c2b66feeb1b77da97fed03b1ccbe 9.72kB / 9.72kB done
+#4 sha256:8cd46d290033f265db57fd808ac81c444ec5a5b3f189c3d6d85043b647336913 0B / 49.56MB 0.1s
+#4 sha256:2e66a70da0bec13fb3d492fcdef60fd8a5ef0a1a65c4e8a4909e26742852f0f2 0B / 64.15MB 0.1s
+#4 ...
+
+#5 [internal] load build context
+#5 transferring context: 16.77MB 0.1s done
+#5 DONE 0.2s
+
+#6 [2/5] WORKDIR /app
+#6 CACHED
+
+#7 [3/5] COPY requirements.txt .
+#7 ERROR: failed to calculate checksum of ref 44b139ae-3131-4796-9538-e5f44b9c0408::w1g4h9pt6iyidbf3u91xq1fq9: "/requirements.txt": not found
+------
+ > [3/5] COPY requirements.txt .:
+------
+Dockerfile:3
+--------------------
+   1 |     FROM python:latest 
+   2 |     WORKDIR /app 
+   3 | >>> COPY requirements.txt . 
+   4 |     RUN pip install --no-cache-dir -r requirements.txt 
+   5 |     COPY . .
+--------------------
+ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref 44b139ae-3131-4796-9538-e5f44b9c0408::w1g4h9pt6iyidbf3u91xq1fq9: "/requirements.txt": not found
+Unable to find image 'hy.domains.mdgspace.org:latest' locally
+docker: Error response from daemon: pull access denied for hy.domains.mdgspace.org, repository does not exist or may require 'docker login': denied: requested access to the resource is denied.
+See 'docker run --help'.

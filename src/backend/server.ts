@@ -28,9 +28,6 @@ const frontend: string = Deno.env.get("FRONTEND")!;
 
 Sentry.init({
   dsn: dsn,
-  integrations: [
-    new Sentry.Integrations.Http({ tracing: true }),
-  ],
   debug: true,
   tracesSampleRate: 1.0,
 });
