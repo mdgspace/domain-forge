@@ -167,3 +167,30 @@ ERROR: failed to solve: failed to compute cache key: failed to calculate checksu
 Unable to find image 'hy.domains.mdgspace.org:latest' locally
 docker: Error response from daemon: pull access denied for hy.domains.mdgspace.org, repository does not exist or may require 'docker login': denied: requested access to the resource is denied.
 See 'docker run --help'.
+1000
+Creating subdomain alpha.domains.mdgspace.org which redirects to https://github.com
+Generating url.conf
+url: https://github.com
+1000
+Creating subdomain raj.domains.mdgspace.org which redirects to https://github.com/raj210809
+Generating url.conf
+url: https://github.com/raj210809
+1000
+Deleting... tola.domains.mdgspace.org
+Error response from daemon: No such container: tola.domains.mdgspace.org
+Error response from daemon: No such container: tola.domains.mdgspace.org
+Error response from daemon: No such image: tola.domains.mdgspace.org:latest
+1000
+Creating subdomain toka.domains.mdgspace.org which redirects to https://github.com/amsorrytola
+Generating url.conf
+url: https://github.com/amsorrytola
+1000
+Deleting... toka.domains.mdgspace.org
+Error response from daemon: No such container: toka.domains.mdgspace.org
+Error response from daemon: No such container: toka.domains.mdgspace.org
+Error response from daemon: No such image: toka.domains.mdgspace.org:latest
+1000
+Deleting... tola.domains.mdgspace.org
+Error response from daemon: No such container: tola.domains.mdgspace.org
+Error response from daemon: No such container: tola.domains.mdgspace.org
+Error response from daemon: No such image: tola.domains.mdgspace.org:latest
