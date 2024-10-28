@@ -13,10 +13,30 @@ async function createJWT(provider: string, githubId: string) {
   return token;
 }
 
+function decodePayload(encodedPayload: string): string {
+  const decoded = atob(encodedPayload);
+  return decoded;
+}
+
+function decodeApiKey(apiKey: string) {
+  const parts = apiKey.split(".");
+  if (parts.length !== 3) {
+    return "not verified";
+  }
+
+  const [datePart, encodedPayload, randomPart] = parts;
+  const decodedPayload = decodePayload(encodedPayload);
+  return decodedPayload
+}
+
 async function checkJWT(provider: string, token: string) {
   try {
-    const payload = await verify(token, key);
-    return payload[`${provider}Id`]!;
+    if (provider === "CLI"){
+      return decodeApiKey(token)
+    } else {
+      const payload = await verify(token, key);
+      return payload[`${provider}Id`]!;
+    }
   } catch (error) {
     return "not verified";
   }

@@ -50,9 +50,11 @@ async function check_jwt(token: string, provider: string) {
         "provider": provider,
       }),
     });
-    const userId = await resp.text();
-    if (userId !== "not verified") {
-      return userId;
+    const data = await resp.json();
+    console.log(data)
+    localStorage.setItem("apiKey" , data.apiKey)
+    if (data.user !== "not verified") {
+      return data.user;
     } else return "";
   } else return "";
 }

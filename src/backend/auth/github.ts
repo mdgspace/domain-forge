@@ -1,6 +1,7 @@
 import { Context, Sentry } from "../dependencies.ts";
 import { checkUser } from "../db.ts";
 import { checkJWT, createJWT } from "../utils/jwt.ts";
+import { generateApiKey } from "../utils/apiKeyGen.ts";
 
 async function githubAuth(ctx: Context, id: string, secret: string) {
   await authenticateAndCreateJWT(ctx, id, secret, "github");
@@ -94,7 +95,9 @@ async function handleJwtAuthentication(ctx: Context) {
   }
   const jwt_token = document.jwt_token;
   const provider = document.provider;
-  ctx.response.body = await checkJWT(provider, jwt_token);
+  const user = await checkJWT(provider, jwt_token);
+  const apiKey = generateApiKey(user)
+  ctx.response.body = {user , apiKey};
 }
 
 export { githubAuth, gitlabAuth, handleJwtAuthentication };

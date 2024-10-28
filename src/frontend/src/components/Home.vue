@@ -1,9 +1,14 @@
 <script setup type="module">
 import { getMaps } from '../utils/maps.ts';
 import { check_jwt } from '../utils/authorize.ts';
+import modal from './modal.vue';
+import deletemodal from './deletemodal.vue';
+import ApiKeyModal from './ApiKeyModal.vue';
+
 const token = localStorage.getItem("JWTUser");
 const provider = localStorage.getItem("provider");
 const user = await check_jwt(token, provider);
+const apiKey = localStorage.getItem("apiKey");
 const fields = ["date", "subdomain", "resource", "resource_type", ""];
 const maps = await getMaps(user);
 </script>
@@ -19,60 +24,66 @@ const maps = await getMaps(user);
         <ul class="nav-links">
           <li><a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md">Docs</a></li>
           <li class="login-provider">
+            <button @click="showApiKeyModal = true" class="logout-button">Api Key</button>
+          </li>
+          <li class="login-provider">
             <button @click="logoutAndRedirect" class="logout-button">Logout</button>
           </li>
         </ul>
       </div>
     </nav>
   </header>
+  
   <div id="home-container">
     <div id="home-heading">
-      <h3>{{ user }}'s subdomains: </h3>
+      <h3>{{ user }}'s subdomains:</h3>
     </div>
     <br>
     <table id="tableComponent" style="display:table; width:100%; padding: 0px 30px">
       <thead>
         <tr>
-          <th v-for="field in fields" style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212; border-top:1px solid #121212;font-weight: 900;">
+          <th v-for="field in fields" :key="field" style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212; border-top:1px solid #121212;font-weight: 900;">
             <h3>{{ field }}</h3>
           </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in maps" :key='item'>
-          <td v-for="field in fields" :key='field' style="border-bottom: 1px solid #121212">
-            <span v-if="item[field] != undefined && field != 'subdomain'">{{ item[field] }}</span>
+        <tr v-for="item in maps" :key="item">
+          <td v-for="field in fields" :key="field" style="border-bottom: 1px solid #121212">
+            <span v-if="item[field] && field !== 'subdomain'">{{ item[field] }}</span>
             <span v-else-if="field === 'subdomain'">
-    <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
-</span>
-
+              <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
+            </span>
             <span v-else>
               <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
-              <div style="text-align: center;"><button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete !</button></div>
-
+              <div style="text-align: center;"><button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button></div>
             </span>
           </td>
         </tr>
       </tbody>
     </table>
+
     <modal v-show="showModal" @close-modal="showModal = false" />
     <div style="text-align: center;"><button @click="showModal = true">+ Add</button></div>
   </div>
+
+  <ApiKeyModal v-show="showApiKeyModal" :apiKey="apiKey" @close-modal="showApiKeyModal = false" />
+
   <footer>
     <p>Made with ❤️ by MDG Space</p>
   </footer>
 </template>
+
 <script>
-import modal from './modal.vue'
-import deletemodal from './deletemodal.vue'
 export default {
-  components: { modal,deletemodal },
+  components: { modal, deletemodal, ApiKeyModal },
   data() {
     return {
       showDeleteModal: false,
       showModal: false,
-      selectedItem : null,
-    }
+      showApiKeyModal: false,
+      selectedItem: null,
+    };
   },
   methods: {
     logoutAndRedirect() {
@@ -80,7 +91,7 @@ export default {
       this.$router.push({ path: '/login' });
     }
   }
-}
+};
 </script>
 <style scoped>
 .brand-logo {
