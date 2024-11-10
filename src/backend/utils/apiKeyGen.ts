@@ -1,20 +1,29 @@
-import { v4 } from "https://deno.land/std@0.204.0/uuid/mod.ts";
 
 function encodePayload(payload: string): string {
   const encoded = btoa(payload); // Convert payload to Base64
   return encoded;
 }
 
+function generateRandomString(length: number): string {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
+
 function getSimpleDateString(): string {
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+  const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  return `${year}${month}${day}`; // 'YYYYMMDD'
+  return `${year}${month}${day}`;
 }
 
 function generateRandomPart(): string {
-  return "tbhrthbtrjyj6y65y45vy546y56yv5755by54b6y56yb" // Adjusted for Deno's API
+  return generateRandomString(16);
 }
 
 export function generateApiKey(payload: string): string {

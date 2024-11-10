@@ -75,3 +75,13 @@ async function showOptions() {
   }
   await showOptions();
 }
+
+process.on('SIGINT', () => {
+  console.log('Goodbye!');
+  process.exit(0);
+});
+
+process.on('unhandledRejection', () => {
+  console.log('Goodbye - forced exit');
+  process.exit(1);
+})

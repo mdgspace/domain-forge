@@ -1,6 +1,6 @@
 {
   "name": "domainforge-cli",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
