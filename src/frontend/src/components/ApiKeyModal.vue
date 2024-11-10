@@ -10,7 +10,7 @@
         <p>You can use this Api key for accesing doamin forge through cli</p>
         <P>You can run "npm i -g domainforge-cli" to use domain forge cli</p>
       </div>
-      <button @click="$emit('close-modal')">Close</button>
+      <button @click="$emit('close-modal') class="close-button">Close</button>
     </div>
   </div>
 </template>
@@ -35,10 +35,13 @@ export default {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: yellow;
+  background: #F5F5DC;
   padding: 20px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
   border-radius: 10px;
+}
+.close-button {
+  width : 50%;
 }
 .api-key-container {
   display: flex;

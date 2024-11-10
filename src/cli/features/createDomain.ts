@@ -82,7 +82,6 @@ export async function createDomain(userApiKey : string, user : string , provider
       };
       try {
         const response = await axios.post(`${backendUrl}/map`, payload);
-        console.log(response.data);
         if (response.data.status === 'success') {
         console.log(`✅ Domain '${subdomain}.${domain}' created successfully!`);
         } else {
@@ -90,6 +89,6 @@ export async function createDomain(userApiKey : string, user : string , provider
           console.log("Either the domain exist or the domain is not created");
         }
       } catch (error) {
-        console.error(chalk.red('Error creating domain:'), error);
+        console.error(chalk.red('Error creating domain:'));
       }
 }

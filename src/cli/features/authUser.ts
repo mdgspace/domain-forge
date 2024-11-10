@@ -9,7 +9,7 @@ export async function verifyApiKey(apiKey: string, provider: string , backendUrl
       });
       return response.data;
     } catch (error) {
-      console.error(chalk.red('Error verifying API key:'), error);
+      console.error(chalk.red('Error verifying API key:'));
       return 'not verified';
     }
   }

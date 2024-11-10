@@ -40,6 +40,6 @@ export async function listDomains(user : string , userApiKey : string, provider 
       console.log(domainTable.toString()); // Display the table
   
     } catch (error) {
-      console.error(chalk.red('Error fetching domains:'), error);
+      console.error(chalk.red('Error fetching domains:'));
     }
   }
