@@ -7,10 +7,10 @@
         <button @click="copyApiKey">Copy</button>
       </div>
       <div>
-        <p>You can use this Api key for accesing doamin forge through cli</p>
+        <p>You can use this Api key for accesing domain forge through cli</p>
         <P>You can run "npm i -g domainforge-cli" to use domain forge cli</p>
       </div>
-      <button @click="$emit('close-modal') class="close-button">Close</button>
+      <button @click="$emit('close-modal')" class="close-button">Close</button>
     </div>
   </div>
 </template>
@@ -40,8 +40,22 @@ export default {
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
   border-radius: 10px;
 }
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; 
+}
 .close-button {
-  width : 50%;
+  width: 30%;
+  margin: 10px auto; /* Centers the button horizontally */
+  padding: 5px 10px;
+  text-align: center;
+  background-color: #d9534f; /* Optional styling */
+  color: white; /* Optional styling */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 .api-key-container {
   display: flex;
@@ -50,7 +64,8 @@ export default {
   margin-bottom: 10px;
 }
 input {
-  width: 80%;
+  width: 70%;
   padding: 5px;
 }
 </style>
+
