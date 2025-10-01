@@ -14,6 +14,12 @@ import {
   handleJwtAuthentication,
 } from "./auth/github.ts";
 import { addSubdomain, deleteSubdomain, getSubdomains } from "./main.ts";
+import {
+  upsertProjectSecrets,
+  getProjectSecretKeys,
+  deleteProjectSecrets,
+} from "./secrets.ts";
+import { initializeEncryption } from "./utils/encryption.ts";
 
 const router = new Router();
 const app = new Application();
@@ -48,6 +54,15 @@ app.use(async (ctx: Context, next) => {
 
 app.use(Session.initMiddleware());
 
+////this is for the initialization of encroption
+try {
+  await initializeEncryption();
+  console.log("Encryption service initialized");
+} catch (error) {
+  console.warn("Warning: Encryption service initialization failed:", error);
+  console.warn("Secret management features will not work without SECRET_MASTER_KEY");
+}
+
 router
   .post(
     "/auth/github",
@@ -60,7 +75,13 @@ router
   .post("/auth/jwt", (ctx) => handleJwtAuthentication(ctx))
   .get("/map", (ctx) => getSubdomains(ctx))
   .post("/map", (ctx) => addSubdomain(ctx))
-  .post("/mapdel", (ctx) => deleteSubdomain(ctx));
+  .post("/mapdel", (ctx) => deleteSubdomain(ctx))
+
+
+  
+  .post("/secrets/:subdomain", (ctx) => upsertProjectSecrets(ctx))
+  .get("/secrets/:subdomain", (ctx) => getProjectSecretKeys(ctx))
+  .delete("/secrets/:subdomain", (ctx) => deleteProjectSecrets(ctx));
 
 app.use(oakCors());
 app.use(router.routes());
