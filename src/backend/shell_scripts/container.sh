@@ -4,7 +4,9 @@ flag=$1
 name=$2
 resource=$3
 exp_port=$4
-max_mem=$5 
+max_mem=$5
+env_file_path=$6
+volume_name="df-vol-$(echo "$name" | tr '.[:]/' '-')" 
 
 available_ports=()
 
@@ -17,8 +19,23 @@ done
 echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 echo "Creating subdomain $name"
+
+# Create volume if it doesn't exist
+if ! docker volume inspect "$volume_name" >/dev/null 2>&1; then
+    echo "Creating volume: $volume_name"
+    docker volume create "$volume_name"
+fi
+
 git clone $resource $name
-sudo cp .env $name/
+
+if [ -n "$env_file_path" ] && [ -f "$env_file_path" ]; then
+    echo "Using runtime env file: $env_file_path"
+else
+    if [ -f ".env" ]; then
+        sudo cp .env $name/
+    fi
+fi
+
 cd $name
 
 if [ $flag = "-g" ]; then
@@ -31,11 +48,29 @@ elif [ $flag = "-s" ]; then
 fi
 
 sudo docker build -t $name .
-sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $2
+
+docker_run_cmd="sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port -v $volume_name:/app/data"
+
+if [ -n "$env_file_path" ] && [ -f "$env_file_path" ]; then
+    sudo chmod 600 "$env_file_path"
+    docker_run_cmd="$docker_run_cmd --env-file $env_file_path"
+fi
+
+docker_run_cmd="$docker_run_cmd $name"
+eval $docker_run_cmd
+
+if [ -n "$env_file_path" ] && [ -f "$env_file_path" ] && [[ "$env_file_path" == /tmp/* ]]; then
+    sudo rm -f "$env_file_path"
+fi
+
 cd ..
 sudo rm -rf $name
-sudo rm Dockerfile
-sudo rm .env
+if [ -f "Dockerfile" ]; then
+    sudo rm Dockerfile
+fi
+if [ -f ".env" ] && [ -z "$env_file_path" ]; then
+    sudo rm .env
+fi
 sudo touch /etc/nginx/sites-available/$2.conf
 sudo chmod 666 /etc/nginx/sites-available/$2.conf
 sudo echo "# Virtual Host configuration for $2
