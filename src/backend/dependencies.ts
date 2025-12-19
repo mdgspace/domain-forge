@@ -10,6 +10,7 @@ import { create, verify } from "https://deno.land/x/djwt@v2.9.1/mod.ts";
 import { exec } from "https://deno.land/x/exec@0.0.5/mod.ts";
 import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
+import { MongoClient, ObjectId } from "https://deno.land/x/mongo@v0.32.0/mod.ts";
 
 export {
   Application,
@@ -23,4 +24,6 @@ export {
   Session,
   Status,
   verify,
+  MongoClient,
+  ObjectId,
 };
