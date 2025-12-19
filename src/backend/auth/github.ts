@@ -64,8 +64,18 @@ async function authenticateAndCreateJWT(
     });
 
     const body = await resp.json();
+    console.log("OAuth Response Body:", body);
 
+    if (body.error) {
+      console.error("OAuth Error:", body.error_description);
+      ctx.response.body = "not authorized";
+      return;
+    }
+
+    // Pass the access token to checkUser
     const { status, userId } = await checkUser(body.access_token, provider);
+
+    console.log("DB Status for User:", userId, status);
 
     ctx.response.headers.set("Access-Control-Allow-Origin", "*");
 
@@ -74,9 +84,11 @@ async function authenticateAndCreateJWT(
       Sentry.captureMessage("User " + userId + " logged in", "info");
       ctx.response.body = id_jwt;
     } else {
+      console.error("Authorization failed based on DB status");
       ctx.response.body = "not authorized";
     }
   } else {
+    console.error("Code was null");
     ctx.response.body = "not authorized";
   }
 }
