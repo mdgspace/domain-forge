@@ -65,18 +65,11 @@ async function authenticateAndCreateJWT(
 
     const body = await resp.json();
 
-    if (!body.access_token) {
-      console.error("OAuth token exchange failed:", body);
-      ctx.response.headers.set("Access-Control-Allow-Origin", "*");
-      ctx.response.body = "not authorized";
-      return;
-    }
-
     const { status, userId } = await checkUser(body.access_token, provider);
 
     ctx.response.headers.set("Access-Control-Allow-Origin", "*");
 
-    if (status.matchedCount == 1 || status.upsertedId !== undefined) {
+    if (status.matchedCount == 1) {
       const id_jwt = await createJWT(provider, userId);
       Sentry.captureMessage("User " + userId + " logged in", "info");
       ctx.response.body = id_jwt;
