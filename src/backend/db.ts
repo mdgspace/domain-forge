@@ -41,6 +41,7 @@ async function checkUser(accessToken: string, provider: string) {
         "authToken": accessToken,
       },
     },
+    "upsert": true,
   };
 
   options.body = JSON.stringify(query);
