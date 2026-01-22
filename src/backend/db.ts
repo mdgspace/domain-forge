@@ -25,6 +25,12 @@ try {
 
 // Function to update access token on db if user exists
 async function checkUser(accessToken: string, provider: string) {
+  // Check if database connection is available
+  if (!userAuthCollection) {
+    console.error("Database connection not available. userAuthCollection is undefined.");
+    throw new Error("Database connection not available. Please check MONGO_URI environment variable and MongoDB connectivity.");
+  }
+
   const userId = await getProviderUser(accessToken, provider);
 
   // Use ADMIN_LIST to check if user is allowed
@@ -48,6 +54,9 @@ async function checkUser(accessToken: string, provider: string) {
 
 // Get all content maps corresponding to user
 async function getMaps(author: string, ADMIN_LIST: string[]) {
+  if (!contentMapsCollection) {
+    throw new Error("Database connection not available.");
+  }
   const filter = ADMIN_LIST?.includes(author) ? {} : { "author": author };
 
   // Convert deprecated simple filter to standard mongo filter if needed
@@ -58,6 +67,9 @@ async function getMaps(author: string, ADMIN_LIST: string[]) {
 
 // Add content maps
 async function addMaps(document: DfContentMap) {
+  if (!contentMapsCollection) {
+    throw new Error("Database connection not available.");
+  }
   // Check existence
   const existing = await contentMapsCollection.findOne({ "subdomain": document.subdomain });
 
@@ -71,6 +83,9 @@ async function addMaps(document: DfContentMap) {
 
 // Delete content maps
 async function deleteMaps(document: DfContentMap, ADMIN_LIST: string[]) {
+  if (!contentMapsCollection) {
+    throw new Error("Database connection not available.");
+  }
   const filter: any = { ...document };
   // Native driver deleteOne expects a filter object
   if (ADMIN_LIST.includes(document.author)) {
