@@ -5,7 +5,13 @@ import DfContentMap from "./types/maps_interface.ts";
 // Initialize MongoClient
 const client = new MongoClient();
 const MONGO_URI = Deno.env.get("MONGO_URI");
-if (!MONGO_URI) console.error("MONGO_URI is not set in environment variables (This will crash if DB is accessed)");
+
+console.log("--- DB INIT DEBUG ---");
+console.log("CWD:", Deno.cwd());
+console.log("MONGO_URI Present:", !!MONGO_URI);
+if (MONGO_URI) console.log("MONGO_URI Length:", MONGO_URI.length);
+else console.log("⚠️  MONGO_URI IS MISSING from environment!");
+console.log("---------------------");
 
 let db: any;
 let userAuthCollection: any;
@@ -13,14 +19,17 @@ let contentMapsCollection: any;
 
 try {
   if (MONGO_URI) {
+    console.log("Attempting to connect to MongoDB...");
     await client.connect(MONGO_URI);
     db = client.database("df_test");
     userAuthCollection = db.collection("user_auth");
     contentMapsCollection = db.collection("content_maps");
-    console.log("Connected to MongoDB successfully");
+    console.log("✅ Connected to MongoDB successfully");
+  } else {
+    console.error("❌ SKIPPING DB CONNECTION: MONGO_URI is missing.");
   }
 } catch (error) {
-  console.error("Failed to connect to MongoDB", error);
+  console.error("❌ Failed to connect to MongoDB:", error);
 }
 
 // Function to update access token on db if user exists
