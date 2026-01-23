@@ -11,7 +11,7 @@ import { exec } from "https://deno.land/x/exec@0.0.5/mod.ts";
 import * as Sentry from 'https://deno.land/x/sentry/index.mjs';
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { load } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
-import { MongoClient, ObjectId } from "https://deno.land/x/mongo@v0.33.0/mod.ts";
+import { MongoClient, ObjectId } from "npm:mongodb@6.1.0";
 
 try {
   await load({ export: true }); // Try default .env in CWD

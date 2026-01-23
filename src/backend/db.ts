@@ -2,9 +2,9 @@ import { MongoClient } from "./dependencies.ts";
 import getProviderUser from "./utils/get-user.ts";
 import DfContentMap from "./types/maps_interface.ts";
 
-// Initialize MongoClient
-const client = new MongoClient();
+// Initialize MongoClient with npm driver
 const MONGO_URI = Deno.env.get("MONGO_URI");
+const client = MONGO_URI ? new MongoClient(MONGO_URI) : null;
 
 console.log("--- DB INIT DEBUG ---");
 console.log("CWD:", Deno.cwd());
@@ -18,10 +18,10 @@ let userAuthCollection: any;
 let contentMapsCollection: any;
 
 try {
-  if (MONGO_URI) {
+  if (MONGO_URI && client) {
     console.log("Attempting to connect to MongoDB...");
-    await client.connect(MONGO_URI);
-    db = client.database("df_test");
+    await client.connect();
+    db = client.db("df_test");
     userAuthCollection = db.collection("user_auth");
     contentMapsCollection = db.collection("content_maps");
     console.log("✅ Connected to MongoDB successfully");
