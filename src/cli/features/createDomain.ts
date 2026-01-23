@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import inquirer from 'inquirer'
 import { promptUser } from '../utils/promptTaker.js';
 
-let domain = 'stage-domains.mdgspace.org';
+let domain = 'domains.pluto.mdgspace.org';
 
 async function selectResourceType() {
   const { resourceType } = await inquirer.prompt([
@@ -52,7 +52,7 @@ export async function createDomain(userApiKey: string, user: string, provider: s
   let stack: string = '';
   let buildCmds: string = '';
 
-  subdomain = await promptUser('Enter subdomain (subdomain.stage-domains.mdgspace.org):');
+  subdomain = await promptUser('Enter subdomain (subdomain.domains.pluto.mdgspace.org):');
   resourceType = await selectResourceType();
   resource = await promptUser('Enter resource:');
 
