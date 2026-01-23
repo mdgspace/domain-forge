@@ -42,8 +42,6 @@ sudo echo "# Virtual Host configuration for $2
     server {
     listen 80;
     listen [::]:80;
-    listen 443 ssl;
-    listen [::]:443 ssl;
     server_name $2;
     location / {
         proxy_pass http://localhost:${available_ports[$AVAILABLE]};
@@ -55,10 +53,6 @@ sudo echo "# Virtual Host configuration for $2
     }
     charset utf-8;
     client_max_body_size 20M;
-    ssl_certificate /etc/letsencrypt/live/domains.pluto.mdgspace.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/domains.pluto.mdgspace.org/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
     }" > /etc/nginx/sites-available/$2.conf
 sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf
 sudo systemctl reload nginx

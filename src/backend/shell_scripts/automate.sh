@@ -23,8 +23,6 @@ if [ "$arg1" = "-u" ]; then
     sudo echo "  server {
       listen 80;
       listen [::]:80;
-      listen 443 ssl;
-      listen [::]:443 ssl;
       server_name $arg3;
      
       location / {
@@ -32,10 +30,6 @@ if [ "$arg1" = "-u" ]; then
       }
       charset utf-8;
       client_max_body_size 20M;
-      ssl_certificate /etc/letsencrypt/live/domains.pluto.mdgspace.org/fullchain.pem;
-      ssl_certificate_key /etc/letsencrypt/live/domains.pluto.mdgspace.org/privkey.pem;
-      include /etc/letsencrypt/options-ssl-nginx.conf;
-      ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
    }" > /etc/nginx/sites-available/$arg3.conf;
      sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
@@ -49,8 +43,6 @@ elif [ "$arg1" = "-p" ]; then
   server {
      listen 80;
      listen [::]:80;
-     listen 443 ssl;
-     listen [::]:443 ssl;
      server_name $arg3;
      location / {
         proxy_pass http://localhost:$arg2;
@@ -62,10 +54,6 @@ elif [ "$arg1" = "-p" ]; then
      }
      charset utf-8;
      client_max_body_size 20M;
-     ssl_certificate /etc/letsencrypt/live/domains.pluto.mdgspace.org/fullchain.pem;
-     ssl_certificate_key /etc/letsencrypt/live/domains.pluto.mdgspace.org/privkey.pem;
-     include /etc/letsencrypt/options-ssl-nginx.conf;
-     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
      }" > /etc/nginx/sites-available/$arg3.conf;
      sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
