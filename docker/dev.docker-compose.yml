@@ -17,6 +17,8 @@ services:
       - "${PORT_BACKEND}:7000"
     env_file:
       - ../src/backend/.env
+    depends_on:
+      - prometheus
   vue:
     container_name: df_frontend
     image: df_frontend
@@ -27,3 +29,39 @@ services:
       target: base
     ports:
       - "${PORT_FRONTEND}:8000"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: df_cadvisor
+    restart: unless-stopped
+    mem_limit: 128m
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8081:8080"
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: df_prometheus
+    restart: unless-stopped
+    mem_limit: 384m
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=24h'
+      - '--storage.tsdb.retention.size=256MB'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - cadvisor
+
+volumes:
+  prometheus_data:
