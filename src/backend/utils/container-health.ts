@@ -3,11 +3,9 @@ export interface ContainerStats {
     name: string;
     subdomain: string;
     cpuPercent: number;
-    memoryUsage: number;      
-    memoryLimit: number;      
+    memoryUsage: number;
+    memoryLimit: number;
     memoryPercent: number;
-    networkRxBytes: number;
-    networkTxBytes: number;
     restartCount: number;
     status: ContainerStatus;
     lastUpdated: Date;
@@ -15,22 +13,22 @@ export interface ContainerStats {
 
 export type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
 
-//Time range for historical metrics 
+
 export interface TimeRange {
     step: TimeStep;
-    duration: string;  
+    duration: string;
 }
 
 export type TimeStep = '1s' | '15s' | '1m' | '5m' | '1h' | '1d';
 
-//Health thresholds for determining unhealthy status 
+
 export interface HealthThresholds {
-    maxCpuPercent: number;      
-    maxMemoryPercent: number;   
-    maxRestartCount: number;    
+    maxCpuPercent: number;
+    maxMemoryPercent: number;
+    maxRestartCount: number;
 }
 
-//Prometheus query result structure 
+
 interface PrometheusResult {
     status: 'success' | 'error';
     data: {
@@ -42,20 +40,20 @@ interface PrometheusResult {
 
 interface PrometheusMetric {
     metric: Record<string, string>;
-    value?: [number, string];       
-    values?: [number, string][];    
+    value?: [number, string];
+    values?: [number, string][];
 }
 
 const PROMETHEUS_URL = Deno.env.get('PROMETHEUS_URL') || 'http://prometheus:9090';
 const DEBUG = Deno.env.get('HEALTH_DEBUG') === 'true';
 
 const DEFAULT_THRESHOLDS: HealthThresholds = {
-    maxCpuPercent: 90,
-    maxMemoryPercent: 85,
-    maxRestartCount: 5,
+    maxCpuPercent: Number(Deno.env.get('MAX_CPU_THRESHOLD')) || 90,
+    maxMemoryPercent: Number(Deno.env.get('MAX_MEMORY_THRESHOLD')) || 85,
+    maxRestartCount: Number(Deno.env.get('MAX_RESTART_COUNT')) || 5,
 };
 
-//Execute an instant query against Prometheus
+
 async function queryPrometheus(query: string): Promise<PrometheusResult> {
     const url = `${PROMETHEUS_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
 
@@ -78,7 +76,7 @@ async function queryPrometheus(query: string): Promise<PrometheusResult> {
     }
 }
 
-//Execute a range query for historical metrics
+
 async function queryPrometheusRange(
     query: string,
     range: TimeRange
@@ -114,13 +112,10 @@ async function queryPrometheusRange(
     }
 }
 
-//Get current stats for all user containers (excludes system containers)
+
 export async function getAllContainerStats(): Promise<ContainerStats[]> {
-    // Query CPU usage rate (percentage)
     const cpuQuery = 'rate(container_cpu_usage_seconds_total{name=~".+"}[1m]) * 100';
     const cpuResult = await queryPrometheus(cpuQuery);
-
-    // Query memory usage and limit
     const memUsageQuery = 'container_memory_usage_bytes{name=~".+"}';
     const memLimitQuery = 'container_memory_max_usage_bytes{name=~".+"}';
 
@@ -129,7 +124,6 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
         queryPrometheus(memLimitQuery),
     ]);
 
-    // Build container stats map
     const statsMap = new Map<string, Partial<ContainerStats>>();
     const now = new Date();
 
@@ -139,7 +133,7 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
         if (isUserContainer(name)) {
             const existing = statsMap.get(name) || { name, lastUpdated: now };
             existing.cpuPercent = parseFloat(metric.value?.[1] || '0');
-            existing.subdomain = extractSubdomain(name);
+            existing.subdomain = name;
             existing.containerId = metric.metric.id || name;
             statsMap.set(name, existing);
         }
@@ -155,6 +149,7 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
         }
     }
 
+    // Process memory limit metrics
     for (const metric of memLimitResult.data?.result || []) {
         const name = metric.metric.name || metric.metric.container_name || '';
         if (isUserContainer(name)) {
@@ -167,7 +162,6 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
         }
     }
 
-    // Convert to array with defaults for missing fields
     return Array.from(statsMap.values()).map(stats => ({
         containerId: stats.containerId || stats.name || '',
         name: stats.name || '',
@@ -176,15 +170,13 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
         memoryUsage: stats.memoryUsage || 0,
         memoryLimit: stats.memoryLimit || 0,
         memoryPercent: stats.memoryPercent || 0,
-        networkRxBytes: stats.networkRxBytes || 0,
-        networkTxBytes: stats.networkTxBytes || 0,
         restartCount: stats.restartCount || 0,
         status: determineStatus(stats),
         lastUpdated: stats.lastUpdated || now,
     }));
 }
 
-//Get historical metrics for a specific container
+
 export async function getContainerHistory(
     containerName: string,
     range: TimeRange
@@ -208,7 +200,7 @@ export async function getContainerHistory(
     return { cpu: cpuData, memory: memData };
 }
 
-//Check if a container is unhealthy based on thresholds
+
 export function isUnhealthy(
     stats: ContainerStats,
     thresholds: HealthThresholds = DEFAULT_THRESHOLDS
@@ -222,7 +214,7 @@ export function isUnhealthy(
     );
 }
 
-//Get health summary for all containers
+
 export async function getHealthSummary(): Promise<{
     total: number;
     healthy: number;
@@ -240,33 +232,25 @@ export async function getHealthSummary(): Promise<{
     };
 }
 
-//Check if container is a user-deployed container (not system)
+
 function isUserContainer(name: string): boolean {
-    // Exclude system containers
     const systemContainers = ['df_backend', 'df_frontend', 'df_prometheus', 'df_cadvisor'];
     return name.length > 0 && !systemContainers.includes(name) && !name.startsWith('k8s_');
 }
 
-//Extract subdomain from container name
-function extractSubdomain(containerName: string): string {
-    // Container names in Domain-Forge ARE the subdomain
-    return containerName;
-}
 
-//Determine container status from available metrics
+
 function determineStatus(stats: Partial<ContainerStats>): ContainerStatus {
     if (!stats.cpuPercent && !stats.memoryUsage) {
         return 'unknown';
     }
-    // If we have metrics, container is running
-    // TODO: Add health check status from Docker inspect
     return 'running';
 }
 
-//Parse duration string to seconds
+
 function parseDuration(duration: string): number {
     const match = duration.match(/^(\d+)([smhd])$/);
-    if (!match) return 3600; // Default 1h
+    if (!match) return 3600;
 
     const value = parseInt(match[1]);
     const unit = match[2];
@@ -280,7 +264,7 @@ function parseDuration(duration: string): number {
     }
 }
 
-//Parse time step to seconds
+
 function parseStep(step: TimeStep): number {
     switch (step) {
         case '1s': return 1;

@@ -1,29 +1,20 @@
-# Prometheus Configuration for Domain-Forge Container Monitoring
-# Memory-optimized settings (total monitoring stack: 512MB)
-
 global:
-  scrape_interval: 15s        # How often to scrape targets
-  evaluation_interval: 15s    # How often to evaluate rules
+  scrape_interval: 15s        
+  evaluation_interval: 15s    
   external_labels:
     monitor: 'domain-forge'
 
-# Scrape configurations
 scrape_configs:
-  # cAdvisor metrics - container-level CPU, memory, network, disk I/O
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
-    # Only scrape metrics we actually need to save memory
     metric_relabel_configs:
       - source_labels: [__name__]
         regex: 'container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)'
         action: keep
-
-  # Prometheus self-monitoring (optional, for debugging)
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
-    # Keep minimal self-metrics
     metric_relabel_configs:
       - source_labels: [__name__]
         regex: 'prometheus_(build_info|target_interval_length_seconds)'

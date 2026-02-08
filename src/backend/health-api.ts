@@ -19,7 +19,7 @@ const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
     '1d': { step: '1d', duration: '7d' },    
 };
 
-//Get container health summary
+
 export async function getContainerHealth(ctx: Context): Promise<void> {
     const author = ctx.request.url.searchParams.get("user");
     const token = ctx.request.url.searchParams.get("token");
@@ -50,7 +50,7 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
     };
 }
 
-//Get container metrics
+
 export async function getContainerMetrics(ctx: Context): Promise<void> {
     const subdomain = ctx.params.subdomain;
     const stepParam = ctx.request.url.searchParams.get("step") || '1m';
@@ -62,7 +62,6 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
         ctx.throw(401);
     }
 
-    // Validate step parameter
     const step = stepParam as TimeStep;
     const range = TIME_RANGE_PRESETS[step] || TIME_RANGE_PRESETS['1m'];
 
@@ -85,7 +84,7 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
     };
 }
 
-//Get health dashboard
+
 export async function getHealthDashboard(ctx: Context): Promise<void> {
     const author = ctx.request.url.searchParams.get("user");
     const token = ctx.request.url.searchParams.get("token");
@@ -124,7 +123,7 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
     };
 }
 
-//Restart container
+
 export async function restartContainerHandler(ctx: Context): Promise<void> {
     const subdomain = ctx.params.subdomain;
 
@@ -161,7 +160,7 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
     }
 }
 
-//Trigger health check
+
 export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
     const body = await ctx.request.body().value;
     let document;
@@ -189,7 +188,7 @@ export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
     };
 }
 
-//Get unhealthy reason
+
 function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
     const reasons: string[] = [];
 
