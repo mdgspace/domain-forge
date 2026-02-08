@@ -14,6 +14,14 @@ import {
   handleJwtAuthentication,
 } from "./auth/github.ts";
 import { addSubdomain, deleteSubdomain, getSubdomains } from "./main.ts";
+import {
+  getContainerHealth,
+  getContainerMetrics,
+  getHealthDashboard,
+  restartContainerHandler,
+  triggerHealthCheckHandler,
+} from "./health-api.ts";
+import { startHealthMonitor } from "./health-monitor.ts";
 
 const router = new Router();
 const app = new Application();
@@ -49,6 +57,7 @@ app.use(async (ctx: Context, next) => {
 app.use(Session.initMiddleware());
 
 router
+  // Auth routes
   .post(
     "/auth/github",
     (ctx) => githubAuth(ctx, githubClientId, githubClientSecret),
@@ -58,12 +67,24 @@ router
     (ctx) => gitlabAuth(ctx, gitlabClientId, gitlabClientSecret, frontend),
   )
   .post("/auth/jwt", (ctx) => handleJwtAuthentication(ctx))
+  // Subdomain routes
   .get("/map", (ctx) => getSubdomains(ctx))
   .post("/map", (ctx) => addSubdomain(ctx))
-  .post("/mapdel", (ctx) => deleteSubdomain(ctx));
+  .post("/mapdel", (ctx) => deleteSubdomain(ctx))
+  // Health monitoring routes
+  .get("/health", (ctx) => getContainerHealth(ctx))
+  .get("/health/summary", (ctx) => getHealthDashboard(ctx))
+  .get("/health/:subdomain/metrics", (ctx) => getContainerMetrics(ctx))
+  .post("/health/:subdomain/restart", (ctx) => restartContainerHandler(ctx))
+  .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx));
 
 app.use(oakCors());
 app.use(router.routes());
 app.use(router.allowedMethods());
+
+// Start health monitoring service
+startHealthMonitor();
+
 app.listen({ port: PORT });
 console.log("Listening...");
+

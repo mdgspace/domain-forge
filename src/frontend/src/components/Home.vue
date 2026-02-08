@@ -23,6 +23,7 @@ const maps = await getMaps(user);
         </div>
         <ul class="nav-links">
           <li><a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md">Docs</a></li>
+          <li><router-link to="/health" class="health-link">Health</router-link></li>
           <li class="login-provider">
             <button @click="showApiKeyModal = true" class="logout-button">Api Key</button>
           </li>

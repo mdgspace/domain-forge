@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s        
+  evaluation_interval: 15s    
+  external_labels:
+    monitor: 'domain-forge'
+
+scrape_configs:
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)'
+        action: keep
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'prometheus_(build_info|target_interval_length_seconds)'
+        action: keep
