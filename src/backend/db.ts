@@ -111,4 +111,25 @@ async function deleteMaps(document: DfContentMap, ADMIN_LIST: string[]) {
   return deleteResult;
 }
 
-export { addMaps, checkUser, deleteMaps, getMaps };
+// Update `status` and `build_logs`
+async function updateMapStatus(subdomain: string, status: string, logs: string = "") {
+  const query = {
+    collection: "content_maps",
+    database: DATABASE,
+    dataSource: DATA_SOURCE,
+    filter: { "subdomain": subdomain },
+    update: {
+      $set: {
+        "status": status,
+        "build_logs": logs
+      },
+    },
+  };
+
+  options.body = JSON.stringify(query);
+  const resp = await fetch(MONGO_URLs.update.toString(), options);
+  const data = await resp.json();
+  return data;
+}
+
+export { addMaps, checkUser, deleteMaps, getMaps, updateMapStatus };

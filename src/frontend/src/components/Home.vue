@@ -1,16 +1,65 @@
 <script setup type="module">
+import { ref, onMounted, onUnmounted } from 'vue';
 import { getMaps } from '../utils/maps.ts';
 import { check_jwt } from '../utils/authorize.ts';
 import modal from './modal.vue';
 import deletemodal from './deletemodal.vue';
 import ApiKeyModal from './ApiKeyModal.vue';
+import LogModal from './LogModal.vue';
 
 const token = localStorage.getItem("JWTUser");
 const provider = localStorage.getItem("provider");
 const user = await check_jwt(token, provider);
 const apiKey = localStorage.getItem("apiKey");
-const fields = ["date", "subdomain", "resource", "resource_type", ""];
-const maps = await getMaps(user);
+const fields = ["date", "subdomain", "resource", "resource_type", "status", ""];
+const maps = ref(await getMaps(user));
+
+let pollingInterval = null;
+
+const updateMaps = async () => {
+  const newData = await getMaps(user);
+  maps.value = newData;
+  const hasActiveBuild = newData.some(item => item.status === 'building');
+
+  if (hasActiveBuild && !pollingInterval) {
+    startPolling();
+  } else if (!hasActiveBuild && pollingInterval) {
+    stopPolling();
+  }
+};
+
+const startPolling = () => {
+  if (pollingInterval) return;
+  pollingInterval = setInterval(updateMaps, 5000); // Poll every 5s
+};
+
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+};
+
+onMounted(() => {
+  // Check immediately if we need to start polling (e.g., if user refreshed page during a build)
+  const hasActiveBuild = maps.value.some(item => item.status === 'building');
+  if (hasActiveBuild) {
+    startPolling();
+  }
+});
+
+onUnmounted(() => {
+  stopPolling();
+});
+
+const showLogModal = ref(false);
+const currentLogs = ref("");
+const selectedItem = ref(null); // Ensure this exists for delete modal too
+
+const viewLogs = (item) => {
+  currentLogs.value = item.build_logs || "No logs available.";
+  showLogModal.value = true;
+};
 </script>
 
 <template>
@@ -51,14 +100,27 @@ const maps = await getMaps(user);
       <tbody>
         <tr v-for="item in maps" :key="item">
           <td v-for="field in fields" :key="field" style="border-bottom: 1px solid #121212">
-            <span v-if="item[field] && field !== 'subdomain'">{{ item[field] }}</span>
-            <span v-else-if="field === 'subdomain'">
-              <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
+            <span v-if="field === 'subdomain'">
+              <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" 
+                style="text-decoration: none; color: inherit;">
+                {{ item[field] }}
+              </a>
             </span>
-            <span v-else>
+            <span v-else-if="field === 'status'">
+              <span v-if="item.status === 'building'" style="color: orange;">⏳ Building...</span>
+              <span v-else-if="item.status === 'success'" style="color: green;">✅ Live</span>
+              <span v-else-if="item.status === 'failed'" style="color: red; cursor: pointer; text-decoration: underline;" 
+                    @click="viewLogs(item)">
+                ❌ Failed (View Logs)
+              </span>
+              <span v-else>Active</span> </span>
+            <span v-else-if="field === ''">
               <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
-              <div style="text-align: center;"><button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button></div>
+              <div style="text-align: center;">
+                <button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button>
+              </div>
             </span>
+            <span v-else>{{ item[field] }}</span>
           </td>
         </tr>
       </tbody>
@@ -69,6 +131,8 @@ const maps = await getMaps(user);
   </div>
 
   <ApiKeyModal v-show="showApiKeyModal" :apiKey="apiKey" @close-modal="showApiKeyModal = false" />
+
+  <LogModal v-if="showLogModal" :logs="currentLogs" @close="showLogModal = false" />
 
   <footer>
     <p>Made with ❤️ by MDG Space</p>
