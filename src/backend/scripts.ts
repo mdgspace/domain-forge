@@ -3,6 +3,7 @@ import dockerize from "./utils/container.ts";
 import DfContentMap from "./types/maps_interface.ts";
 
 const MEMORY_LIMIT = Deno.env.get("MEMORY_LIMIT");
+const PORT = Deno.env.get("PORT_BACKEND");
 
 async function addScript(
   document: DfContentMap,
@@ -24,7 +25,7 @@ async function addScript(
   } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
     Deno.writeTextFile(`/hostpipe/.env`, env_content);
     await exec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${document.subdomain} ${document.resource} 80 ${MEMORY_LIMIT}' > /hostpipe/pipe"`,
+      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${document.subdomain} ${document.resource} 80 ${MEMORY_LIMIT} ${PORT}' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "GITHUB" && static_content == "No") {
     if(dockerfile_present === 'No'){
@@ -32,12 +33,12 @@ async function addScript(
     Deno.writeTextFile(`/hostpipe/Dockerfile`, dockerfile);
     Deno.writeTextFile(`/hostpipe/.env`, env_content);
     await exec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${document.subdomain} ${document.resource} ${port} ${MEMORY_LIMIT}' > /hostpipe/pipe"`,
+      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${document.subdomain} ${document.resource} ${port} ${MEMORY_LIMIT} ${PORT}' > /hostpipe/pipe"`,
     );
     }else if(dockerfile_present === 'Yes'){
       
       await exec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${document.subdomain} ${document.resource} ${port} ${MEMORY_LIMIT}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${document.subdomain} ${document.resource} ${port} ${MEMORY_LIMIT} ${PORT}' > /hostpipe/pipe"`,
       );
     }
     

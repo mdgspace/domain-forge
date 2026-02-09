@@ -13,7 +13,7 @@ import {
   gitlabAuth,
   handleJwtAuthentication,
 } from "./auth/github.ts";
-import { addSubdomain, deleteSubdomain, getSubdomains } from "./main.ts";
+import { addSubdomain, deleteSubdomain, getSubdomains, updateBuildStatus } from "./main.ts";
 
 const router = new Router();
 const app = new Application();
@@ -60,7 +60,8 @@ router
   .post("/auth/jwt", (ctx) => handleJwtAuthentication(ctx))
   .get("/map", (ctx) => getSubdomains(ctx))
   .post("/map", (ctx) => addSubdomain(ctx))
-  .post("/mapdel", (ctx) => deleteSubdomain(ctx));
+  .post("/mapdel", (ctx) => deleteSubdomain(ctx))
+  .post("/maplogs", (ctx) => updateBuildStatus(ctx));
 
 app.use(oakCors());
 app.use(router.routes());
