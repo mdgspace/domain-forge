@@ -1,7 +1,7 @@
 import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
-import { addMaps, deleteMaps, getMaps } from "./db.ts";
+import { addMaps, deleteMaps, getMaps, updateMapStatus } from "./db.ts";
 
 const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|");
 
@@ -97,4 +97,34 @@ async function deleteSubdomain(ctx: Context) {
   ctx.response.body = data;
 }
 
-export { addSubdomain, deleteSubdomain, getSubdomains };
+async function updateBuildStatus(ctx: Context) {
+  if (!ctx.request.hasBody) {
+    ctx.throw(415);
+  }
+  const body = await ctx.request.body().value;
+  let payload;
+  try {
+    payload = JSON.parse(body);
+  } catch (e) {
+    payload = body;
+  }
+
+  // Expect 'status' in the payload now
+  const { subdomain, status, logs } = payload; 
+
+  if (status === "failed") {
+    // Log Error to Sentry
+    Sentry.captureMessage(`Build Failed for ${subdomain}: ${logs}`, "error");
+  } else if (status === "success") {
+    // Log Info to Sentry (Optional but good for tracking)
+    Sentry.captureMessage(`Build Success for ${subdomain}`, "info");
+  }
+
+  // Update DB with whatever status came in ("success" or "failed")
+  await updateMapStatus(subdomain, status, logs);
+
+  ctx.response.status = 200;
+  ctx.response.body = { received: true };
+}
+
+export { addSubdomain, deleteSubdomain, getSubdomains, updateBuildStatus };

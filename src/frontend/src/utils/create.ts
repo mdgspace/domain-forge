@@ -95,6 +95,7 @@ export async function create(
     "date": new Date().toLocaleDateString(),
     "token": localStorage.getItem("JWTUser"),
     "provider": localStorage.getItem("provider"),
+    "status": "building",
   };
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",
