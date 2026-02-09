@@ -30,8 +30,8 @@ async function authenticateAndCreateJWT(
   const oauthUrl = provider === "github"
     ? "https://github.com/login/oauth/access_token"
     : provider === "gitlab"
-    ? "https://gitlab.com/oauth/token"
-    : null;
+      ? "https://gitlab.com/oauth/token"
+      : null;
 
   if (oauthUrl === null) {
     ctx.response.body = "Unsupported provider";
@@ -47,14 +47,14 @@ async function authenticateAndCreateJWT(
         code,
       }).toString()
       : provider === "gitlab"
-      ? new URLSearchParams({
-        client_id: id,
-        client_secret: secret,
-        code,
-        grant_type: "authorization_code",
-        redirect_uri: `${frontend}/login`,
-      }).toString()
-      : "";
+        ? new URLSearchParams({
+          client_id: id,
+          client_secret: secret,
+          code,
+          grant_type: "authorization_code",
+          redirect_uri: `${frontend}/login`,
+        }).toString()
+        : "";
 
     const resp = await fetch(rootUrl.toString(), {
       method: "POST",
@@ -64,19 +64,27 @@ async function authenticateAndCreateJWT(
     });
 
     const body = await resp.json();
+    if (body.error) {
+      console.error("OAuth Error:", body.error_description);
+      ctx.response.body = "not authorized";
+      return;
+    }
 
+    // Pass the access token to checkUser
     const { status, userId } = await checkUser(body.access_token, provider);
 
     ctx.response.headers.set("Access-Control-Allow-Origin", "*");
 
-    if (status.matchedCount == 1) {
+    if (status.matchedCount == 1 || status.upsertedId !== undefined) {
       const id_jwt = await createJWT(provider, userId);
       Sentry.captureMessage("User " + userId + " logged in", "info");
       ctx.response.body = id_jwt;
     } else {
+      console.error("Authorization failed based on DB status");
       ctx.response.body = "not authorized";
     }
   } else {
+    console.error("Code was null");
     ctx.response.body = "not authorized";
   }
 }
@@ -97,7 +105,7 @@ async function handleJwtAuthentication(ctx: Context) {
   const provider = document.provider;
   const user = await checkJWT(provider, jwt_token);
   const apiKey = generateApiKey(user)
-  ctx.response.body = {user , apiKey};
+  ctx.response.body = { user , apiKey};
 }
 
 export { githubAuth, gitlabAuth, handleJwtAuthentication };
