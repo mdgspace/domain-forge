@@ -23,6 +23,7 @@ cd $name
 
 if [ $flag = "-g" ]; then
     sudo cp ../Dockerfile ./
+    sudo cp ../.dockerignore ./ 2>/dev/null || true
 elif [ $flag = "-s" ]; then
     sudo echo "
     FROM nginx:alpine
@@ -31,18 +32,18 @@ elif [ $flag = "-s" ]; then
 fi
 
 sudo docker build -t $name .
-sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $2
+sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $name
 cd ..
 sudo rm -rf $name
 sudo rm Dockerfile
 sudo rm .env
-sudo touch /etc/nginx/sites-available/$2.conf
-sudo chmod 666 /etc/nginx/sites-available/$2.conf
-sudo echo "# Virtual Host configuration for $2
+sudo touch /etc/nginx/sites-available/$name.conf
+sudo chmod 666 /etc/nginx/sites-available/$name.conf
+sudo echo "# Virtual Host configuration for $name
     server {
     listen 80;
     listen [::]:80;
-    server_name $2;
+    server_name $name;
     location / {
         proxy_pass http://localhost:${available_ports[$AVAILABLE]};
         proxy_http_version 1.1;
@@ -53,6 +54,6 @@ sudo echo "# Virtual Host configuration for $2
     }
     charset utf-8;
     client_max_body_size 20M;
-    }" > /etc/nginx/sites-available/$2.conf
-sudo ln -s /etc/nginx/sites-available/$2.conf /etc/nginx/sites-enabled/$2.conf
+    }" > /etc/nginx/sites-available/$name.conf
+sudo ln -s /etc/nginx/sites-available/$name.conf /etc/nginx/sites-enabled/$name.conf
 sudo systemctl reload nginx
