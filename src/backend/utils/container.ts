@@ -10,8 +10,8 @@ export default function dockerize(
   if (!last_cmd) {
     throw new Error("build_cmds must contain at least one valid execution command");
   }
-  const execute_cmd = "CMD " + JSON.stringify(last_cmd.split(" "));
-  const build_steps = run_cmd.filter(Boolean).map((cmd) => `RUN ${cmd}`);
+  let execute_cmd = "CMD " + JSON.stringify(last_cmd.split(" "));
+  let build_steps = run_cmd.filter(Boolean).map((cmd) => `RUN ${cmd}`);
   if (stack == "Python") {
     dockerfile = [
       "FROM python:3.12-slim AS builder",
@@ -56,7 +56,7 @@ export default function dockerize(
       "WORKDIR /app",
       "COPY . .",
       "RUN if [ -f go.mod ]; then go mod download; fi",
-      ...build_steps,
+      ...build_steps.map(step => step.replace(/RUN go run (.+)/, "RUN go build -o app_binary $1")),
       "RUN find . -type f ! -executable -delete && rm -rf vendor/ .git/ *.go go.*",
       "",
       "FROM alpine:3.19",
@@ -66,7 +66,7 @@ export default function dockerize(
       "COPY --from=builder /app /app",
       "USER appuser",
       `EXPOSE ${port}`,
-      execute_cmd,
+      last_cmd.startsWith("go run") ? 'CMD ["./app_binary"]' : execute_cmd,
     ].join("\n");
   }
   return dockerfile.toString();
