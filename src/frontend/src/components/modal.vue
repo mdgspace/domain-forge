@@ -65,7 +65,7 @@ export default {
       stack: '',
       build_cmds: '',
       resourceTypes: ['URL', 'PORT', 'GITHUB'],
-      stacks: ['Python', 'NodeJS']
+      stacks: ['Python', 'NodeJS', 'Go']
     };
   },
   methods: {

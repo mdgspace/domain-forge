@@ -50,6 +50,24 @@ export default function dockerize(
       `EXPOSE ${port}`,
       execute_cmd,
     ].join("\n");
+  } else if (stack === "Go") {
+    dockerfile = [
+      "FROM golang:1.22-alpine AS builder",
+      "WORKDIR /app",
+      "COPY . .",
+      "RUN if [ -f go.mod ]; then go mod download; fi",
+      ...build_steps,
+      "RUN find . -type f ! -executable -delete && rm -rf vendor/ .git/ *.go go.*",
+      "",
+      "FROM alpine:3.19",
+      "RUN addgroup -S appgroup && adduser -S appuser -G appgroup",
+      "RUN apk add --no-cache ca-certificates",
+      "WORKDIR /app",
+      "COPY --from=builder /app /app",
+      "USER appuser",
+      `EXPOSE ${port}`,
+      execute_cmd,
+    ].join("\n");
   }
   return dockerfile.toString();
 }
@@ -63,6 +81,7 @@ export function dockerignore(stack: string): string {
   const stackRules: Record<string, string[]> = {
     Python: ["__pycache__/", "*.pyc", "*.pyo", ".venv/", "dist/", "*.egg-info/"],
     NodeJS: ["node_modules/", "dist/", ".npm/", "*.log", "coverage/"],
+    Go: ["bin/", "obj/", "*.exe", "*.dll", "*.so", "*.dylib"],
   };
 
   return [...common, ...(stackRules[stack] ?? [])].join("\n") + "\n";
