@@ -109,6 +109,21 @@ export default function dockerize(
       `EXPOSE ${port}`,
       execute_cmd,
     ].join("\n");
+  } else if (stack === "React") {
+    dockerfile = [
+      "FROM node:22-alpine AS builder",
+      "WORKDIR /app",
+      "COPY . .",
+      "RUN if [ -f package.json ]; then npm install && npm cache clean --force; fi",
+      ...run_cmd.map((cmd) => `RUN ${cmd}`),
+      `RUN ${last_cmd}`,
+      "RUN if [ -d \"build\" ]; then mv build /app_output; elif [ -d \"dist\" ]; then mv dist /app_output; else echo \"No build or dist folder found!\" && exit 1; fi",
+      "",
+      "FROM nginx:alpine",
+      "COPY --from=builder /app_output /usr/share/nginx/html",
+      `RUN printf "server {\\n    listen ${port};\\n    location / {\\n        root /usr/share/nginx/html;\\n        index index.html index.htm;\\n        try_files \\$uri \\$uri/ /index.html;\\n    }\\n}" > /etc/nginx/conf.d/default.conf`,
+      `EXPOSE ${port}`,
+    ].join("\n");
   }
   return dockerfile.toString();
 }
@@ -124,6 +139,7 @@ export function dockerignore(stack: string): string {
     NodeJS: ["node_modules/", "dist/", ".npm/", "*.log", "coverage/"],
     Go: ["bin/", "obj/", "*.exe", "*.dll", "*.so", "*.dylib"],
     Rust: ["target/", "**/*.rs.bk"],
+    React: ["node_modules/", "build/", "dist/", ".npm/", "*.log", "coverage/"],
   };
 
   return [...common, ...(stackRules[stack] ?? [])].join("\n") + "\n";
