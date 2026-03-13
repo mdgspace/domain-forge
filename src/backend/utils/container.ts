@@ -51,12 +51,19 @@ export default function dockerize(
       execute_cmd,
     ].join("\n");
   } else if (stack === "Go") {
+    let goBuildOverride: string[] = [];
+    if (last_cmd.startsWith("go run")) {
+      const target = last_cmd.replace("go run ", "");
+      goBuildOverride = [`RUN go build -o app_binary ${target}`];
+      execute_cmd = 'CMD ["./app_binary"]';
+    }
     dockerfile = [
       "FROM golang:1.22-alpine AS builder",
       "WORKDIR /app",
       "COPY . .",
       "RUN if [ -f go.mod ]; then go mod download; fi",
-      ...build_steps.map(step => step.replace(/RUN go run (.+)/, "RUN go build -o app_binary $1")),
+      ...build_steps,
+      ...goBuildOverride,
       "RUN find . -type f ! -executable -delete && rm -rf vendor/ .git/ *.go go.*",
       "",
       "FROM alpine:3.19",
@@ -66,7 +73,7 @@ export default function dockerize(
       "COPY --from=builder /app /app",
       "USER appuser",
       `EXPOSE ${port}`,
-      last_cmd.startsWith("go run") ? 'CMD ["./app_binary"]' : execute_cmd,
+      execute_cmd,
     ].join("\n");
   }
   return dockerfile.toString();
