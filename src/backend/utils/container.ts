@@ -75,6 +75,40 @@ export default function dockerize(
       `EXPOSE ${port}`,
       execute_cmd,
     ].join("\n");
+  } else if (stack === "Rust") {
+    let rustBuildOverride: string[] = [];
+    let processed_build_steps = build_steps;
+
+    if (last_cmd.startsWith("cargo run")) {
+      processed_build_steps = build_steps.filter(step => !step.includes("cargo build"));
+      rustBuildOverride = [`RUN cargo build --release && find target/release -maxdepth 1 -type f -executable -exec mv {} ./app_binary \\;`];
+      execute_cmd = 'CMD ["./app_binary"]';
+    } else if (last_cmd.startsWith("rustc ")) {
+      const target = last_cmd.replace("rustc ", "");
+      processed_build_steps = build_steps.filter(step => !step.includes("rustc "));
+      rustBuildOverride = [`RUN rustc ${target} -o app_binary`];
+      execute_cmd = 'CMD ["./app_binary"]';
+    }
+
+    dockerfile = [
+      "FROM rust:1.77-alpine3.19 AS builder",
+      "RUN apk add --no-cache musl-dev",
+      "WORKDIR /app",
+      "COPY . .",
+      ...processed_build_steps,
+      ...rustBuildOverride,
+      "# Generator limitation: Since we don't know the exact binary name, we delete all source files and keep only the compiled executables",
+      "RUN find . -type f ! -executable -delete && rm -rf src/ .git/ Cargo.* vendor/ target/",
+      "",
+      "FROM alpine:3.19",
+      "RUN addgroup -S appgroup && adduser -S appuser -G appgroup",
+      "RUN apk add --no-cache ca-certificates libgcc",
+      "WORKDIR /app",
+      "COPY --from=builder /app /app",
+      "USER appuser",
+      `EXPOSE ${port}`,
+      execute_cmd,
+    ].join("\n");
   }
   return dockerfile.toString();
 }
@@ -89,6 +123,7 @@ export function dockerignore(stack: string): string {
     Python: ["__pycache__/", "*.pyc", "*.pyo", ".venv/", "dist/", "*.egg-info/"],
     NodeJS: ["node_modules/", "dist/", ".npm/", "*.log", "coverage/"],
     Go: ["bin/", "obj/", "*.exe", "*.dll", "*.so", "*.dylib"],
+    Rust: ["target/", "**/*.rs.bk"],
   };
 
   return [...common, ...(stackRules[stack] ?? [])].join("\n") + "\n";
