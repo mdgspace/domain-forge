@@ -91,7 +91,7 @@ export default function dockerize(
     }
 
     dockerfile = [
-      "FROM rust:1.77-alpine3.19 AS builder",
+      "FROM rust:alpine AS builder",
       "RUN apk add --no-cache musl-dev",
       "WORKDIR /app",
       "COPY . .",
