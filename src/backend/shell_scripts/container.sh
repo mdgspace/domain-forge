@@ -1,10 +1,9 @@
 report_error() {
   local msg="$1"
   local sub="$2"
-  # Replace with your actual backend URL
   curl -X POST -H "Content-Type: application/json" \
        -d "{\"subdomain\": \"$sub\", \"status\": \"failed\", \"logs\": \"$msg\"}" \
-       http://localhost:8000/maplogs
+       http://localhost:$BACKEND_PORT/maplogs
 }
 
 report_success() {
