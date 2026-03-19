@@ -9,7 +9,7 @@ export function getRestartCount(containerName: string): number {
 export async function restartContainer(containerName: string): Promise<void> {
     try {
         await exec(
-            `bash -c "echo 'docker restart ${containerName}' > /hostpipe/pipe"`
+            `bash -c "echo 'bash ../../src/backend/shell_scripts/restart.sh ${containerName}' > /hostpipe/pipe"`
         );
 
         const current = restartCounts.get(containerName);
