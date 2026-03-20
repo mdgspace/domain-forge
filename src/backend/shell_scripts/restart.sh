@@ -14,8 +14,14 @@ echo "Restarting... $arg1"
 
 sudo docker restart $arg1
 
-# Re-enable nginx routing if it was previously stopped
-if [ ! -f "/etc/nginx/sites-enabled/$arg1.conf" ] && [ -f "/etc/nginx/sites-available/$arg1.conf" ]; then
+# Re-enable nginx routing (check for .conf suffix)
+if [ ! -L "/etc/nginx/sites-enabled/$arg1.conf" ] && [ ! -f "/etc/nginx/sites-enabled/$arg1.conf" ] && [ -f "/etc/nginx/sites-available/$arg1.conf" ]; then
     sudo ln -s /etc/nginx/sites-available/$arg1.conf /etc/nginx/sites-enabled/$arg1.conf
-    sudo systemctl reload nginx
 fi
+
+# Re-enable nginx routing (check for no suffix)
+if [ ! -L "/etc/nginx/sites-enabled/$arg1" ] && [ ! -f "/etc/nginx/sites-enabled/$arg1" ] && [ -f "/etc/nginx/sites-available/$arg1" ]; then
+    sudo ln -s /etc/nginx/sites-available/$arg1 /etc/nginx/sites-enabled/$arg1
+fi
+
+sudo systemctl reload nginx

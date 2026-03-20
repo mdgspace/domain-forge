@@ -15,7 +15,12 @@ echo "Stopping... $arg1"
 sudo docker stop $arg1
 
 # Disable nginx routing for this domain so it doesn't return 502
-if [ -f "/etc/nginx/sites-enabled/$arg1.conf" ]; then
+if [ -L "/etc/nginx/sites-enabled/$arg1.conf" ] || [ -f "/etc/nginx/sites-enabled/$arg1.conf" ]; then
     sudo rm /etc/nginx/sites-enabled/$arg1.conf
-    sudo systemctl reload nginx
 fi
+
+if [ -L "/etc/nginx/sites-enabled/$arg1" ] || [ -f "/etc/nginx/sites-enabled/$arg1" ]; then
+    sudo rm /etc/nginx/sites-enabled/$arg1
+fi
+
+sudo systemctl reload nginx
