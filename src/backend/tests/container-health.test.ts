@@ -656,6 +656,74 @@ Deno.test("getRestartCount - tracks multiple containers separately", () => {
     assertEquals(getRestartCount("container-b"), 5);
 });
 
+Deno.test("getStopCount - returns correct count", () => {
+    const stopCounts = new Map<string, { count: number; lastStop: Date }>();
+    stopCounts.set("test-container", { count: 3, lastStop: new Date() });
+
+    const getStopCount = (containerName: string): number => {
+        return stopCounts.get(containerName)?.count || 0;
+    };
+
+    assertEquals(getStopCount("test-container"), 3);
+});
+
+Deno.test("restartContainer - updates restart count", async () => {
+    const restartCounts = new Map<string, { count: number; lastRestart: Date }>();
+    restartCounts.set("test-container", { count: 1, lastRestart: new Date(Date.now() - 10000) });
+
+    let execCalledWith = "";
+    const mockExec = async (cmd: string) => {
+        execCalledWith = cmd;
+    };
+
+    const restartContainer = async (containerName: string): Promise<void> => {
+        await mockExec(`bash -c "echo 'bash ../../src/backend/shell_scripts/restart.sh ${containerName}' > /hostpipe/pipe"`);
+        const current = restartCounts.get(containerName);
+        restartCounts.set(containerName, {
+            count: (current?.count || 0) + 1,
+            lastRestart: new Date(),
+        });
+    };
+
+    const before = new Date();
+    await restartContainer("test-container");
+    const after = new Date();
+
+    assertEquals(execCalledWith, `bash -c "echo 'bash ../../src/backend/shell_scripts/restart.sh test-container' > /hostpipe/pipe"`);
+
+    const stats = restartCounts.get("test-container");
+    assertExists(stats);
+    assertEquals(stats.count, 2);
+    assert(stats.lastRestart.getTime() >= before.getTime() && stats.lastRestart.getTime() <= after.getTime());
+});
+
+Deno.test("stopContainer - updates stop count and calls stop script", async () => {
+    const stopCounts = new Map<string, { count: number; lastStop: Date }>();
+    let execCalledWith = "";
+    const mockExec = async (cmd: string) => {
+        execCalledWith = cmd;
+    };
+
+    const stopContainer = async (containerName: string): Promise<void> => {
+        await mockExec(`bash -c "echo 'bash ../../src/backend/shell_scripts/stop.sh ${containerName}' > /hostpipe/pipe"`);
+        const current = stopCounts.get(containerName);
+        stopCounts.set(containerName, {
+            count: (current?.count || 0) + 1,
+            lastStop: new Date(),
+        });
+    };
+
+    const before = new Date();
+    await stopContainer("test-container");
+    const after = new Date();
+
+    assertEquals(execCalledWith, `bash -c "echo 'bash ../../src/backend/shell_scripts/stop.sh test-container' > /hostpipe/pipe"`);
+    const stats = stopCounts.get("test-container");
+    assertExists(stats);
+    assertEquals(stats.count, 1);
+    assert(stats.lastStop.getTime() >= before.getTime() && stats.lastStop.getTime() <= after.getTime());
+});
+
 Deno.test("ContainerStats - validates all required fields", () => {
     const validStats: ContainerStats = {
         containerId: "abc123",

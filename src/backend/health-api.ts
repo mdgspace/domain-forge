@@ -6,17 +6,17 @@ import {
     type TimeStep,
     type TimeRange,
 } from "./utils/container-health.ts";
-import { restartContainer, getRestartCount } from "./utils/auto-restart.ts";
+import { restartContainer, stopContainer, getRestartCount, getStopCount } from "./utils/auto-restart.ts";
 import { getMonitorStatus, triggerHealthCheck } from "./health-monitor.ts";
 import { checkJWT } from "./utils/jwt.ts";
 
 const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
-    '1s': { step: '1s', duration: '5m' },   
-    '15s': { step: '15s', duration: '15m' }, 
-    '1m': { step: '1m', duration: '1h' },    
-    '5m': { step: '5m', duration: '6h' },    
-    '1h': { step: '1h', duration: '24h' },   
-    '1d': { step: '1d', duration: '7d' },    
+    '1s': { step: '1s', duration: '5m' },
+    '15s': { step: '15s', duration: '15m' },
+    '1m': { step: '1m', duration: '1h' },
+    '5m': { step: '5m', duration: '6h' },
+    '1h': { step: '1h', duration: '24h' },
+    '1d': { step: '1d', duration: '7d' },
 };
 
 
@@ -44,6 +44,7 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
             memoryPercent: Math.round(c.memoryPercent * 100) / 100,
             memoryUsageMB: Math.round(c.memoryUsage / (1024 * 1024)),
             restartCount: getRestartCount(c.name),
+            stopCount: getStopCount(c.name),
             isHealthy: !isUnhealthy(c),
             lastUpdated: c.lastUpdated.toISOString(),
         })),
@@ -156,6 +157,42 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
         ctx.response.body = {
             status: "error",
             message: `Failed to restart ${subdomain}: ${error}`,
+        };
+    }
+}
+
+export async function stopContainerHandler(ctx: Context): Promise<void> {
+    const subdomain = ctx.params.subdomain;
+
+    const body = await ctx.request.body().value;
+    let document;
+    try {
+        document = typeof body === 'string' ? JSON.parse(body) : body;
+    } catch {
+        document = body;
+    }
+
+    const author = document?.author;
+    const token = document?.token;
+    const provider = document?.provider;
+
+    if (author !== await checkJWT(provider, token)) {
+        ctx.throw(401);
+    }
+
+    try {
+        await stopContainer(subdomain);
+
+        ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+        ctx.response.body = {
+            status: "success",
+            message: `Container ${subdomain} stop initiated`,
+        };
+    } catch (error) {
+        ctx.response.status = 500;
+        ctx.response.body = {
+            status: "error",
+            message: `Failed to stop ${subdomain}: ${error}`,
         };
     }
 }
