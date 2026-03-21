@@ -31,7 +31,7 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
 
     const summary = await getHealthSummary();
 
-    ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
     ctx.response.body = {
         total: summary.total,
         healthy: summary.healthy,
@@ -68,7 +68,7 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
 
     const history = await getContainerHistory(subdomain, range);
 
-    ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
     ctx.response.body = {
         subdomain,
         step: range.step,
@@ -98,7 +98,7 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
     const summary = await getHealthSummary();
     const monitorStatus = getMonitorStatus();
 
-    ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
     ctx.response.body = {
         overview: {
             total: summary.total,
@@ -147,7 +147,7 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
     try {
         await restartContainer(subdomain);
 
-        ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
         ctx.response.body = {
             status: "success",
             message: `Container ${subdomain} restart initiated`,
@@ -183,7 +183,7 @@ export async function stopContainerHandler(ctx: Context): Promise<void> {
     try {
         await stopContainer(subdomain);
 
-        ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
         ctx.response.body = {
             status: "success",
             message: `Container ${subdomain} stop initiated`,
@@ -218,7 +218,6 @@ export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
 
     await triggerHealthCheck();
 
-    ctx.response.headers.set("Access-Control-Allow-Origin", "*");
     ctx.response.body = {
         status: "success",
         message: "Health check triggered",

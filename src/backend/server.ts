@@ -80,7 +80,7 @@ router
   .post("/health/:subdomain/stop", (ctx) => stopContainerHandler(ctx))
   .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx));
 
-app.use(oakCors());
+app.use(oakCors({ origin: frontend }));
 app.use(router.routes());
 app.use(router.allowedMethods());
 
