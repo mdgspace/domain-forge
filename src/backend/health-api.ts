@@ -6,7 +6,7 @@ import {
     type TimeStep,
     type TimeRange,
 } from "./utils/container-health.ts";
-import { restartContainer, stopContainer, getRestartCount, getStopCount } from "./utils/auto-restart.ts";
+import { restartContainer, stopContainer, getRestartCount, getStopCount, validateContainerName } from "./utils/auto-restart.ts";
 import { getMonitorStatus, triggerHealthCheck } from "./health-monitor.ts";
 import { checkJWT } from "./utils/jwt.ts";
 
@@ -127,6 +127,12 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
 
 export async function restartContainerHandler(ctx: Context): Promise<void> {
     const subdomain = ctx.params.subdomain;
+    let safeSubdomain = "";
+    try {
+        safeSubdomain = validateContainerName(subdomain);
+    } catch {
+        ctx.throw(400, "Invalid container identifier");
+    }
 
     const body = await ctx.request.body().value;
     let document;
@@ -145,24 +151,31 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
     }
 
     try {
-        await restartContainer(subdomain);
+        await restartContainer(safeSubdomain);
 
 
         ctx.response.body = {
             status: "success",
-            message: `Container ${subdomain} restart initiated`,
+            message: `Container ${safeSubdomain} restart initiated`,
         };
     } catch (error) {
+        console.error(`Failed to restart container ${safeSubdomain}`, error);
         ctx.response.status = 500;
         ctx.response.body = {
             status: "error",
-            message: `Failed to restart ${subdomain}: ${error}`,
+            message: `Failed to restart ${safeSubdomain}`,
         };
     }
 }
 
 export async function stopContainerHandler(ctx: Context): Promise<void> {
     const subdomain = ctx.params.subdomain;
+    let safeSubdomain = "";
+    try {
+        safeSubdomain = validateContainerName(subdomain);
+    } catch {
+        ctx.throw(400, "Invalid container identifier");
+    }
 
     const body = await ctx.request.body().value;
     let document;
@@ -181,18 +194,19 @@ export async function stopContainerHandler(ctx: Context): Promise<void> {
     }
 
     try {
-        await stopContainer(subdomain);
+        await stopContainer(safeSubdomain);
 
 
         ctx.response.body = {
             status: "success",
-            message: `Container ${subdomain} stop initiated`,
+            message: `Container ${safeSubdomain} stop initiated`,
         };
     } catch (error) {
+        console.error(`Failed to stop container ${safeSubdomain}`, error);
         ctx.response.status = 500;
         ctx.response.body = {
             status: "error",
-            message: `Failed to stop ${subdomain}: ${error}`,
+            message: `Failed to stop ${safeSubdomain}`,
         };
     }
 }

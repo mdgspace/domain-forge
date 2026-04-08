@@ -77,7 +77,7 @@
           </div>
 
           <div class="container-stats">
-            <span><strong>Restarts:</strong> {{ container.restartCount }}</span> | 
+            <span><strong>Restarts:</strong> {{ container.restartCount }}</span>
             <span><strong>Stops:</strong> {{ container.stopCount }}</span>
           </div>
 
@@ -353,18 +353,31 @@ export default defineComponent({
       try {
         const token = localStorage.getItem('JWTUser') || '';
         const provider = localStorage.getItem('provider') || '';
-        
-        await fetch(`${BACKEND_URL}/health/${containerIdentifier}/restart`, {
+
+        const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/restart`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ author: username.value, token: token, provider }),
         });
 
+        if (!response.ok) {
+          let message = `Failed to restart ${containerIdentifier}`;
+          try {
+            const data = await response.json();
+            if (data?.message && typeof data.message === 'string') {
+              message = data.message;
+            }
+          } catch {
+            message = `${message} (HTTP ${response.status})`;
+          }
+          throw new Error(message);
+        }
+
         alert(`Restart initiated for ${containerIdentifier}`);
         fetchHealth();
       } catch (error) {
         console.error('Failed to restart:', error);
-        alert('Failed to restart container');
+        alert(error instanceof Error ? error.message : 'Failed to restart container');
       }
     };
 
@@ -375,18 +388,31 @@ export default defineComponent({
       try {
         const token = localStorage.getItem('JWTUser') || '';
         const provider = localStorage.getItem('provider') || '';
-        
-        await fetch(`${BACKEND_URL}/health/${containerIdentifier}/stop`, {
+
+        const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/stop`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ author: username.value, token: token, provider }),
         });
 
+        if (!response.ok) {
+          let message = `Failed to stop ${containerIdentifier}`;
+          try {
+            const data = await response.json();
+            if (data?.message && typeof data.message === 'string') {
+              message = data.message;
+            }
+          } catch {
+            message = `${message} (HTTP ${response.status})`;
+          }
+          throw new Error(message);
+        }
+
         alert(`Stop initiated for ${containerIdentifier}`);
         fetchHealth();
       } catch (error) {
         console.error('Failed to stop:', error);
-        alert('Failed to stop container');
+        alert(error instanceof Error ? error.message : 'Failed to stop container');
       }
     };
 
