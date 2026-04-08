@@ -5,11 +5,13 @@ name=$2
 resource=$3
 exp_port=$4
 max_mem=$5 
-enable_voume=$6
+enable_volume=$6
 
 available_ports=()
 STORAGE_ROOT="/mnt/storage"
 PROJECT_STORAGE="$STORAGE_ROOT/$name"
+PROJECT_IMG="$STORAGE_ROOT/$name.img"
+SIZE_MB=100
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
     if ! ss -ln src :$port | grep -q "\<$port\>"; then
         available_ports+=($port)
@@ -34,8 +36,16 @@ elif [ $flag = "-s" ]; then
 fi
 if [ "$enable_volume" = "true" ]; then
     echo "Creating persistent storage at $PROJECT_STORAGE"
+
+    if [ ! -f "$PROJECT_IMG" ]; then
+        sudo dd if=/dev/zero of=$PROJECT_IMG bs=1M count=$SIZE_MB
+        sudo mkfs.ext4 $PROJECT_IMG
+    fi
     sudo mkdir -p $PROJECT_STORAGE
-    sudo chmod 777 $PROJECT_STORAGE   # tighten later
+    if ! mount | grep -q "$PROJECT_STORAGE"; then
+    sudo mount -o loop $PROJECT_IMG $PROJECT_STORAGE
+    fi
+    sudo chmod 777 $PROJECT_STORAGE
 fi
 sudo docker build -t $name .
 
