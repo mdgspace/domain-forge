@@ -78,11 +78,15 @@
 
           <div class="container-stats">
             <span><strong>Restarts:</strong> {{ container.restartCount }}</span>
+            <span><strong>Stops:</strong> {{ container.stopCount }}</span>
           </div>
 
           <div class="container-actions">
             <button @click="viewMetrics(container)" class="view-btn">
               View Metrics
+            </button>
+            <button @click="stopContainer(container)" class="stop-btn">
+              Stop
             </button>
             <button @click="restartContainer(container)" class="restart-btn">
               Restart
@@ -140,6 +144,7 @@ interface Container {
   memoryPercent: number;
   memoryUsageMB: number;
   restartCount: number;
+  stopCount: number;
   isHealthy: boolean;
   lastUpdated: string;
 }
@@ -342,23 +347,72 @@ export default defineComponent({
     };
 
     const restartContainer = async (container: Container) => {
-      if (!confirm(`Restart container ${container.subdomain}?`)) return;
+      const containerIdentifier = container.subdomain || container.name;
+      if (!confirm(`Restart container ${containerIdentifier}?`)) return;
 
       try {
         const token = localStorage.getItem('JWTUser') || '';
         const provider = localStorage.getItem('provider') || '';
-        
-        await fetch(`${BACKEND_URL}/health/${container.subdomain}/restart`, {
+
+        const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/restart`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ author: username.value, token: token, provider }),
         });
 
-        alert(`Restart initiated for ${container.subdomain}`);
+        if (!response.ok) {
+          let message = `Failed to restart ${containerIdentifier}`;
+          try {
+            const data = await response.json();
+            if (data?.message && typeof data.message === 'string') {
+              message = data.message;
+            }
+          } catch {
+            message = `${message} (HTTP ${response.status})`;
+          }
+          throw new Error(message);
+        }
+
+        alert(`Restart initiated for ${containerIdentifier}`);
         fetchHealth();
       } catch (error) {
         console.error('Failed to restart:', error);
-        alert('Failed to restart container');
+        alert(error instanceof Error ? error.message : 'Failed to restart container');
+      }
+    };
+
+    const stopContainer = async (container: Container) => {
+      const containerIdentifier = container.subdomain || container.name;
+      if (!confirm(`Stop container ${containerIdentifier}?`)) return;
+
+      try {
+        const token = localStorage.getItem('JWTUser') || '';
+        const provider = localStorage.getItem('provider') || '';
+
+        const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/stop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ author: username.value, token: token, provider }),
+        });
+
+        if (!response.ok) {
+          let message = `Failed to stop ${containerIdentifier}`;
+          try {
+            const data = await response.json();
+            if (data?.message && typeof data.message === 'string') {
+              message = data.message;
+            }
+          } catch {
+            message = `${message} (HTTP ${response.status})`;
+          }
+          throw new Error(message);
+        }
+
+        alert(`Stop initiated for ${containerIdentifier}`);
+        fetchHealth();
+      } catch (error) {
+        console.error('Failed to stop:', error);
+        alert(error instanceof Error ? error.message : 'Failed to stop container');
       }
     };
 
@@ -382,6 +436,7 @@ export default defineComponent({
       closeMetrics,
       loadMetrics,
       restartContainer,
+      stopContainer,
     };
   },
 });
@@ -570,7 +625,7 @@ export default defineComponent({
   gap: 0.75rem;
 }
 
-.view-btn, .restart-btn {
+.view-btn, .restart-btn, .stop-btn {
   flex: 1;
   padding: 0.5rem;
   border-radius: 6px;
@@ -583,6 +638,12 @@ export default defineComponent({
   background: #eff6ff;
   color: #1d4ed8;
   border: 1px solid #bfdbfe;
+}
+
+.stop-btn {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .restart-btn {

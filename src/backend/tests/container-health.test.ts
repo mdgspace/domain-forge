@@ -4,6 +4,14 @@ import {
     assert,
     assertThrows,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import {
+    getRestartCount,
+    getStopCount,
+    restartContainer,
+    stopContainer,
+    resetContainerActionStatsForTest,
+    setCommandExecutorForTest,
+} from "../utils/auto-restart.ts";
 
 type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
 type TimeStep = '1s' | '15s' | '1m' | '5m' | '1h' | '1d';
@@ -623,37 +631,93 @@ Deno.test("TIME_RANGE_PRESETS - all presets defined", () => {
 });
 
 Deno.test("getRestartCount - returns 0 for unknown container", () => {
-    const restartCounts = new Map<string, { count: number; lastRestart: Date }>();
-
-    const getRestartCount = (containerName: string): number => {
-        return restartCounts.get(containerName)?.count || 0;
-    };
+    resetContainerActionStatsForTest();
 
     assertEquals(getRestartCount("unknown-container"), 0);
 });
 
-Deno.test("getRestartCount - returns correct count", () => {
-    const restartCounts = new Map<string, { count: number; lastRestart: Date }>();
-    restartCounts.set("test-container", { count: 3, lastRestart: new Date() });
+Deno.test("getRestartCount - returns correct count", async () => {
+    resetContainerActionStatsForTest();
+    setCommandExecutorForTest(async () => {});
 
-    const getRestartCount = (containerName: string): number => {
-        return restartCounts.get(containerName)?.count || 0;
-    };
+    try {
+        await restartContainer("test-container");
+        await restartContainer("test-container");
+        await restartContainer("test-container");
+    } finally {
+        setCommandExecutorForTest(null);
+    }
 
     assertEquals(getRestartCount("test-container"), 3);
 });
 
-Deno.test("getRestartCount - tracks multiple containers separately", () => {
-    const restartCounts = new Map<string, { count: number; lastRestart: Date }>();
-    restartCounts.set("container-a", { count: 2, lastRestart: new Date() });
-    restartCounts.set("container-b", { count: 5, lastRestart: new Date() });
+Deno.test("getRestartCount - tracks multiple containers separately", async () => {
+    resetContainerActionStatsForTest();
+    setCommandExecutorForTest(async () => {});
 
-    const getRestartCount = (containerName: string): number => {
-        return restartCounts.get(containerName)?.count || 0;
-    };
+    try {
+        await restartContainer("container-a");
+        await restartContainer("container-a");
+        await restartContainer("container-b");
+        await restartContainer("container-b");
+        await restartContainer("container-b");
+        await restartContainer("container-b");
+        await restartContainer("container-b");
+    } finally {
+        setCommandExecutorForTest(null);
+    }
 
     assertEquals(getRestartCount("container-a"), 2);
     assertEquals(getRestartCount("container-b"), 5);
+});
+
+Deno.test("getStopCount - returns correct count", async () => {
+    resetContainerActionStatsForTest();
+    setCommandExecutorForTest(async () => {});
+
+    try {
+        await stopContainer("test-container");
+        await stopContainer("test-container");
+        await stopContainer("test-container");
+    } finally {
+        setCommandExecutorForTest(null);
+    }
+
+    assertEquals(getStopCount("test-container"), 3);
+});
+
+Deno.test("restartContainer - updates restart count", async () => {
+    resetContainerActionStatsForTest();
+    let execCalledWith = "";
+    setCommandExecutorForTest(async (cmd: string) => {
+        execCalledWith = cmd;
+    });
+
+    try {
+        await restartContainer("test-container");
+    } finally {
+        setCommandExecutorForTest(null);
+    }
+
+    assertEquals(execCalledWith, `bash -c "echo 'bash ../../src/backend/shell_scripts/restart.sh test-container' > /hostpipe/pipe"`);
+    assertEquals(getRestartCount("test-container"), 1);
+});
+
+Deno.test("stopContainer - updates stop count and calls stop script", async () => {
+    resetContainerActionStatsForTest();
+    let execCalledWith = "";
+    setCommandExecutorForTest(async (cmd: string) => {
+        execCalledWith = cmd;
+    });
+
+    try {
+        await stopContainer("test-container");
+    } finally {
+        setCommandExecutorForTest(null);
+    }
+
+    assertEquals(execCalledWith, `bash -c "echo 'bash ../../src/backend/shell_scripts/stop.sh test-container' > /hostpipe/pipe"`);
+    assertEquals(getStopCount("test-container"), 1);
 });
 
 Deno.test("ContainerStats - validates all required fields", () => {

@@ -77,7 +77,7 @@ async function authenticateAndCreateJWT(
 
     console.log("DB Status for User:", userId, status);
 
-    ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
 
     if (status.matchedCount == 1 || status.upsertedId !== undefined) {
       const id_jwt = await createJWT(provider, userId);
@@ -94,7 +94,6 @@ async function authenticateAndCreateJWT(
 }
 
 async function handleJwtAuthentication(ctx: Context) {
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }

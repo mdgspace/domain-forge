@@ -13,7 +13,7 @@ async function getSubdomains(ctx: Context) {
     ctx.throw(401);
   }
   const data = await getMaps(author, ADMIN_LIST!);
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
   ctx.response.body = data.documents;
 }
 
@@ -44,7 +44,7 @@ async function addSubdomain(ctx: Context) {
     ctx.throw(401);
   }
   const success: boolean = await addMaps(document);
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
 
   if (success) {
     await addScript(
@@ -93,7 +93,7 @@ async function deleteSubdomain(ctx: Context) {
       "info",
     );
   }
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*");
+
   ctx.response.body = data;
 }
 

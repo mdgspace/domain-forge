@@ -19,6 +19,7 @@ import {
   getContainerMetrics,
   getHealthDashboard,
   restartContainerHandler,
+  stopContainerHandler,
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
@@ -76,9 +77,10 @@ router
   .get("/health/summary", (ctx) => getHealthDashboard(ctx))
   .get("/health/:subdomain/metrics", (ctx) => getContainerMetrics(ctx))
   .post("/health/:subdomain/restart", (ctx) => restartContainerHandler(ctx))
+  .post("/health/:subdomain/stop", (ctx) => stopContainerHandler(ctx))
   .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx));
 
-app.use(oakCors());
+app.use(oakCors({ origin: frontend }));
 app.use(router.routes());
 app.use(router.allowedMethods());
 
