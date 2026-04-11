@@ -16,6 +16,7 @@ import {
 import { addSubdomain, deleteSubdomain, getSubdomains } from "./main.ts";
 import {
   getContainerHealth,
+  getContainerLogsHandler,
   getContainerMetrics,
   getHealthDashboard,
   restartContainerHandler,
@@ -76,6 +77,7 @@ router
   .get("/health", (ctx) => getContainerHealth(ctx))
   .get("/health/summary", (ctx) => getHealthDashboard(ctx))
   .get("/health/:subdomain/metrics", (ctx) => getContainerMetrics(ctx))
+  .get("/health/:subdomain/logs", (ctx) => getContainerLogsHandler(ctx))
   .post("/health/:subdomain/restart", (ctx) => restartContainerHandler(ctx))
   .post("/health/:subdomain/stop", (ctx) => stopContainerHandler(ctx))
   .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx));

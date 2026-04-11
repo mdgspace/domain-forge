@@ -1,6 +1,7 @@
 import { Context } from "./dependencies.ts";
 import {
     getContainerHistory,
+    getContainerLogs,
     getHealthSummary,
     isUnhealthy,
     type TimeStep,
@@ -9,6 +10,9 @@ import {
 import { restartContainer, stopContainer, getRestartCount, getStopCount } from "./utils/auto-restart.ts";
 import { getMonitorStatus, triggerHealthCheck } from "./health-monitor.ts";
 import { checkJWT } from "./utils/jwt.ts";
+import { getMaps } from "./db.ts";
+
+const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|") || [];
 
 const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
     '1s': { step: '1s', duration: '5m' },
@@ -18,6 +22,32 @@ const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
     '1h': { step: '1h', duration: '24h' },
     '1d': { step: '1d', duration: '7d' },
 };
+
+
+export async function getContainerLogsHandler(ctx: Context): Promise<void> {
+    const subdomain = ctx.params.subdomain;
+    const author = ctx.request.url.searchParams.get("user");
+    const token = ctx.request.url.searchParams.get("token");
+    const provider = ctx.request.url.searchParams.get("provider");
+
+    if (author !== await checkJWT(provider!, token!)) {
+        ctx.throw(401);
+    }
+
+    try {
+        const logs = await getContainerLogs(subdomain);
+        ctx.response.body = {
+            subdomain,
+            logs,
+        };
+    } catch (error) {
+        ctx.response.status = 500;
+        ctx.response.body = {
+            status: "error",
+            message: `Failed to fetch logs for ${subdomain}: ${error}`,
+        };
+    }
+}
 
 
 export async function getContainerHealth(ctx: Context): Promise<void> {
@@ -30,24 +60,45 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
     }
 
     const summary = await getHealthSummary();
+    const dbData = await getMaps(author!, ADMIN_LIST);
+    const dbSubdomains = dbData.documents.map((doc: any) => doc.subdomain);
 
+    const stats = summary.containers.map(c => ({
+        name: c.name,
+        subdomain: c.subdomain,
+        status: c.status,
+        cpuPercent: Math.round(c.cpuPercent * 100) / 100,
+        memoryPercent: Math.round(c.memoryPercent * 100) / 100,
+        memoryUsageMB: Math.round(c.memoryUsage / (1024 * 1024)),
+        restartCount: getRestartCount(c.name),
+        stopCount: getStopCount(c.name),
+        isHealthy: !isUnhealthy(c),
+        lastUpdated: c.lastUpdated.toISOString(),
+    }));
+
+    // Identify subdomains from DB that are not in Prometheus
+    for (const subdomain of dbSubdomains) {
+        if (!stats.find(s => s.subdomain === subdomain)) {
+            stats.push({
+                name: subdomain,
+                subdomain: subdomain,
+                status: 'failed',
+                cpuPercent: 0,
+                memoryPercent: 0,
+                memoryUsageMB: 0,
+                restartCount: 0,
+                stopCount: 0,
+                isHealthy: false,
+                lastUpdated: new Date().toISOString(),
+            });
+        }
+    }
 
     ctx.response.body = {
-        total: summary.total,
-        healthy: summary.healthy,
-        unhealthy: summary.unhealthy,
-        containers: summary.containers.map(c => ({
-            name: c.name,
-            subdomain: c.subdomain,
-            status: c.status,
-            cpuPercent: Math.round(c.cpuPercent * 100) / 100,
-            memoryPercent: Math.round(c.memoryPercent * 100) / 100,
-            memoryUsageMB: Math.round(c.memoryUsage / (1024 * 1024)),
-            restartCount: getRestartCount(c.name),
-            stopCount: getStopCount(c.name),
-            isHealthy: !isUnhealthy(c),
-            lastUpdated: c.lastUpdated.toISOString(),
-        })),
+        total: stats.length,
+        healthy: stats.filter(s => s.isHealthy && s.status === 'running').length,
+        unhealthy: stats.filter(s => !s.isHealthy || s.status !== 'running').length,
+        containers: stats,
     };
 }
 

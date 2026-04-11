@@ -45,6 +45,7 @@ interface PrometheusMetric {
 }
 
 const PROMETHEUS_URL = Deno.env.get('PROMETHEUS_URL') || 'http://prometheus:9090';
+const CADVISOR_URL = Deno.env.get('CADVISOR_URL') || 'http://cadvisor:8080';
 const DEBUG = Deno.env.get('HEALTH_DEBUG') === 'true';
 
 const DEFAULT_THRESHOLDS: HealthThresholds = {
@@ -52,6 +53,37 @@ const DEFAULT_THRESHOLDS: HealthThresholds = {
     maxMemoryPercent: Number(Deno.env.get('MAX_MEMORY_THRESHOLD')) || 85,
     maxRestartCount: Number(Deno.env.get('MAX_RESTART_COUNT')) || 5,
 };
+
+/**
+ * Fetches the latest logs for a container from the shared /hostpipe/logs directory.
+ */
+export async function getContainerLogs(subdomain: string): Promise<string> {
+    const logPath = `/hostpipe/logs/${subdomain}.log`;
+    try {
+        const content = await Deno.readTextFile(logPath);
+        return content;
+    } catch (error) {
+        if (error instanceof Deno.errors.NotFound) {
+            return "No logs found for this subdomain.";
+        }
+        throw error;
+    }
+}
+
+/**
+ * Directly queries cadvisor REST API for detailed container information.
+ */
+export async function getCadvisorDetailedStats(containerName: string) {
+    const url = `${CADVISOR_URL}/api/v1.3/containers/docker/${containerName}`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        if (DEBUG) console.error(`[Health] Failed to fetch cadvisor stats for ${containerName}:`, error);
+        return null;
+    }
+}
 
 
 async function queryPrometheus(query: string): Promise<PrometheusResult> {
@@ -118,14 +150,31 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
     const cpuResult = await queryPrometheus(cpuQuery);
     const memUsageQuery = 'container_memory_usage_bytes{name=~".+"}';
     const memLimitQuery = 'container_memory_max_usage_bytes{name=~".+"}';
+    const lastSeenQuery = 'container_last_seen{name=~".+"}';
 
-    const [memUsageResult, memLimitResult] = await Promise.all([
+    const [memUsageResult, memLimitResult, lastSeenResult] = await Promise.all([
         queryPrometheus(memUsageQuery),
         queryPrometheus(memLimitQuery),
+        queryPrometheus(lastSeenQuery),
     ]);
 
     const statsMap = new Map<string, Partial<ContainerStats>>();
     const now = new Date();
+
+    // Process Last Seen metrics to identify all known containers
+    for (const metric of lastSeenResult.data?.result || []) {
+        const name = metric.metric.name || metric.metric.container_name || '';
+        if (isUserContainer(name)) {
+            const lastSeenTs = parseFloat(metric.value?.[1] || '0');
+            const isAlive = (Date.now() / 1000) - lastSeenTs < 60; // Seen in last 60s
+            
+            const existing = statsMap.get(name) || { name, lastUpdated: now };
+            existing.status = isAlive ? 'running' : 'exited';
+            existing.subdomain = name;
+            existing.containerId = metric.metric.id || name;
+            statsMap.set(name, existing);
+        }
+    }
 
     // Process CPU metrics
     for (const metric of cpuResult.data?.result || []) {
@@ -133,8 +182,6 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
         if (isUserContainer(name)) {
             const existing = statsMap.get(name) || { name, lastUpdated: now };
             existing.cpuPercent = parseFloat(metric.value?.[1] || '0');
-            existing.subdomain = name;
-            existing.containerId = metric.metric.id || name;
             statsMap.set(name, existing);
         }
     }

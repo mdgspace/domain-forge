@@ -79,11 +79,12 @@
           <div class="container-stats">
             <span><strong>Restarts:</strong> {{ container.restartCount }}</span> | 
             <span><strong>Stops:</strong> {{ container.stopCount }}</span>
-          </div>
-
           <div class="container-actions">
             <button @click="viewMetrics(container)" class="view-btn">
-              View Metrics
+              Metrics
+            </button>
+            <button @click="viewLogs(container)" class="logs-btn">
+              Logs
             </button>
             <button @click="stopContainer(container)" class="stop-btn">
               Stop
@@ -92,13 +93,30 @@
               Restart
             </button>
           </div>
-        </div>
-      </div>
-    </section>
+          </div>
+          </div>
+          </section>
 
-    <div v-if="selectedContainer" class="modal-overlay" @click.self="closeMetrics">
-      <div class="metrics-modal">
-        <header class="modal-header">
+          <!-- Metrics Modal -->
+          <div v-if="selectedContainer" class="modal-overlay" @click.self="closeMetrics">
+          ...
+          </div>
+
+          <!-- Logs Modal -->
+          <div v-if="showLogsModal" class="modal-overlay" @click.self="closeLogs">
+          <div class="logs-modal">
+          <header class="modal-header">
+          <h2>{{ logsSubdomain }} - Logs</h2>
+          <button @click="closeLogs" class="close-btn">×</button>
+          </header>
+          <div class="logs-content">
+          <pre>{{ logsContent }}</pre>
+          </div>
+          </div>
+          </div>
+          </div>
+          </template>
+
           <h2>{{ selectedContainer.subdomain }} - Metrics</h2>
           <button @click="closeMetrics" class="close-btn">×</button>
         </header>
@@ -168,6 +186,9 @@ export default defineComponent({
     const cpuChart = ref<HTMLCanvasElement | null>(null);
     const memoryChart = ref<HTMLCanvasElement | null>(null);
     const username = ref<string>('');
+    const showLogsModal = ref(false);
+    const logsContent = ref('');
+    const logsSubdomain = ref('');
     
     let cpuChartInstance: any = null;
     let memoryChartInstance: any = null;
@@ -254,6 +275,25 @@ export default defineComponent({
       selectedContainer.value = null;
       if (cpuChartInstance) cpuChartInstance.destroy();
       if (memoryChartInstance) memoryChartInstance.destroy();
+    };
+
+    const viewLogs = async (container: Container) => {
+      logsSubdomain.value = container.subdomain || container.name;
+      try {
+        const response = await fetch(`${BACKEND_URL}/health/${logsSubdomain.value}/logs?${getAuthParams()}`);
+        const data = await response.json();
+        logsContent.value = data.logs || 'No logs available.';
+        showLogsModal.value = true;
+      } catch (error) {
+        console.error('Failed to fetch logs:', error);
+        logsContent.value = 'Failed to fetch logs.';
+        showLogsModal.value = true;
+      }
+    };
+
+    const closeLogs = () => {
+      showLogsModal.value = false;
+      logsContent.value = '';
     };
 
     const loadMetrics = async () => {
@@ -403,11 +443,16 @@ export default defineComponent({
       selectedTimeStep,
       cpuChart,
       memoryChart,
+      showLogsModal,
+      logsContent,
+      logsSubdomain,
       refreshData,
       goBack,
       getMetricClass,
       viewMetrics,
       closeMetrics,
+      viewLogs,
+      closeLogs,
       loadMetrics,
       restartContainer,
       stopContainer,
@@ -541,6 +586,7 @@ export default defineComponent({
 
 .status-badge.running { background: #d1fae5; color: #065f46; }
 .status-badge.exited { background: #fee2e2; color: #991b1b; }
+.status-badge.failed { background: #ef4444; color: #ffffff; }
 .status-badge.unhealthy { background: #fef3c7; color: #92400e; }
 .status-badge.unknown { background: #e5e7eb; color: #374151; }
 
@@ -599,7 +645,7 @@ export default defineComponent({
   gap: 0.75rem;
 }
 
-.view-btn, .restart-btn, .stop-btn {
+.view-btn, .logs-btn, .restart-btn, .stop-btn {
   flex: 1;
   padding: 0.5rem;
   border-radius: 6px;
@@ -612,6 +658,12 @@ export default defineComponent({
   background: #eff6ff;
   color: #1d4ed8;
   border: 1px solid #bfdbfe;
+}
+
+.logs-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 .stop-btn {
@@ -639,7 +691,7 @@ export default defineComponent({
   z-index: 1000;
 }
 
-.metrics-modal {
+.metrics-modal, .logs-modal {
   background: white;
   border-radius: 16px;
   width: 90%;
@@ -647,6 +699,23 @@ export default defineComponent({
   max-height: 90vh;
   overflow-y: auto;
   padding: 2rem;
+}
+
+.logs-content {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  max-height: 60vh;
+}
+
+.logs-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
 }
 
 .modal-header {

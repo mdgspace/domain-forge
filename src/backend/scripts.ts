@@ -43,16 +43,16 @@ async function addScript(
 
   if (document.resource_type === "URL") {
     await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/automate.sh -u ${resource} ${subdomain}' > /hostpipe/pipe"`,
+      `bash -c "echo 'mkdir -p logs && bash ../../src/backend/shell_scripts/automate.sh -u ${resource} ${subdomain} > logs/${subdomain}.log 2>&1' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "PORT") {
     await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/automate.sh -p ${resource} ${subdomain}' > /hostpipe/pipe"`,
+      `bash -c "echo 'mkdir -p logs && bash ../../src/backend/shell_scripts/automate.sh -p ${resource} ${subdomain} > logs/${subdomain}.log 2>&1' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
     await Deno.writeTextFile(`/hostpipe/.env`, env_content);
     await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit}' > /hostpipe/pipe"`,
+      `bash -c "echo 'mkdir -p logs && bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit} > logs/${subdomain}.log 2>&1' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "GITHUB" && static_content == "No") {
     if (dockerfile_present === 'No') {
@@ -60,11 +60,11 @@ async function addScript(
       await Deno.writeTextFile(`/hostpipe/.dockerignore`, dockerignore(stack));
       await Deno.writeTextFile(`/hostpipe/.env`, env_content);
       await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
+        `bash -c "echo 'mkdir -p logs && bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit} > logs/${subdomain}.log 2>&1' > /hostpipe/pipe"`,
       );
     } else if (dockerfile_present === 'Yes') {
       await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
+        `bash -c "echo 'mkdir -p logs && bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit} > logs/${subdomain}.log 2>&1' > /hostpipe/pipe"`,
       );
     }
   }
