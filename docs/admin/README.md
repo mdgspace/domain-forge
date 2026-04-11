@@ -47,6 +47,7 @@ docker compose up --build -d
 ### 4. Setup Named Pipes
 
 Create a pipe in the `docker/named_pipe` directory by executing `mkfifo docker/named_pipe/pipe`.
+Create another one by executing `mkfifo docker/named_pipe/output_pipe`. 
 Navigate to the `docker/named_pipe` directory and execute the `listen.sh` script to allow the application to run commands on the host.
 ```bash
 cd docker/named_pipe

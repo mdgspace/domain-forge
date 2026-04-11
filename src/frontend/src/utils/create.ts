@@ -108,8 +108,11 @@ export async function create(
     body: JSON.stringify(body),
   });
   const data = await resp.json();
-  if (data.status === "failed") {
-    return "Failed";
+  if(data.error=="INSUFFICIENT_STORAGE"){
+    return "insufficient_storage";
+  }
+  else if (data.status === "failed") {
+    return "failed";
   }
   return "Submitted";
 }

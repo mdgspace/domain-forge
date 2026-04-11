@@ -91,7 +91,8 @@ export default {
             this.closeModalAndReload();
           } else {
             this.closeModal();
-            alert('Failed to create subdomain');
+            if(res=="insufficient_storage")alert("Insufficient storage to mount a volume");
+            else alert('Failed to create subdomain');
             setTimeout(() => {
               window.location.reload();
             }, 1000);

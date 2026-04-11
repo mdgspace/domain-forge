@@ -26,7 +26,7 @@ async function safeExec(command: string): Promise<void> {
     throw error;
   }
 }
-//! what if it is url or port
+
 async function addScript(
   document: DfContentMap,
   env_content: string,
@@ -43,7 +43,7 @@ async function addScript(
   const memLimit = shellEscape(MEMORY_LIMIT || "512m", "MEMORY_LIMIT");
   volume_needed=(volume_needed=="Yes").toString();
   const volumeNeeded=shellEscape(volume_needed,"false");
-  
+  console.log(`volume neeeded is ${volumeNeeded}`);
   if (document.resource_type === "URL") {
     await safeExec(
       `bash -c "echo 'bash ../../src/backend/shell_scripts/automate.sh -u ${resource} ${subdomain}' > /hostpipe/pipe"`,

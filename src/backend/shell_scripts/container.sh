@@ -12,6 +12,8 @@ STORAGE_ROOT="/mnt/storage"
 PROJECT_STORAGE="$STORAGE_ROOT/$name"
 PROJECT_IMG="$STORAGE_ROOT/$name.img"
 SIZE_MB=100
+sudo mkdir -p $STORAGE_ROOT
+sudo chmod 755 $STORAGE_ROOT
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
     if ! ss -ln src :$port | grep -q "\<$port\>"; then
         available_ports+=($port)
