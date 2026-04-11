@@ -79,6 +79,8 @@
           <div class="container-stats">
             <span><strong>Restarts:</strong> {{ container.restartCount }}</span> | 
             <span><strong>Stops:</strong> {{ container.stopCount }}</span>
+          </div>
+
           <div class="container-actions">
             <button @click="viewMetrics(container)" class="view-btn">
               Metrics
@@ -93,30 +95,14 @@
               Restart
             </button>
           </div>
-          </div>
-          </div>
-          </section>
+        </div>
+      </div>
+    </section>
 
-          <!-- Metrics Modal -->
-          <div v-if="selectedContainer" class="modal-overlay" @click.self="closeMetrics">
-          ...
-          </div>
-
-          <!-- Logs Modal -->
-          <div v-if="showLogsModal" class="modal-overlay" @click.self="closeLogs">
-          <div class="logs-modal">
-          <header class="modal-header">
-          <h2>{{ logsSubdomain }} - Logs</h2>
-          <button @click="closeLogs" class="close-btn">×</button>
-          </header>
-          <div class="logs-content">
-          <pre>{{ logsContent }}</pre>
-          </div>
-          </div>
-          </div>
-          </div>
-          </template>
-
+    <!-- Metrics Modal -->
+    <div v-if="selectedContainer" class="modal-overlay" @click.self="closeMetrics">
+      <div class="metrics-modal">
+        <header class="modal-header">
           <h2>{{ selectedContainer.subdomain }} - Metrics</h2>
           <button @click="closeMetrics" class="close-btn">×</button>
         </header>
@@ -142,6 +128,19 @@
             <h3>Memory Usage (MB)</h3>
             <canvas ref="memoryChart"></canvas>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div v-if="showLogsModal" class="modal-overlay" @click.self="closeLogs">
+      <div class="logs-modal">
+        <header class="modal-header">
+          <h2>{{ logsSubdomain }} - Logs</h2>
+          <button @click="closeLogs" class="close-btn">×</button>
+        </header>
+        <div class="logs-content">
+          <pre>{{ logsContent }}</pre>
         </div>
       </div>
     </div>

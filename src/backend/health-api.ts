@@ -3,6 +3,7 @@ import {
     getContainerHistory,
     getContainerLogs,
     getHealthSummary,
+    getUnhealthyReason,
     isUnhealthy,
     type TimeStep,
     type TimeRange,
@@ -148,15 +149,37 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
 
     const summary = await getHealthSummary();
     const monitorStatus = getMonitorStatus();
+    const dbData = await getMaps(author!, ADMIN_LIST);
+    const dbSubdomains = dbData.documents.map((doc: any) => doc.subdomain);
 
+    const unhealthyContainers = summary.containers
+        .filter(c => isUnhealthy(c))
+        .map(c => ({
+            name: c.name,
+            subdomain: c.subdomain,
+            reason: getUnhealthyReason(c),
+            restartAttempts: monitorStatus.restartAttempts[c.name]?.count || 0,
+        }));
+
+    // Add failed containers from DB
+    for (const subdomain of dbSubdomains) {
+        if (!summary.containers.find(c => (c.subdomain || c.name) === subdomain)) {
+            unhealthyContainers.push({
+                name: subdomain,
+                subdomain: subdomain,
+                reason: 'Deployment failed (not running)',
+                restartAttempts: 0,
+            });
+        }
+    }
 
     ctx.response.body = {
         overview: {
-            total: summary.total,
-            healthy: summary.healthy,
-            unhealthy: summary.unhealthy,
-            healthPercent: summary.total > 0
-                ? Math.round((summary.healthy / summary.total) * 100)
+            total: dbSubdomains.length,
+            healthy: dbSubdomains.length - unhealthyContainers.length,
+            unhealthy: unhealthyContainers.length,
+            healthPercent: dbSubdomains.length > 0
+                ? Math.round(((dbSubdomains.length - unhealthyContainers.length) / dbSubdomains.length) * 100)
                 : 100,
         },
         monitor: {
@@ -164,14 +187,7 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
             checkIntervalMs: monitorStatus.interval,
             thresholds: monitorStatus.thresholds,
         },
-        unhealthyContainers: summary.containers
-            .filter(c => isUnhealthy(c))
-            .map(c => ({
-                name: c.name,
-                subdomain: c.subdomain,
-                reason: getUnhealthyReason(c),
-                restartAttempts: monitorStatus.restartAttempts[c.name]?.count || 0,
-            })),
+        unhealthyContainers,
     };
 }
 
@@ -273,17 +289,4 @@ export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
         status: "success",
         message: "Health check triggered",
     };
-}
-
-
-function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
-    const reasons: string[] = [];
-
-    if (c.cpuPercent > 90) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
-    if (c.memoryPercent > 85) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
-    if (c.restartCount > 5) reasons.push(`Many restarts (${c.restartCount})`);
-    if (c.status === 'exited') reasons.push('Container exited');
-    if (c.status === 'unhealthy') reasons.push('Health check failed');
-
-    return reasons.join(', ') || 'Unknown';
 }

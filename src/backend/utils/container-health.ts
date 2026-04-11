@@ -218,7 +218,7 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
         memoryLimit: stats.memoryLimit || 0,
         memoryPercent: stats.memoryPercent || 0,
         restartCount: stats.restartCount || 0,
-        status: determineStatus(stats),
+        status: stats.status || determineStatus(stats),
         lastUpdated: stats.lastUpdated || now,
     }));
 }
@@ -257,7 +257,8 @@ export function isUnhealthy(
         stats.memoryPercent > thresholds.maxMemoryPercent ||
         stats.restartCount > thresholds.maxRestartCount ||
         stats.status === 'unhealthy' ||
-        stats.status === 'exited'
+        stats.status === 'exited' ||
+        stats.status === 'failed'
     );
 }
 
@@ -322,4 +323,17 @@ function parseStep(step: TimeStep): number {
         case '1d': return 86400;
         default: return 60;
     }
+}
+
+export function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
+    const reasons: string[] = [];
+
+    if (c.cpuPercent > 90) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
+    if (c.memoryPercent > 85) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
+    if (c.restartCount > 5) reasons.push(`Many restarts (${c.restartCount})`);
+    if (c.status === 'exited') reasons.push('Container exited');
+    if (c.status === 'failed') reasons.push('Deployment failed');
+    if (c.status === 'unhealthy') reasons.push('Health check failed');
+
+    return reasons.join(', ') || 'Unknown';
 }
