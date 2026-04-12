@@ -74,17 +74,18 @@ export default {
       create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content,this.dockerfile_present,this.port, this.stack, this.build_cmds)
         .then((res) => {
           console.log(res);
-          if (res === 'Submitted') {
+          if (res.status === 'success') {
             this.closeModalAndReload();
-          } else if (res === 'Pending') {
+          } else if (res.status === 'pending') {
+            sessionStorage.setItem('pendingDeploymentSubdomain', res.subdomain);
             this.closeModal();
-            alert('Deployment initiated! Your container is being built. Check the status column for progress.');
+            alert('Deployment initiated! Your container is being built. If it fails, the deployment log will open automatically.');
             setTimeout(() => {
               window.location.reload();
             }, 1000);
           } else {
             this.closeModal();
-            alert('Failed to create subdomain');
+            alert(res.message || 'Failed to create subdomain');
             setTimeout(() => {
               window.location.reload();
             }, 1000);

@@ -55,6 +55,10 @@ try {
   </header>
   
   <div id="home-container">
+    <div v-if="failureNotice" class="failure-notice">
+      <span>{{ failureNotice }}</span>
+      <button @click="dismissFailureNotice" aria-label="Dismiss deployment error">✕</button>
+    </div>
     <div id="home-heading">
       <h3>{{ user }}'s subdomains:</h3>
     </div>
@@ -117,6 +121,8 @@ try {
 </template>
 
 <script>
+import { getDeploymentLog, getDeploymentStatus } from '../utils/deployment-logs.ts';
+
 export default {
   components: { modal, deletemodal, ApiKeyModal, DeploymentLogModal },
   data() {
@@ -127,7 +133,17 @@ export default {
       showLogModal: false,
       selectedItem: null,
       logSubdomain: '',
+      pendingDeploymentPoller: null,
+      failureNotice: '',
     };
+  },
+  mounted() {
+    this.resumePendingDeploymentWatch();
+  },
+  beforeUnmount() {
+    if (this.pendingDeploymentPoller) {
+      clearInterval(this.pendingDeploymentPoller);
+    }
   },
   methods: {
     logoutAndRedirect() {
@@ -167,6 +183,53 @@ export default {
     showLogForSubdomain(subdomain) {
       this.logSubdomain = subdomain;
       this.showLogModal = true;
+    },
+    async resumePendingDeploymentWatch() {
+      const pendingSubdomain = sessionStorage.getItem('pendingDeploymentSubdomain');
+      if (!pendingSubdomain) {
+        return;
+      }
+
+      const poll = async () => {
+        const status = await getDeploymentStatus(user, pendingSubdomain);
+        deploymentStatusMap[pendingSubdomain] = {
+          status: status?.status || 'unknown',
+          errorSummary: status?.errorSummary || null,
+        };
+
+        if (status?.status === 'failed') {
+          const log = await getDeploymentLog(user, pendingSubdomain);
+          this.failureNotice = status.errorSummary || log?.errorSummary || `Deployment failed for ${pendingSubdomain}.`;
+          this.logSubdomain = pendingSubdomain;
+          this.showLogModal = true;
+          sessionStorage.removeItem('pendingDeploymentSubdomain');
+          if (this.pendingDeploymentPoller) {
+            clearInterval(this.pendingDeploymentPoller);
+            this.pendingDeploymentPoller = null;
+          }
+          return;
+        }
+
+        if (status?.status === 'success' || status?.status === 'unknown') {
+          sessionStorage.removeItem('pendingDeploymentSubdomain');
+          if (this.pendingDeploymentPoller) {
+            clearInterval(this.pendingDeploymentPoller);
+            this.pendingDeploymentPoller = null;
+          }
+        }
+      };
+
+      await poll();
+      if (!sessionStorage.getItem('pendingDeploymentSubdomain')) {
+        return;
+      }
+
+      this.pendingDeploymentPoller = setInterval(() => {
+        poll();
+      }, 5000);
+    },
+    dismissFailureNotice() {
+      this.failureNotice = '';
     },
   }
 };
@@ -259,6 +322,28 @@ footer {
 footer p {
   margin: 0;
   text-align: center;
+}
+
+.failure-notice {
+  margin: 5.5rem auto 1rem;
+  width: min(960px, calc(100% - 2rem));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.failure-notice button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  cursor: pointer;
 }
 
 /* Deployment Status Badge */

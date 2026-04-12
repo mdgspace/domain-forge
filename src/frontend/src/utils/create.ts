@@ -65,24 +65,38 @@ export async function create(
   stack: string,
   build_cmds: string,
 ) {
+  const domain = import.meta.env.VITE_APP_DOMAIN;
+  const fullSubdomain = `${subdomain}.${domain}`;
+
   if (secure_input(subdomain) === false) {
-    return "failed";
+    return {
+      status: "failed",
+      subdomain: fullSubdomain,
+      message: "Invalid subdomain input.",
+    };
   }
   if (secure_input(resource_type) === false) {
-    return "failed";
+    return {
+      status: "failed",
+      subdomain: fullSubdomain,
+      message: "Invalid resource type input.",
+    };
   }
   if (secure_input(resource) === false) {
-    return "failed";
+    return {
+      status: "failed",
+      subdomain: fullSubdomain,
+      message: "Invalid resource input.",
+    };
   }
   const user = await check_jwt(
     localStorage.getItem("JWTUser")!,
     localStorage.getItem("provider")!,
   );
   const backend = import.meta.env.VITE_APP_BACKEND;
-  const domain = import.meta.env.VITE_APP_DOMAIN;
   const rootUrl = new URL(`${backend}/map`);
   const body = {
-    "subdomain": subdomain + "." + domain,
+    "subdomain": fullSubdomain,
     "resource_type": resource_type,
     "resource": resource,
     "env_content": env_content,
@@ -96,19 +110,42 @@ export async function create(
     "token": localStorage.getItem("JWTUser"),
     "provider": localStorage.getItem("provider"),
   };
-  const resp = await fetch(rootUrl.toString(), {
-    method: "POST",
-    headers: {
-      "Accept": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await resp.json();
-  if (data.status === "failed") {
-    return "Failed";
+  try {
+    const resp = await fetch(rootUrl.toString(), {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok || data.status === "failed") {
+      return {
+        status: "failed",
+        subdomain: fullSubdomain,
+        message: data.message || "Failed to create subdomain.",
+      };
+    }
+    if (data.status === "pending") {
+      return {
+        status: "pending",
+        subdomain: fullSubdomain,
+        message: data.message || "Deployment initiated.",
+      };
+    }
+
+    return {
+      status: "success",
+      subdomain: fullSubdomain,
+      message: data.message || "Submitted",
+    };
+  } catch (error) {
+    console.error("[create] Failed to create subdomain:", error);
+    return {
+      status: "failed",
+      subdomain: fullSubdomain,
+      message: "Request failed while creating subdomain.",
+    };
   }
-  if (data.status === "pending") {
-    return "Pending";
-  }
-  return "Submitted";
 }

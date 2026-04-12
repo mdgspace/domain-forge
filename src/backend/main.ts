@@ -2,7 +2,7 @@ import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
-import { createDeploymentLog } from "./deployment-logs.ts";
+import { createDeploymentLog, updateDeploymentLog } from "./deployment-logs.ts";
 
 const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|");
 
@@ -48,19 +48,8 @@ async function addSubdomain(ctx: Context) {
 
 
   if (success) {
-    await addScript(
-      document,
-      copy.env_content,
-      copy.static_content,
-      copy.dockerfile_present,
-      copy.stack,
-      copy.port,
-      copy.build_cmds,
-    );
+    let deploymentLogCreated = false;
 
-    // GITHUB deployments build asynchronously via shell scripts.
-    // Create a deployment log and return "pending" so the user can track progress.
-    // URL and PORT deployments complete immediately, so return "success".
     if (document.resource_type === "GITHUB") {
       await createDeploymentLog({
         subdomain: document.subdomain,
@@ -69,12 +58,51 @@ async function addSubdomain(ctx: Context) {
         resourceType: document.resource_type,
         resource: document.resource,
       });
+      deploymentLogCreated = true;
+    }
+
+    try {
+      await addScript(
+        document,
+        copy.env_content,
+        copy.static_content,
+        copy.dockerfile_present,
+        copy.stack,
+        copy.port,
+        copy.build_cmds,
+      );
+
+      // GITHUB deployments build asynchronously via shell scripts.
+      // Create a deployment log before script kickoff so immediate failures are captured.
+      // URL and PORT deployments complete immediately, so return "success".
+      if (document.resource_type === "GITHUB") {
+        ctx.response.body = {
+          "status": "pending",
+          "message": "Deployment initiated. Check deployment logs for progress.",
+        };
+      } else {
+        ctx.response.body = { "status": "success" };
+      }
+    } catch (error) {
+      console.error(`[deployment] Failed to start deployment for ${document.subdomain}:`, error);
+
+      if (deploymentLogCreated) {
+        await updateDeploymentLog(document.subdomain, {
+          status: "failed",
+          logContent: String(error),
+          errorSummary: error instanceof Error ? error.message : String(error),
+          completedAt: new Date(),
+        });
+      }
+
+      ctx.response.status = 500;
       ctx.response.body = {
-        "status": "pending",
-        "message": "Deployment initiated. Check deployment logs for progress.",
+        "status": "failed",
+        "message": error instanceof Error
+          ? error.message
+          : "Failed to start deployment.",
       };
-    } else {
-      ctx.response.body = { "status": "success" };
+      return;
     }
 
     Sentry.captureMessage(
