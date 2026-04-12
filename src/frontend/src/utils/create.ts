@@ -107,5 +107,8 @@ export async function create(
   if (data.status === "failed") {
     return "Failed";
   }
+  if (data.status === "pending") {
+    return "Pending";
+  }
   return "Submitted";
 }

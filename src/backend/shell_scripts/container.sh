@@ -1,3 +1,5 @@
+#!/bin/bash
+
 PORT_MIN=8010
 PORT_MAX=8099
 flag=$1
@@ -5,6 +7,11 @@ name=$2
 resource=$3
 exp_port=$4
 max_mem=$5 
+
+# --- Deployment logging ---
+DEPLOY_SUBDOMAIN="$name"
+source "$(dirname "$0")/deploy-wrapper.sh"
+# --- End deployment logging setup ---
 
 available_ports=()
 

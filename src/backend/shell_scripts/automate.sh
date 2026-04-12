@@ -14,6 +14,11 @@ arg1=$1
 arg2=$2
 arg3=$3
 
+# --- Deployment logging ---
+DEPLOY_SUBDOMAIN="$arg3"
+source "$(dirname "$0")/deploy-wrapper.sh"
+# --- End deployment logging setup ---
+
 if [ "$arg1" = "-u" ]; then
     echo "Creating subdomain $arg3 which redirects to $arg2"
     echo "Generating url.conf"

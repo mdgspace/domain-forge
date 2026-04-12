@@ -23,6 +23,12 @@ import {
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
+import {
+  getDeploymentLogsHandler,
+  getDeploymentLogHandler,
+  getDeploymentStatusHandler,
+} from "./deployment-api.ts";
+import { startLogWatcher } from "./log-watcher.ts";
 
 const router = new Router();
 const app = new Application();
@@ -78,7 +84,11 @@ router
   .get("/health/:subdomain/metrics", (ctx) => getContainerMetrics(ctx))
   .post("/health/:subdomain/restart", (ctx) => restartContainerHandler(ctx))
   .post("/health/:subdomain/stop", (ctx) => stopContainerHandler(ctx))
-  .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx));
+  .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx))
+  // Deployment log routes
+  .get("/deployments/logs", (ctx) => getDeploymentLogsHandler(ctx))
+  .get("/deployments/logs/:subdomain", (ctx) => getDeploymentLogHandler(ctx))
+  .get("/deployments/status/:subdomain", (ctx) => getDeploymentStatusHandler(ctx));
 
 app.use(oakCors({ origin: frontend }));
 app.use(router.routes());
@@ -86,6 +96,9 @@ app.use(router.allowedMethods());
 
 // Start health monitoring service
 startHealthMonitor();
+
+// Start deployment log watcher
+startLogWatcher();
 
 app.listen({ port: PORT });
 console.log("Listening...");

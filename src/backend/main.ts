@@ -2,6 +2,7 @@ import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps } from "./db.ts";
+import { createDeploymentLog } from "./deployment-logs.ts";
 
 const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|");
 
@@ -56,7 +57,26 @@ async function addSubdomain(ctx: Context) {
       copy.port,
       copy.build_cmds,
     );
-    ctx.response.body = { "status": "success" };
+
+    // GITHUB deployments build asynchronously via shell scripts.
+    // Create a deployment log and return "pending" so the user can track progress.
+    // URL and PORT deployments complete immediately, so return "success".
+    if (document.resource_type === "GITHUB") {
+      await createDeploymentLog({
+        subdomain: document.subdomain,
+        author: document.author,
+        status: "pending",
+        resourceType: document.resource_type,
+        resource: document.resource,
+      });
+      ctx.response.body = {
+        "status": "pending",
+        "message": "Deployment initiated. Check deployment logs for progress.",
+      };
+    } else {
+      ctx.response.body = { "status": "success" };
+    }
+
     Sentry.captureMessage(
       "User " + document.author + " added subdomain " + document.subdomain,
       "info",

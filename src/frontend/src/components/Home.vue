@@ -4,6 +4,8 @@ import { check_jwt } from '../utils/authorize.ts';
 import modal from './modal.vue';
 import deletemodal from './deletemodal.vue';
 import ApiKeyModal from './ApiKeyModal.vue';
+import DeploymentLogModal from './DeploymentLogModal.vue';
+import { getDeploymentLogs } from '../utils/deployment-logs.ts';
 
 const token = localStorage.getItem("JWTUser");
 const provider = localStorage.getItem("provider");
@@ -11,6 +13,23 @@ const user = await check_jwt(token, provider);
 const apiKey = localStorage.getItem("apiKey");
 const fields = ["date", "subdomain", "resource", "resource_type", ""];
 const maps = await getMaps(user);
+
+// Fetch deployment logs and build a status lookup map.
+let deploymentStatusMap = {};
+try {
+  const logsData = await getDeploymentLogs(user);
+  if (logsData?.logs) {
+    for (const log of logsData.logs) {
+      deploymentStatusMap[log.subdomain] = {
+        status: log.status,
+        errorSummary: log.errorSummary,
+      };
+    }
+  }
+} catch (e) {
+  // Deployment logs are a non-critical enhancement; don't block page load.
+  console.warn('Failed to load deployment logs:', e);
+}
 </script>
 
 <template>
@@ -46,6 +65,9 @@ const maps = await getMaps(user);
           <th v-for="field in fields" :key="field" style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212; border-top:1px solid #121212;font-weight: 900;">
             <h3>{{ field }}</h3>
           </th>
+          <th style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212; border-top:1px solid #121212;font-weight: 900;">
+            <h3>status</h3>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -60,6 +82,17 @@ const maps = await getMaps(user);
               <div style="text-align: center;"><button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button></div>
             </span>
           </td>
+          <!-- Deployment Status Column -->
+          <td style="border-bottom: 1px solid #121212; text-align: center;">
+            <span
+              class="deploy-status-badge"
+              :class="getDeployStatusClass(item.subdomain)"
+              @click="showLogForSubdomain(item.subdomain)"
+              :title="getDeployStatusTooltip(item.subdomain)"
+            >
+              {{ getDeployStatusLabel(item.subdomain) }}
+            </span>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -70,6 +103,14 @@ const maps = await getMaps(user);
 
   <ApiKeyModal v-show="showApiKeyModal" :apiKey="apiKey" @close-modal="showApiKeyModal = false" />
 
+  <!-- Deployment Log Modal -->
+  <DeploymentLogModal
+    v-if="showLogModal && logSubdomain"
+    :subdomain="logSubdomain"
+    :user="user"
+    @close-modal="showLogModal = false"
+  />
+
   <footer>
     <p>Made with ❤️ by MDG Space</p>
   </footer>
@@ -77,20 +118,56 @@ const maps = await getMaps(user);
 
 <script>
 export default {
-  components: { modal, deletemodal, ApiKeyModal },
+  components: { modal, deletemodal, ApiKeyModal, DeploymentLogModal },
   data() {
     return {
       showDeleteModal: false,
       showModal: false,
       showApiKeyModal: false,
+      showLogModal: false,
       selectedItem: null,
+      logSubdomain: '',
     };
   },
   methods: {
     logoutAndRedirect() {
       localStorage.clear();
       this.$router.push({ path: '/login' });
-    }
+    },
+    getDeployStatusClass(subdomain) {
+      const info = deploymentStatusMap[subdomain];
+      if (!info) return 'deploy-status-default';
+      switch (info.status) {
+        case 'success': return 'deploy-status-success';
+        case 'failed': return 'deploy-status-failed';
+        case 'pending': return 'deploy-status-pending';
+        case 'building': return 'deploy-status-building';
+        default: return 'deploy-status-default';
+      }
+    },
+    getDeployStatusLabel(subdomain) {
+      const info = deploymentStatusMap[subdomain];
+      if (!info) return '—';
+      switch (info.status) {
+        case 'success': return '✅ Success';
+        case 'failed': return '❌ Failed';
+        case 'pending': return '⏳ Pending';
+        case 'building': return '🔨 Building';
+        default: return '—';
+      }
+    },
+    getDeployStatusTooltip(subdomain) {
+      const info = deploymentStatusMap[subdomain];
+      if (!info) return 'No deployment log available';
+      if (info.status === 'failed' && info.errorSummary) {
+        return `Failed: ${info.errorSummary}`;
+      }
+      return `Status: ${info.status} — Click to view logs`;
+    },
+    showLogForSubdomain(subdomain) {
+      this.logSubdomain = subdomain;
+      this.showLogModal = true;
+    },
   }
 };
 </script>
@@ -182,6 +259,47 @@ footer {
 footer p {
   margin: 0;
   text-align: center;
+}
+
+/* Deployment Status Badge */
+.deploy-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+}
+
+.deploy-status-badge:hover {
+  opacity: 0.8;
+}
+
+.deploy-status-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.deploy-status-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.deploy-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.deploy-status-building {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.deploy-status-default {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 </style>

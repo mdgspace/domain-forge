@@ -16,6 +16,7 @@ console.log("---------------------");
 let db: any;
 let userAuthCollection: any;
 let contentMapsCollection: any;
+let deploymentLogsCollection: any;
 
 try {
   if (MONGO_URI && client) {
@@ -24,6 +25,7 @@ try {
     db = client.db("df_test");
     userAuthCollection = db.collection("user_auth");
     contentMapsCollection = db.collection("content_maps");
+    deploymentLogsCollection = db.collection("deployment_logs");
     console.log("✅ Connected to MongoDB successfully");
   } else {
     console.error("❌ SKIPPING DB CONNECTION: MONGO_URI is missing.");
@@ -111,4 +113,4 @@ async function deleteMaps(document: DfContentMap, ADMIN_LIST: string[]) {
   return deleteResult;
 }
 
-export { addMaps, checkUser, deleteMaps, getMaps };
+export { addMaps, checkUser, deleteMaps, getMaps, db, deploymentLogsCollection };

@@ -76,6 +76,12 @@ export default {
           console.log(res);
           if (res === 'Submitted') {
             this.closeModalAndReload();
+          } else if (res === 'Pending') {
+            this.closeModal();
+            alert('Deployment initiated! Your container is being built. Check the status column for progress.');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
           } else {
             this.closeModal();
             alert('Failed to create subdomain');

@@ -4,6 +4,7 @@ interface DfContentMap {
   resource: string;
   author: string;
   date: string;
+  deployment_status?: 'pending' | 'building' | 'success' | 'failed';
 }
 
 export default DfContentMap;
