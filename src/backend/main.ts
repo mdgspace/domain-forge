@@ -64,6 +64,7 @@ async function addSubdomain(ctx: Context) {
               'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify({
+              name: "web",
               config: {
                 url: webhookUrl,
                 content_type: 'json'
@@ -75,7 +76,7 @@ async function addSubdomain(ctx: Context) {
             if (data.id) {
               Sentry.captureMessage("Auto registered Github webhook for " + document.resource, "info");
             } else {
-              Sentry.captureMessage("Github webhook registration error: " + data.message, "error");
+              Sentry.captureMessage("Github webhook registration error: " + JSON.stringify(data), "error");
             }
           }).catch(e => Sentry.captureException(e));
         } else {
