@@ -138,6 +138,10 @@ async function deleteSubdomain(ctx: Context) {
 export { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook };
 
 async function githubWebhook(ctx: Context) {
+  console.log("========================================");
+  console.log("GITHUB WEBHOOK ENDPOINT HIT!");
+  console.log("========================================");
+  
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
