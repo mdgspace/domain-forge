@@ -117,4 +117,12 @@ async function getDeploymentsByRepo(repoUrl: string) {
   return await contentMapsCollection.find({ resource: repoUrl, enable_ci: true }).toArray();
 }
 
-export { addMaps, checkUser, deleteMaps, getMaps, getDeploymentsByRepo };
+async function getUserToken(userId: string) {
+  if (!userAuthCollection) return null;
+  const user = await userAuthCollection.findOne({ 
+    $or: [ { githubId: userId }, { gitlabId: userId } ] 
+  });
+  return user?.authToken;
+}
+
+export { addMaps, checkUser, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken };

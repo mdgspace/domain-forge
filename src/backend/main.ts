@@ -1,7 +1,7 @@
 import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
-import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo } from "./db.ts";
+import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken } from "./db.ts";
 
 // ... skipping to githubWebhook
 
@@ -46,6 +46,44 @@ async function addSubdomain(ctx: Context) {
 
 
   if (success) {
+    if (document.enable_ci === true && document.resource_type === 'GITHUB') {
+      const match = document.resource.match(/github\.com\/([^\/]+)\/([^\/\.]+)/);
+      if (match) {
+        const owner = match[1];
+        const repo = match[2];
+        const authToken = await getUserToken(document.author);
+        if (authToken) {
+          const webhookUrl = Deno.env.get("BACKEND_URL") 
+            ? `${Deno.env.get("BACKEND_URL")}/webhook/github` 
+            : `http://localhost:7000/webhook/github`;
+          
+          fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/vnd.github.v3+json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              config: {
+                url: webhookUrl,
+                content_type: 'json'
+              },
+              events: ['push'],
+              active: true
+            })
+          }).then(res => res.json()).then(data => {
+            if (data.id) {
+              Sentry.captureMessage("Auto registered Github webhook for " + document.resource, "info");
+            } else {
+              Sentry.captureMessage("Github webhook registration error: " + data.message, "error");
+            }
+          }).catch(e => Sentry.captureException(e));
+        } else {
+          Sentry.captureMessage("No auth token found for user to setup auto webhook.", "warning");
+        }
+      }
+    }
+
     await addScript(
       document,
       copy.env_content,
