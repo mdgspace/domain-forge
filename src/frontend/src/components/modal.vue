@@ -39,13 +39,13 @@ const domain = import.meta.env.VITE_APP_DOMAIN
         <div v-if="dockerfile_present === 'No'" class="dockerfile-section">
         <p>Build Commands:<br><textarea class="textarea-field" cols="50" rows="10" v-model="build_cmds"></textarea></p>
         </div>
-        <div class="ci-section" style="margin-top: 15px;">
-          <label for="ci-checkbox" style="font-weight: bold; cursor: pointer;">
-            <input type="checkbox" id="ci-checkbox" v-model="enable_ci" style="margin-right: 8px;">
-            Enable auto-deploy on main branch pushes (CI/CD)
-          </label>
         </div>
       </div>
+      <div v-if="resource_type === 'GITHUB'" class="ci-section" style="margin-top: 15px;">
+        <label for="ci-checkbox" style="font-weight: bold; cursor: pointer;">
+          <input type="checkbox" id="ci-checkbox" v-model="enable_ci" style="margin-right: 8px;">
+          Enable auto-deploy on main branch pushes (CI/CD)
+        </label>
       </div>
       <div class="button-container">
         <button class="cancel-button" @click="closeModal">Cancel</button>

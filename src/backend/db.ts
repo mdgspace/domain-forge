@@ -124,6 +124,7 @@ async function getDeploymentsByRepo(repoUrl: string) {
   
   return await contentMapsCollection.find({ 
     resource: { $regex: regexPattern, $options: 'i' }, 
+    resource_type: 'GITHUB',
     enable_ci: true 
   }).toArray();
 }

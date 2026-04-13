@@ -2,6 +2,7 @@ import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken } from "./db.ts";
+import { encryptEnv, decryptEnv, verifyGithubSignature } from "./utils/crypto.ts";
 
 // ... skipping to githubWebhook
 
@@ -17,7 +18,16 @@ async function getSubdomains(ctx: Context) {
   }
   const data = await getMaps(author, ADMIN_LIST!);
 
-  ctx.response.body = data.documents;
+  // If frontend needs to read subdomains, we should decrypt env_content before sending to client
+  // But we'll leave it as is if frontend doesn't display it explicitly, or we map it:
+  const decryptedDocs = await Promise.all(data.documents.map(async (doc: any) => {
+    if (doc.env_content) {
+      doc.env_content = await decryptEnv(doc.env_content);
+    }
+    return doc;
+  }));
+
+  ctx.response.body = decryptedDocs;
 }
 
 async function addSubdomain(ctx: Context) {
@@ -41,47 +51,82 @@ async function addSubdomain(ctx: Context) {
   delete document.token;
   delete document.provider;
 
+  // Encrypt the env_content using AES-GCM before saving it to MongoDB
+  if (document.env_content !== undefined) {
+    document.env_content = await encryptEnv(document.env_content);
+  }
+
   // We keep deployment config (port, stack, etc.) in the document to store them in DB for webhook usage
   const success: boolean = await addMaps(document);
 
 
   if (success) {
-    if (document.enable_ci === true && document.resource_type === 'GITHUB') {
-      const match = document.resource.match(/github\.com\/([^\/]+)\/([^\/\.]+)/);
-      if (match) {
-        const owner = match[1];
-        const repo = match[2];
-        const authToken = await getUserToken(document.author);
-        if (authToken) {
-          const webhookUrl = Deno.env.get("BACKEND_URL") 
-            ? `${Deno.env.get("BACKEND_URL")}/webhook/github` 
-            : `http://localhost:7000/webhook/github`;
-          
-          fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/vnd.github.v3+json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-              name: "web",
-              config: {
-                url: webhookUrl,
-                content_type: 'json'
-              },
-              events: ['push'],
-              active: true
-            })
-          }).then(res => res.json()).then(data => {
-            if (data.id) {
-              Sentry.captureMessage("Auto registered Github webhook for " + document.resource, "info");
-            } else {
-              Sentry.captureMessage("Github webhook registration error: " + JSON.stringify(data), "error");
+    if (document.enable_ci === true && document.resource_type === 'GITHUB' && provider === 'github') {
+      try {
+        const url = new URL(document.resource);
+        if (url.hostname === "github.com") {
+          const parts = url.pathname.split('/').filter(Boolean);
+          if (parts.length >= 2) {
+            const owner = parts[0];
+            let repo = parts[1];
+            if (repo.endsWith('.git')) {
+              repo = repo.slice(0, -4);
             }
-          }).catch(e => Sentry.captureException(e));
-        } else {
-          Sentry.captureMessage("No auth token found for user to setup auto webhook.", "warning");
+            const authToken = await getUserToken(document.author);
+            if (authToken) {
+              const webhookUrl = Deno.env.get("BACKEND_URL") 
+                ? `${Deno.env.get("BACKEND_URL")}/webhook/github` 
+                : `http://localhost:7000/webhook/github`;
+              
+              const headers = {
+                'Accept': 'application/vnd.github.v3+json',
+                'Authorization': `Bearer ${authToken}`
+              };
+
+              // First, check if webhook already exists to prevent duplicate triggers
+              fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, { headers })
+                .then(res => res.json())
+                .then(existingHooks => {
+                  if (Array.isArray(existingHooks)) {
+                    const alreadyExists = existingHooks.some((h: any) => h.config?.url === webhookUrl);
+                    if (alreadyExists) {
+                      Sentry.captureMessage(`Webhook already exists for ${document.resource}, skipping duplicate creation.`, "info");
+                      return;
+                    }
+                  }
+
+                  // Create identical webhook with secret
+                  const secret = Deno.env.get("GITHUB_WEBHOOK_SECRET") || "debug-key!";
+                  fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                      name: "web",
+                      config: {
+                        url: webhookUrl,
+                        content_type: 'json',
+                        secret: secret
+                      },
+                      events: ['push'],
+                      active: true
+                    })
+                  }).then(res => res.json()).then(data => {
+                    if (data.id) {
+                      Sentry.captureMessage("Auto registered Github webhook for " + document.resource, "info");
+                    } else {
+                      Sentry.captureMessage("Github webhook registration error: " + JSON.stringify(data), "error");
+                    }
+                  }).catch(e => Sentry.captureException(e));
+                }).catch(e => {
+                  Sentry.captureMessage(`Failed to fetch existing hooks for ${document.resource}: ${e}`, "error");
+                });
+            } else {
+              Sentry.captureMessage("No auth token found for user to setup auto webhook.", "warning");
+            }
+          }
         }
+      } catch (e) {
+        console.error("Invalid GitHub URL:", document.resource);
       }
     }
 
@@ -141,12 +186,34 @@ async function githubWebhook(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
-  const body = await ctx.request.body().value;
+
+  // Read raw payload for exact signature verification
+  const rawBody = await ctx.request.body({ type: "bytes" }).value;
+  const signature = ctx.request.headers.get("x-hub-signature-256");
+  const event = ctx.request.headers.get("x-github-event");
+
+  // Only verify signature if GITHUB_WEBHOOK_SECRET is explicitly set to avoid breaking unconfigured setups
+  if (Deno.env.get("GITHUB_WEBHOOK_SECRET")) {
+    const isValid = await verifyGithubSignature(signature, rawBody);
+    if (!isValid) {
+      console.error(`[Webhook] Invalid payload signature! Rejecting.`);
+      ctx.throw(401, "Invalid signature");
+    }
+  }
+
+  // Ignore non-push events (e.g. ping event when webhook is added)
+  if (event !== "push") {
+    ctx.response.status = 200;
+    ctx.response.body = "ignored";
+    return;
+  }
+
+  const bodyString = new TextDecoder().decode(rawBody);
   let payload;
   try {
-    payload = typeof body === "string" ? JSON.parse(body) : body;
+    payload = JSON.parse(bodyString);
   } catch (e) {
-    payload = body;
+    ctx.throw(400, "Invalid JSON");
   }
 
   // We only care about pushes to main or master
@@ -163,13 +230,12 @@ async function githubWebhook(ctx: Context) {
   }
 
   // Find subdomains using this repo with enable_ci = true
-  const clone_url = payload.repository.clone_url;
-  const html_url = payload.repository.html_url;
+  const htmlUrl = payload.repository.html_url;
 
   // Since users might have saved the URL with or without .git, let's check both
-  let matchedDeployments = await getDeploymentsByRepo(clone_url);
-  if (matchedDeployments.length === 0 && html_url) {
-    matchedDeployments = await getDeploymentsByRepo(html_url);
+  let matchedDeployments = await getDeploymentsByRepo(cloneUrl);
+  if (matchedDeployments.length === 0 && htmlUrl) {
+    matchedDeployments = await getDeploymentsByRepo(htmlUrl);
   }
 
   if (matchedDeployments.length > 0) {
@@ -180,10 +246,13 @@ async function githubWebhook(ctx: Context) {
       // Tear down old deployment securely
       await deleteScript(dep);
       
+      // Decrypt env content from DB before deploying
+      const decryptedEnv = await decryptEnv(dep.env_content || "");
+
       // Re-add to trigger fresh pull and container build
       await addScript(
         dep,
-        dep.env_content,
+        decryptedEnv,
         dep.static_content,
         dep.dockerfile_present,
         dep.stack,
