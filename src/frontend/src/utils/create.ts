@@ -64,6 +64,7 @@ export async function create(
   port: string,
   stack: string,
   build_cmds: string,
+  enable_ci: boolean,
 ) {
   if (secure_input(subdomain) === false) {
     return "failed";
@@ -95,6 +96,7 @@ export async function create(
     "date": new Date().toLocaleDateString(),
     "token": localStorage.getItem("JWTUser"),
     "provider": localStorage.getItem("provider"),
+    "enable_ci": enable_ci,
   };
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",

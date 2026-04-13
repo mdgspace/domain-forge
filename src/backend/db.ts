@@ -111,4 +111,10 @@ async function deleteMaps(document: DfContentMap, ADMIN_LIST: string[]) {
   return deleteResult;
 }
 
-export { addMaps, checkUser, deleteMaps, getMaps };
+// Webhook helper
+async function getDeploymentsByRepo(repoUrl: string) {
+  if (!contentMapsCollection) return [];
+  return await contentMapsCollection.find({ resource: repoUrl, enable_ci: true }).toArray();
+}
+
+export { addMaps, checkUser, deleteMaps, getMaps, getDeploymentsByRepo };

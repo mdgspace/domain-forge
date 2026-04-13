@@ -6,7 +6,7 @@ function oauthUrl(provider: string) {
     rootUrl = "https://github.com/login/oauth/authorize";
     clientId = import.meta.env.VITE_APP_GITHUB_OAUTH_CLIENT_ID;
     redirectUri = import.meta.env.VITE_APP_GITHUB_OAUTH_REDIRECT_URL;
-    scope = "user:email";
+    scope = "user:email admin:repo_hook";
   } else if (provider === "gitlab") {
     rootUrl = "https://gitlab.com/oauth/authorize";
     clientId = import.meta.env.VITE_APP_GITLAB_OAUTH_CLIENT_ID;

@@ -13,7 +13,7 @@ import {
   gitlabAuth,
   handleJwtAuthentication,
 } from "./auth/github.ts";
-import { addSubdomain, deleteSubdomain, getSubdomains } from "./main.ts";
+import { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook } from "./main.ts";
 import {
   getContainerHealth,
   getContainerMetrics,
@@ -72,6 +72,7 @@ router
   .get("/map", (ctx) => getSubdomains(ctx))
   .post("/map", (ctx) => addSubdomain(ctx))
   .post("/mapdel", (ctx) => deleteSubdomain(ctx))
+  .post("/webhook/github", (ctx) => githubWebhook(ctx))
   // Health monitoring routes
   .get("/health", (ctx) => getContainerHealth(ctx))
   .get("/health/summary", (ctx) => getHealthDashboard(ctx))
