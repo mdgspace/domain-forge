@@ -39,6 +39,12 @@ const domain = import.meta.env.VITE_APP_DOMAIN
         <div v-if="dockerfile_present === 'No'" class="dockerfile-section">
         <p>Build Commands:<br><textarea class="textarea-field" cols="50" rows="10" v-model="build_cmds"></textarea></p>
         </div>
+        <div class="ci-section" style="margin-top: 15px;">
+          <label for="ci-checkbox" style="font-weight: bold; cursor: pointer;">
+            <input type="checkbox" id="ci-checkbox" v-model="enable_ci" style="margin-right: 8px;">
+            Enable auto-deploy on main branch pushes (CI/CD)
+          </label>
+        </div>
       </div>
       </div>
       <div class="button-container">
@@ -64,6 +70,7 @@ export default {
       port: '',
       stack: '',
       build_cmds: '',
+      enable_ci: false,
       resourceTypes: ['URL', 'PORT', 'GITHUB'],
       stacks: ['Python', 'NodeJS', 'Go', 'Rust', 'React']
     };
@@ -71,7 +78,7 @@ export default {
   methods: {
     submitForm() {
       console.log(this.subdomain, this.resource_type, this.resource);
-      create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content,this.dockerfile_present,this.port, this.stack, this.build_cmds)
+      create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content,this.dockerfile_present,this.port, this.stack, this.build_cmds, this.enable_ci)
         .then((res) => {
           console.log(res);
           if (res === 'Submitted') {
