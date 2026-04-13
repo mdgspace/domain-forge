@@ -1,11 +1,16 @@
-import { exec } from "../dependencies.ts";
+import { createClient } from "../dependencies.ts";
 
 const restartCounts = new Map<string, { count: number; lastRestart: Date }>();
 const stopCounts = new Map<string, { count: number; lastStop: Date }>();
 const SAFE_CONTAINER_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
-let execCommand = async (command: string): Promise<void> => {
-    await exec(command);
+const REDIS_URL = Deno.env.get("REDIS_URL") || "redis://redis:6379";
+const redis = createClient({ url: REDIS_URL });
+redis.on('error', (err) => console.error('Redis Client Error', err));
+await redis.connect();
+
+let execCommand = async (payload: any): Promise<void> => {
+    await redis.lPush("jobs:deployments", JSON.stringify(payload));
 };
 
 export function validateContainerName(containerName: string): string {
@@ -15,16 +20,19 @@ export function validateContainerName(containerName: string): string {
     return containerName;
 }
 
-function buildHostPipeCommand(scriptName: "restart.sh" | "stop.sh", containerName: string): string {
+function buildHostJobPayload(action: "restart" | "stop", containerName: string): any {
     const safeName = validateContainerName(containerName);
-    return `bash -c "echo 'bash ../../src/backend/shell_scripts/${scriptName} ${safeName}' > /hostpipe/pipe"`;
+    return {
+        action,
+        subdomain: safeName
+    };
 }
 
 export function setCommandExecutorForTest(
-    executor: ((command: string) => Promise<void>) | null,
+    executor: ((payload: any) => Promise<void>) | null,
 ): void {
-    execCommand = executor ?? (async (command: string): Promise<void> => {
-        await exec(command);
+    execCommand = executor ?? (async (payload: any): Promise<void> => {
+        await redis.lPush("jobs:deployments", JSON.stringify(payload));
     });
 }
 
@@ -45,7 +53,7 @@ export async function restartContainer(containerName: string): Promise<void> {
     const safeContainerName = validateContainerName(containerName);
 
     try {
-        await execCommand(buildHostPipeCommand("restart.sh", safeContainerName));
+        await execCommand(buildHostJobPayload("restart", safeContainerName));
 
         const current = restartCounts.get(safeContainerName);
         restartCounts.set(safeContainerName, {
@@ -63,7 +71,7 @@ export async function stopContainer(containerName: string): Promise<void> {
     const safeContainerName = validateContainerName(containerName);
 
     try {
-        await execCommand(buildHostPipeCommand("stop.sh", safeContainerName));
+        await execCommand(buildHostJobPayload("stop", safeContainerName));
 
         const current = stopCounts.get(safeContainerName);
         stopCounts.set(safeContainerName, {

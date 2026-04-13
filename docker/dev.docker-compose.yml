@@ -5,10 +5,6 @@ services:
     container_name: df_backend
     image: df_backend
     restart: always
-    volumes:
-      - type: bind
-        source: ../docker/named_pipe
-        target: /hostpipe
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
@@ -19,6 +15,7 @@ services:
       - ../src/backend/.env
     depends_on:
       - prometheus
+      - redis
   vue:
     container_name: df_frontend
     image: df_frontend
@@ -62,6 +59,13 @@ services:
       - "9090:9090"
     depends_on:
       - cadvisor
+
+  redis:
+    image: redis:alpine
+    container_name: df_redis
+    restart: always
+    ports:
+      - "6379:6379"
 
 volumes:
   prometheus_data:

@@ -1,27 +1,36 @@
-import { exec } from "./dependencies.ts";
+import { createClient } from "./dependencies.ts";
 import dockerize, { dockerignore } from "./utils/container.ts";
 import DfContentMap from "./types/maps_interface.ts";
 
 const MEMORY_LIMIT = Deno.env.get("MEMORY_LIMIT");
+const REDIS_URL = Deno.env.get("REDIS_URL") || "redis://redis:6379";
 
-function shellEscape(input: string, label = "input"): string {
-  if (!input) return "";
-  if (input.startsWith("-")) {
-    throw new Error(`[scripts] Invalid ${label}: cannot start with a hyphen`);
-  }
-  const safeCharPattern = /^[a-zA-Z0-9.\-_:/~?=#]+$/;
+const redis = createClient({ url: REDIS_URL });
+redis.on('error', (err) => console.error('Redis Client Error', err));
+await redis.connect();
 
-  if (!safeCharPattern.test(input)) {
-    throw new Error(`[scripts] Invalid characters in ${label}: ${input}`);
-  }
-  return input;
+export interface JobPayload {
+  action: "create" | "delete" | "restart" | "stop";
+  subdomain: string;
+  resourceType?: string;
+  resource?: string;
+  port?: string;
+  memLimit?: string;
+  staticContent?: string;
+  dockerfilePresent?: string;
+  dockerfileContent?: string;
+  dockerignoreContent?: string;
+  envContent?: string;
+  stack?: string;
+  buildCmds?: string;
 }
 
-async function safeExec(command: string): Promise<void> {
+async function enqueueJob(payload: JobPayload): Promise<void> {
   try {
-    await exec(command);
+    await redis.lPush("jobs:deployments", JSON.stringify(payload));
+    console.log(`[scripts] Enqueued job for ${payload.subdomain}`);
   } catch (error) {
-    console.error(`[scripts] exec failed: ${command}`);
+    console.error(`[scripts] Failed to enqueue job for ${payload.subdomain}`);
     console.error(error);
     throw error;
   }
@@ -36,45 +45,36 @@ async function addScript(
   port: string,
   build_cmds: string,
 ) {
-  const subdomain = shellEscape(document.subdomain, "subdomain");
-  const resource = shellEscape(document.resource, "resource");
-  const safePort = shellEscape(port, "port");
-  const memLimit = shellEscape(MEMORY_LIMIT || "512m", "MEMORY_LIMIT");
+  const subdomain = document.subdomain;
+  const resource = document.resource;
+  const safePort = port;
+  const memLimit = MEMORY_LIMIT || "512m";
 
-  if (document.resource_type === "URL") {
-    await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/automate.sh -u ${resource} ${subdomain}' > /hostpipe/pipe"`,
-    );
-  } else if (document.resource_type === "PORT") {
-    await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/automate.sh -p ${resource} ${subdomain}' > /hostpipe/pipe"`,
-    );
-  } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
-    await Deno.writeTextFile(`/hostpipe/.env`, env_content || "");
-    await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit}' > /hostpipe/pipe"`,
-    );
-  } else if (document.resource_type === "GITHUB" && static_content == "No") {
-    if (dockerfile_present === 'No') {
-      await Deno.writeTextFile(`/hostpipe/Dockerfile`, dockerize(stack || "", safePort, build_cmds || ""));
-      await Deno.writeTextFile(`/hostpipe/.dockerignore`, dockerignore(stack || ""));
-      await Deno.writeTextFile(`/hostpipe/.env`, env_content || "");
-      await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
-      );
-    } else if (dockerfile_present === 'Yes') {
-      await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
-      );
-    }
-  }
+  const jobPayload: JobPayload = {
+    action: "create",
+    subdomain,
+    resourceType: document.resource_type,
+    resource,
+    port: safePort,
+    memLimit,
+    staticContent: static_content,
+    dockerfilePresent: dockerfile_present,
+    dockerfileContent: (document.resource_type === "GITHUB" && static_content == "No" && dockerfile_present === 'No') ? dockerize(stack || "", safePort, build_cmds || "") : undefined,
+    dockerignoreContent: (document.resource_type === "GITHUB" && static_content == "No" && dockerfile_present === 'No') ? dockerignore(stack || "") : undefined,
+    envContent: env_content || undefined,
+    stack,
+    buildCmds: build_cmds
+  };
+
+  await enqueueJob(jobPayload);
 }
 
 async function deleteScript(document: DfContentMap) {
-  const subdomain = shellEscape(document.subdomain, "subdomain");
-  await safeExec(
-    `bash -c "echo 'bash ../../src/backend/shell_scripts/delete.sh ${subdomain}' > /hostpipe/pipe"`,
-  );
+  const jobPayload: JobPayload = {
+    action: "delete",
+    subdomain: document.subdomain
+  };
+  await enqueueJob(jobPayload);
 }
 
 export { addScript, deleteScript };
