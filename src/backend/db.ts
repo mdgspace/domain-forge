@@ -114,7 +114,18 @@ async function deleteMaps(document: DfContentMap, ADMIN_LIST: string[]) {
 // Webhook helper
 async function getDeploymentsByRepo(repoUrl: string) {
   if (!contentMapsCollection) return [];
-  return await contentMapsCollection.find({ resource: repoUrl, enable_ci: true }).toArray();
+  
+  // Clean URL by stripping trailing slashes and .git to normalize
+  const cleanUrl = repoUrl.replace(/\/+$/, '').replace(/\.git$/, '');
+  
+  // Create a regex to match either exact, with trailing slash, or with .git
+  const escapedUrl = cleanUrl.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  const regexPattern = `^${escapedUrl}/?(?:\\.git)?$`;
+  
+  return await contentMapsCollection.find({ 
+    resource: { $regex: regexPattern, $options: 'i' }, 
+    enable_ci: true 
+  }).toArray();
 }
 
 async function getUserToken(userId: string) {
