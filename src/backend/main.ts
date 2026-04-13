@@ -95,8 +95,6 @@ async function addSubdomain(ctx: Context) {
                     }
                   }
 
-                  // Create identical webhook with secret
-                  const secret = Deno.env.get("GITHUB_WEBHOOK_SECRET") || "debug-key!";
                   fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, {
                     method: 'POST',
                     headers,
@@ -104,8 +102,7 @@ async function addSubdomain(ctx: Context) {
                       name: "web",
                       config: {
                         url: webhookUrl,
-                        content_type: 'json',
-                        secret: secret
+                        content_type: 'json'
                       },
                       events: ['push'],
                       active: true
@@ -189,17 +186,7 @@ async function githubWebhook(ctx: Context) {
 
   // Read raw payload for exact signature verification
   const rawBody = await ctx.request.body({ type: "bytes" }).value;
-  const signature = ctx.request.headers.get("x-hub-signature-256");
   const event = ctx.request.headers.get("x-github-event");
-
-  // Only verify signature if GITHUB_WEBHOOK_SECRET is explicitly set to avoid breaking unconfigured setups
-  if (Deno.env.get("GITHUB_WEBHOOK_SECRET")) {
-    const isValid = await verifyGithubSignature(signature, rawBody);
-    if (!isValid) {
-      console.error(`[Webhook] Invalid payload signature! Rejecting.`);
-      ctx.throw(401, "Invalid signature");
-    }
-  }
 
   // Ignore non-push events (e.g. ping event when webhook is added)
   if (event !== "push") {
