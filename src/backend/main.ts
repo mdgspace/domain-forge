@@ -138,10 +138,6 @@ async function deleteSubdomain(ctx: Context) {
 export { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook };
 
 async function githubWebhook(ctx: Context) {
-  console.log("========================================");
-  console.log("GITHUB WEBHOOK ENDPOINT HIT!");
-  console.log("========================================");
-  
   if (!ctx.request.hasBody) {
     ctx.throw(415);
   }
@@ -163,11 +159,8 @@ async function githubWebhook(ctx: Context) {
 
   const cloneUrl = payload.repository?.clone_url;
   if (!cloneUrl) {
-    console.log(`[Webhook] Missing clone_url in payload!`);
     ctx.throw(400, "Missng clone_url");
   }
-
-  console.log(`[Webhook] Valid push to main/master detected for repo: ${cloneUrl}`);
 
   // Find subdomains using this repo with enable_ci = true
   const clone_url = payload.repository.clone_url;
@@ -179,19 +172,14 @@ async function githubWebhook(ctx: Context) {
     matchedDeployments = await getDeploymentsByRepo(html_url);
   }
 
-  console.log(`[Webhook] Found ${matchedDeployments.length} matching deployments for CI/CD redeploy.`);
-
   if (matchedDeployments.length > 0) {
     for (const dep of matchedDeployments) {
-      console.log(`[Webhook] ----------------------------------------`);
-      console.log(`[Webhook] Auto-redeploying subdomain: ${dep.subdomain}`);
+      console.log(`Webhook automatically redeploying subdomain ${dep.subdomain}`);
       Sentry.captureMessage(`Webhook automatically redeploying subdomain ${dep.subdomain}`, "info");
 
-      console.log(`[Webhook] Executing deleteScript for ${dep.subdomain}...`);
       // Tear down old deployment securely
       await deleteScript(dep);
       
-      console.log(`[Webhook] Executing addScript for ${dep.subdomain}...`);
       // Re-add to trigger fresh pull and container build
       await addScript(
         dep,
