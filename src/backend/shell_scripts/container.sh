@@ -32,6 +32,10 @@ elif [ $flag = "-s" ]; then
 fi
 
 sudo docker build -t $name .
+
+# Safety net: If the frontend sends double requests from spam-clicking, forcefully remove any zombie container holding the name
+sudo docker rm -f $name 2>/dev/null || true
+
 sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $name
 cd ..
 sudo rm -rf $name
