@@ -162,26 +162,34 @@ async function githubWebhook(ctx: Context) {
   }
 
   // Find subdomains using this repo with enable_ci = true
-  const data = await getMaps("system", []); // Or we can query directly
-  const documents = data.documents.filter((doc: any) => doc.resource === cloneUrl && doc.enable_ci === true);
+  const clone_url = payload.repository.clone_url;
+  const html_url = payload.repository.html_url;
 
-  for (const document of documents) {
-    console.log(`Webhook auto-redeploying ${document.subdomain}`);
-    await deleteScript(document);
-    // Redeploy logic wrapper
-    await addScript(
-      document,
-      document.env_content,
-      document.static_content,
-      document.dockerfile_present,
-      document.stack,
-      document.port,
-      document.build_cmds
-    );
-    Sentry.captureMessage(
-      "Webhook automatically redeployed subdomain " + document.subdomain,
-      "info"
-    );
+  // Since users might have saved the URL with or without .git, let's check both
+  let matchedDeployments = await getDeploymentsByRepo(clone_url);
+  if (matchedDeployments.length === 0 && html_url) {
+    matchedDeployments = await getDeploymentsByRepo(html_url);
+  }
+
+  if (matchedDeployments.length > 0) {
+    for (const dep of matchedDeployments) {
+      console.log(`Webhook auto-redeploying ${dep.subdomain}...`);
+      Sentry.captureMessage(`Webhook automatically redeploying subdomain ${dep.subdomain}`, "info");
+
+      // Tear down old deployment securely
+      await deleteScript(dep);
+      
+      // Re-add to trigger fresh pull and container build
+      await addScript(
+        dep,
+        dep.env_content,
+        dep.static_content,
+        dep.dockerfile_present,
+        dep.stack,
+        dep.port,
+        dep.build_cmds
+      );
+    }
   }
 
   ctx.response.status = 200;
