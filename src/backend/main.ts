@@ -2,7 +2,7 @@ import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken } from "./db.ts";
-import { encryptEnv, decryptEnv, verifyGithubSignature } from "./utils/crypto.ts";
+import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
 
 // ... skipping to githubWebhook
 

@@ -63,25 +63,3 @@ export async function decryptEnv(cipherB64: string): Promise<string> {
     return "";
   }
 }
-
-export async function verifyGithubSignature(signatureHeader: string | null, bodyRaw: Uint8Array): Promise<boolean> {
-  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
-  const expectedSig = signatureHeader.slice(7);
-
-  const secret = Deno.env.get("GITHUB_WEBHOOK_SECRET") || "debug-key!";
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signatureBytes = await crypto.subtle.sign("HMAC", key, bodyRaw);
-  
-  const hashArray = Array.from(new Uint8Array(signatureBytes));
-  const actualSig = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-  // Use timing-safe comparison if available, standard OK for now
-  return actualSig === expectedSig;
-}
