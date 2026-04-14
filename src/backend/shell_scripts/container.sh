@@ -6,6 +6,27 @@ resource=$3
 exp_port=$4
 max_mem=$5 
 
+# Logging and Status tracking setup
+# These are relative to where the script is called from (project root)
+LOG_DIR="logs"
+STATUS_DIR="status"
+mkdir -p "$LOG_DIR" "$STATUS_DIR"
+LOG_FILE="$LOG_DIR/$name.log"
+STATUS_FILE="$STATUS_DIR/$name.status"
+
+# Redirect all output to log file and update status
+# We use tee to still see logs in the console
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "DEPLOYING" > "$STATUS_FILE"
+
+# Trap errors to mark status as FAILED
+error_handler() {
+    echo "FAILED" > "$STATUS_FILE"
+    exit 1
+}
+trap 'error_handler' ERR
+
 available_ports=()
 
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
@@ -61,3 +82,5 @@ sudo echo "# Virtual Host configuration for $name
     }" > /etc/nginx/sites-available/$name.conf
 sudo ln -s /etc/nginx/sites-available/$name.conf /etc/nginx/sites-enabled/$name.conf
 sudo systemctl reload nginx
+
+echo "READY" > "$STATUS_FILE"

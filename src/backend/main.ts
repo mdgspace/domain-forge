@@ -24,10 +24,48 @@ async function getSubdomains(ctx: Context) {
     if (doc.env_content) {
       doc.env_content = await decryptEnv(doc.env_content);
     }
+    
+    // Read status from file system if it exists, otherwise use DB or default to READY
+    try {
+      const statusPath = `/hostpipe/status/${doc.subdomain}.status`;
+      const status = await Deno.readTextFile(statusPath);
+      doc.status = status.trim();
+    } catch (_e) {
+      // If file doesn't exist, we keep DB status or default to READY for backward compatibility
+      if (!doc.status) doc.status = "READY";
+    }
+
     return doc;
   }));
 
   ctx.response.body = decryptedDocs;
+}
+
+async function getLogs(ctx: Context) {
+  const subdomain = ctx.params.subdomain;
+  const author = ctx.request.url.searchParams.get("user");
+  const token = ctx.request.url.searchParams.get("token");
+  const provider = ctx.request.url.searchParams.get("provider");
+
+  if (author != await checkJWT(provider!, token!)) {
+    ctx.throw(401);
+  }
+
+  // Security check: ensure user owns this subdomain
+  const data = await getMaps(author!, ADMIN_LIST!);
+  const ownsSubdomain = data.documents.some((doc: any) => doc.subdomain === subdomain);
+  
+  if (!ownsSubdomain) {
+    ctx.throw(403, "You do not have permission to view these logs.");
+  }
+
+  try {
+    const logPath = `/hostpipe/logs/${subdomain}.log`;
+    const logs = await Deno.readTextFile(logPath);
+    ctx.response.body = { logs };
+  } catch (_e) {
+    ctx.response.body = { logs: "No logs found for this subdomain." };
+  }
 }
 
 async function addSubdomain(ctx: Context) {
@@ -168,6 +206,15 @@ async function deleteSubdomain(ctx: Context) {
   const data = await deleteMaps(document, ADMIN_LIST!);
   if (data.deletedCount) {
     deleteScript(document);
+    
+    // Also delete status and log files
+    try {
+      await Deno.remove(`/hostpipe/status/${document.subdomain}.status`);
+    } catch (_e) { /* ignore if not exists */ }
+    try {
+      await Deno.remove(`/hostpipe/logs/${document.subdomain}.log`);
+    } catch (_e) { /* ignore if not exists */ }
+
     Sentry.captureMessage(
       "User " + document.author + " deleted subdomain " + document.subdomain,
       "info",
@@ -177,7 +224,7 @@ async function deleteSubdomain(ctx: Context) {
   ctx.response.body = data;
 }
 
-export { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook };
+export { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook, getLogs };
 
 async function githubWebhook(ctx: Context) {
   if (!ctx.request.hasBody) {
