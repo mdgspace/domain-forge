@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -Euo pipefail
+
 # This script takes in 3 command line arguments
 
 # Check if the number of arguments is correct
@@ -13,6 +15,22 @@ fi
 arg1=$1
 arg2=$2
 arg3=$3
+
+SCRIPT_ROOT="$(pwd)"
+LOG_DIR="$SCRIPT_ROOT/logs"
+STATUS_DIR="$SCRIPT_ROOT/status"
+mkdir -p "$LOG_DIR" "$STATUS_DIR"
+LOG_FILE="$LOG_DIR/$arg3.log"
+STATUS_FILE="$STATUS_DIR/$arg3.status"
+
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "DEPLOYING" > "$STATUS_FILE"
+
+error_handler() {
+    echo "FAILED" > "$STATUS_FILE"
+    exit 1
+}
+trap 'error_handler' ERR
 
 if [ "$arg1" = "-u" ]; then
     echo "Creating subdomain $arg3 which redirects to $arg2"
@@ -31,8 +49,9 @@ if [ "$arg1" = "-u" ]; then
       charset utf-8;
       client_max_body_size 20M;
    }" > /etc/nginx/sites-available/$arg3.conf;
-     sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
+     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
+     echo "READY" > "$STATUS_FILE"
 elif [ "$arg1" = "-p" ]; then
     echo "Creating subdomain $arg3 which redirects to port $2"
     echo "Generating port.conf"
@@ -55,10 +74,12 @@ elif [ "$arg1" = "-p" ]; then
      charset utf-8;
      client_max_body_size 20M;
      }" > /etc/nginx/sites-available/$arg3.conf;
-     sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
+     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
+     echo "READY" > "$STATUS_FILE"
 
 else
     echo "Generating port.conf"
     echo "redirect: $arg2"
+    echo "READY" > "$STATUS_FILE"
 fi

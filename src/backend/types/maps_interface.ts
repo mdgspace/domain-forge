@@ -11,6 +11,7 @@ interface DfContentMap {
   stack?: string;
   port?: string;
   build_cmds?: string;
+  status?: string;
   token?: string;
   provider?: string;
   _id?: unknown;

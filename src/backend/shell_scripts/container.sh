@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -Euo pipefail
+
 PORT_MIN=8010
 PORT_MAX=8099
 flag=$1
@@ -5,6 +9,22 @@ name=$2
 resource=$3
 exp_port=$4
 max_mem=$5 
+
+SCRIPT_ROOT="$(pwd)"
+LOG_DIR="$SCRIPT_ROOT/logs"
+STATUS_DIR="$SCRIPT_ROOT/status"
+mkdir -p "$LOG_DIR" "$STATUS_DIR"
+LOG_FILE="$LOG_DIR/$name.log"
+STATUS_FILE="$STATUS_DIR/$name.status"
+
+exec > >(tee -a "$LOG_FILE") 2>&1
+echo "DEPLOYING" > "$STATUS_FILE"
+
+error_handler() {
+    echo "FAILED" > "$STATUS_FILE"
+    exit 1
+}
+trap 'error_handler' ERR
 
 available_ports=()
 
@@ -18,13 +38,17 @@ echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 echo "Creating subdomain $name"
 git clone $resource $name
-sudo cp .env $name/
+if [ -f .env ]; then
+    sudo cp .env "$name/"
+fi
 cd $name
 
-if [ $flag = "-g" ]; then
-    sudo cp ../Dockerfile ./
+if [ "$flag" = "-g" ]; then
+    if [ -f ../Dockerfile ]; then
+        sudo cp ../Dockerfile ./
+    fi
     sudo cp ../.dockerignore ./ 2>/dev/null || true
-elif [ $flag = "-s" ]; then
+elif [ "$flag" = "-s" ]; then
     sudo echo "
     FROM nginx:alpine
     COPY . /usr/share/nginx/html
@@ -39,8 +63,15 @@ sudo docker rm -f $name 2>/dev/null || true
 sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $name
 cd ..
 sudo rm -rf $name
-sudo rm Dockerfile
-sudo rm .env
+if [ -f Dockerfile ]; then
+    sudo rm Dockerfile
+fi
+if [ -f .env ]; then
+    sudo rm .env
+fi
+if [ -f .dockerignore ]; then
+    sudo rm .dockerignore
+fi
 sudo touch /etc/nginx/sites-available/$name.conf
 sudo chmod 666 /etc/nginx/sites-available/$name.conf
 sudo echo "# Virtual Host configuration for $name
@@ -59,5 +90,7 @@ sudo echo "# Virtual Host configuration for $name
     charset utf-8;
     client_max_body_size 20M;
     }" > /etc/nginx/sites-available/$name.conf
-sudo ln -s /etc/nginx/sites-available/$name.conf /etc/nginx/sites-enabled/$name.conf
+sudo ln -sf /etc/nginx/sites-available/$name.conf /etc/nginx/sites-enabled/$name.conf
 sudo systemctl reload nginx
+
+echo "READY" > "$STATUS_FILE"

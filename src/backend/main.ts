@@ -24,10 +24,41 @@ async function getSubdomains(ctx: Context) {
     if (doc.env_content) {
       doc.env_content = await decryptEnv(doc.env_content);
     }
+    try {
+      const status = await Deno.readTextFile(`/hostpipe/status/${doc.subdomain}.status`);
+      doc.status = status.trim();
+    } catch {
+      if (!doc.status) {
+        doc.status = "READY";
+      }
+    }
     return doc;
   }));
 
   ctx.response.body = decryptedDocs;
+}
+
+async function getLogs(ctx: Context) {
+  const subdomain = ctx.params.subdomain;
+  const author = ctx.request.url.searchParams.get("user");
+  const token = ctx.request.url.searchParams.get("token");
+  const provider = ctx.request.url.searchParams.get("provider");
+  if (author != await checkJWT(provider!, token!)) {
+    ctx.throw(401);
+  }
+
+  const data = await getMaps(author!, ADMIN_LIST!);
+  const ownsSubdomain = data.documents.some((doc: any) => doc.subdomain === subdomain);
+  if (!ownsSubdomain) {
+    ctx.throw(403, "You do not have permission to view these logs.");
+  }
+
+  try {
+    const logs = await Deno.readTextFile(`/hostpipe/logs/${subdomain}.log`);
+    ctx.response.body = { logs };
+  } catch {
+    ctx.response.body = { logs: "No logs found for this subdomain." };
+  }
 }
 
 async function addSubdomain(ctx: Context) {
@@ -168,6 +199,16 @@ async function deleteSubdomain(ctx: Context) {
   const data = await deleteMaps(document, ADMIN_LIST!);
   if (data.deletedCount) {
     deleteScript(document);
+    try {
+      await Deno.remove(`/hostpipe/status/${document.subdomain}.status`);
+    } catch {
+      // Ignore missing status file.
+    }
+    try {
+      await Deno.remove(`/hostpipe/logs/${document.subdomain}.log`);
+    } catch {
+      // Ignore missing log file.
+    }
     Sentry.captureMessage(
       "User " + document.author + " deleted subdomain " + document.subdomain,
       "info",
@@ -177,7 +218,7 @@ async function deleteSubdomain(ctx: Context) {
   ctx.response.body = data;
 }
 
-export { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook };
+export { addSubdomain, deleteSubdomain, getLogs, getSubdomains, githubWebhook };
 
 async function githubWebhook(ctx: Context) {
   if (!ctx.request.hasBody) {

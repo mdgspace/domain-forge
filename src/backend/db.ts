@@ -83,6 +83,7 @@ async function addMaps(document: DfContentMap) {
   const existing = await contentMapsCollection.findOne({ "subdomain": document.subdomain });
 
   if (!existing) {
+    document.status = document.status || "PENDING";
     const insertId = await contentMapsCollection.insertOne(document);
     return (insertId !== undefined);
   } else {
