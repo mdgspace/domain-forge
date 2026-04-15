@@ -59,6 +59,9 @@ async function addScript(
       await Deno.writeTextFile(`/hostpipe/Dockerfile`, dockerize(stack || "", safePort, build_cmds || ""));
       await Deno.writeTextFile(`/hostpipe/.dockerignore`, dockerignore(stack || ""));
       await Deno.writeTextFile(`/hostpipe/.env`, env_content || "");
+      if (env_content) {
+        await Deno.writeTextFile(`/hostpipe/.env`, env_content);
+      }
       await safeExec(
         `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
       );
