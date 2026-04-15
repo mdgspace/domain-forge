@@ -49,7 +49,7 @@ if [ "$arg1" = "-u" ]; then
       charset utf-8;
       client_max_body_size 20M;
    }" > /etc/nginx/sites-available/$arg3.conf;
-     sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
+     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
      echo "READY" > "$STATUS_FILE"
 elif [ "$arg1" = "-p" ]; then
@@ -74,7 +74,7 @@ elif [ "$arg1" = "-p" ]; then
      charset utf-8;
      client_max_body_size 20M;
      }" > /etc/nginx/sites-available/$arg3.conf;
-     sudo ln -s /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
+     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
      sudo systemctl reload nginx;
      echo "READY" > "$STATUS_FILE"
 
