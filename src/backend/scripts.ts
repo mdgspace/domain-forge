@@ -50,7 +50,9 @@ async function addScript(
       `bash -c "echo 'bash ../../src/backend/shell_scripts/automate.sh -p ${resource} ${subdomain}' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
-    await Deno.writeTextFile(`/hostpipe/.env`, env_content || "");
+    if (env_content) {
+      await Deno.writeTextFile(`/hostpipe/.env`, env_content);
+    }
     await safeExec(
       `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit}' > /hostpipe/pipe"`,
     );
@@ -58,7 +60,6 @@ async function addScript(
     if (dockerfile_present === 'No') {
       await Deno.writeTextFile(`/hostpipe/Dockerfile`, dockerize(stack || "", safePort, build_cmds || ""));
       await Deno.writeTextFile(`/hostpipe/.dockerignore`, dockerignore(stack || ""));
-      await Deno.writeTextFile(`/hostpipe/.env`, env_content || "");
       if (env_content) {
         await Deno.writeTextFile(`/hostpipe/.env`, env_content);
       }
