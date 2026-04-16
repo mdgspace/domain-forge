@@ -76,7 +76,20 @@ export default {
     };
   },
   methods: {
+    isValidSubdomain(subdomain) {
+      // Strict allowlist: alphanumeric, dots, and hyphens. Length between 1 and 63.
+      const regex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+      return regex.test(subdomain);
+    },
     submitForm() {
+      if (!this.subdomain) {
+        alert('Subdomain is required');
+        return;
+      }
+      if (!this.isValidSubdomain(this.subdomain)) {
+        alert('Invalid subdomain format. Use alphanumeric characters, hyphens, or dots.');
+        return;
+      }
       console.log(this.subdomain, this.resource_type, this.resource);
       create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content,this.dockerfile_present,this.port, this.stack, this.build_cmds, this.enable_ci)
         .then((res) => {
