@@ -36,18 +36,19 @@ for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
     fi
 done
 
-echo "Available ports: ${available_ports[56]}"
+echo "Available ports: ${available_ports[0]}"
 AVAILABLE=0
 echo "Creating subdomain $name"
 git clone $resource $name
-if [ -f .env ]; then
-    sudo cp .env $name/
+# Check for subdomain-specific .env file
+if [ -f ".env.$name" ]; then
+    sudo cp ".env.$name" "$name/.env"
 fi
 cd $name
 
 if [ $flag = "-g" ]; then
-    sudo cp ../Dockerfile ./
-    sudo cp ../.dockerignore ./ 2>/dev/null || true
+    sudo cp "../Dockerfile.$name" ./Dockerfile
+    sudo cp "../.dockerignore.$name" ./.dockerignore 2>/dev/null || true
 elif [ $flag = "-s" ]; then
     sudo echo "
     FROM nginx:alpine
@@ -63,8 +64,8 @@ sudo docker rm -f $name 2>/dev/null || true
 sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $name
 cd ..
 sudo rm -rf $name
-sudo rm -f Dockerfile 2>/dev/null || true
-sudo rm -f .env 2>/dev/null || true
+# Clean up the specific config files for this subdomain
+sudo rm -f "Dockerfile.$name" ".dockerignore.$name" ".env.$name" 2>/dev/null || true
 sudo touch /etc/nginx/sites-available/$name.conf
 sudo chmod 666 /etc/nginx/sites-available/$name.conf
 sudo echo "# Virtual Host configuration for $name

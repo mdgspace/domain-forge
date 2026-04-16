@@ -51,17 +51,17 @@ async function addScript(
     );
   } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
     if (env_content) {
-      await Deno.writeTextFile(`/hostpipe/.env`, env_content);
+      await Deno.writeTextFile(`/hostpipe/.env.${subdomain}`, env_content);
     }
     await safeExec(
       `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit}' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "GITHUB" && static_content == "No") {
     if (dockerfile_present === 'No') {
-      await Deno.writeTextFile(`/hostpipe/Dockerfile`, dockerize(stack || "", safePort, build_cmds || ""));
-      await Deno.writeTextFile(`/hostpipe/.dockerignore`, dockerignore(stack || ""));
+      await Deno.writeTextFile(`/hostpipe/Dockerfile.${subdomain}`, dockerize(stack || "", safePort, build_cmds || ""));
+      await Deno.writeTextFile(`/hostpipe/.dockerignore.${subdomain}`, dockerignore(stack || ""));
       if (env_content) {
-        await Deno.writeTextFile(`/hostpipe/.env`, env_content);
+        await Deno.writeTextFile(`/hostpipe/.env.${subdomain}`, env_content);
       }
       await safeExec(
         `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
