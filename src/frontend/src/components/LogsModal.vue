@@ -19,15 +19,21 @@ const fetchLogs = async () => {
     const token = localStorage.getItem("JWTUser");
     const provider = localStorage.getItem("provider");
     
-    const url = `${backend}/map/${props.subdomain}/logs?user=${props.user}&token=${token}&provider=${provider}`;
+    const url = new URL(backend);
+    url.pathname = `/map/${encodeURIComponent(props.subdomain)}/logs`;
+    url.search = new URLSearchParams({
+      user: props.user ?? "",
+      token: token ?? "",
+      provider: provider ?? ""
+    }).toString();
     
-    const response = await fetch(url);
+    const response = await fetch(url.toString());
     if (!response.ok) throw new Error("Failed to fetch logs");
     
     const data = await response.json();
     logs.value = data.logs || "No logs available.";
   } catch (err) {
-    error.value = err.message;
+    error.value = err instanceof Error ? err.message : String(err);
     logs.value = "Error loading logs.";
   }
 };

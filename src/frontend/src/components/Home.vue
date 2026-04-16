@@ -58,7 +58,7 @@
     </table>
 
     <modal v-show="showModal" @close-modal="showModal = false" />
-    <LogsModal v-show="showLogsModal" v-if="showLogsModal" :subdomain="selectedItem?.subdomain" :user="user" @close-modal="showLogsModal = false" />
+    <LogsModal v-if="showLogsModal" :subdomain="selectedItem?.subdomain" :user="user" @close-modal="showLogsModal = false" />
     <div style="text-align: center;"><button @click="showModal = true">+ Add</button></div>
   </div>
 
