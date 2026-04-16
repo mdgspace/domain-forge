@@ -18,18 +18,27 @@ const fetchLogs = async () => {
     const backend = import.meta.env.VITE_APP_BACKEND;
     const token = localStorage.getItem("JWTUser");
     const provider = localStorage.getItem("provider");
-    
-    const url = new URL(backend);
-    url.pathname = `/map/${encodeURIComponent(props.subdomain)}/logs`;
+
+    const baseUrl = backend.replace(/\/$/, "");
+    const url = new URL(`${baseUrl}/map/${encodeURIComponent(props.subdomain ?? "")}/logs`);
     url.search = new URLSearchParams({
       user: props.user ?? "",
       token: token ?? "",
       provider: provider ?? ""
     }).toString();
-    
-    const response = await fetch(url.toString());
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        Accept: "application/json"
+      }
+    });
     if (!response.ok) throw new Error("Failed to fetch logs");
-    
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      throw new Error("Logs endpoint returned a non-JSON response");
+    }
+
     const data = await response.json();
     logs.value = data.logs || "No logs available.";
   } catch (err) {
