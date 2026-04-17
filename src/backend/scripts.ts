@@ -26,12 +26,13 @@ async function safeExec(command: string): Promise<void> {
     throw error;
   }
 }
-
+//! what if it is url or port
 async function addScript(
   document: DfContentMap,
   env_content: string,
   static_content: string,
   dockerfile_present: string,
+  volume_needed:string,
   stack: string,
   port: string,
   build_cmds: string,
@@ -40,7 +41,9 @@ async function addScript(
   const resource = shellEscape(document.resource, "resource");
   const safePort = shellEscape(port, "port");
   const memLimit = shellEscape(MEMORY_LIMIT || "512m", "MEMORY_LIMIT");
-
+  volume_needed=(volume_needed=="Yes").toString();
+  const volumeNeeded=shellEscape(volume_needed,"false");
+  
   if (document.resource_type === "URL") {
     await safeExec(
       `bash -c "echo 'bash ../../src/backend/shell_scripts/automate.sh -u ${resource} ${subdomain}' > /hostpipe/pipe"`,
@@ -52,7 +55,7 @@ async function addScript(
   } else if (document.resource_type === "GITHUB" && static_content == "Yes") {
     await Deno.writeTextFile(`/hostpipe/.env`, env_content || "");
     await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit}' > /hostpipe/pipe"`,
+      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit} ${volumeNeeded}' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "GITHUB" && static_content == "No") {
     if (dockerfile_present === 'No') {
@@ -60,11 +63,11 @@ async function addScript(
       await Deno.writeTextFile(`/hostpipe/.dockerignore`, dockerignore(stack || ""));
       await Deno.writeTextFile(`/hostpipe/.env`, env_content || "");
       await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit} ${volumeNeeded}' > /hostpipe/pipe"`,
       );
     } else if (dockerfile_present === 'Yes') {
       await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit} ${volumeNeeded}' > /hostpipe/pipe"`,
       );
     }
   }

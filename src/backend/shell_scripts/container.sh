@@ -5,9 +5,11 @@ name=$2
 resource=$3
 exp_port=$4
 max_mem=$5 
+enable_voume=$6
 
 available_ports=()
-
+STORAGE_ROOT="/mnt/storage"
+PROJECT_STORAGE="$STORAGE_ROOT/$name"
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
     if ! ss -ln src :$port | grep -q "\<$port\>"; then
         available_ports+=($port)
@@ -30,13 +32,33 @@ elif [ $flag = "-s" ]; then
     COPY . /usr/share/nginx/html
     " > Dockerfile    
 fi
-
+if [ "$enable_volume" = "true" ]; then
+    echo "Creating persistent storage at $PROJECT_STORAGE"
+    sudo mkdir -p $PROJECT_STORAGE
+    sudo chmod 777 $PROJECT_STORAGE   # tighten later
+fi
 sudo docker build -t $name .
 
 # Safety net: If the frontend sends double requests from spam-clicking, forcefully remove any zombie container holding the name
 sudo docker rm -f $name 2>/dev/null || true
 
-sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $name
+if [ "$enable_volume" = "true" ]; then
+    sudo docker run \
+        --memory=$max_mem \
+        --name=$name \
+        -d \
+        -p ${available_ports[$AVAILABLE]}:$exp_port \
+        -v $PROJECT_STORAGE:/app/data \
+        -e DATA_DIR=/app/data \
+        $name
+else
+    sudo docker run \
+        --memory=$max_mem \
+        --name=$name \
+        -d \
+        -p ${available_ports[$AVAILABLE]}:$exp_port \
+        $name
+fi
 cd ..
 sudo rm -rf $name
 sudo rm Dockerfile

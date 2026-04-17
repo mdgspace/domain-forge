@@ -132,6 +132,7 @@ async function addSubdomain(ctx: Context) {
       copy.env_content,
       copy.static_content,
       copy.dockerfile_present,
+      copy.volume_needed,
       copy.stack,
       copy.port,
       copy.build_cmds,
@@ -145,7 +146,7 @@ async function addSubdomain(ctx: Context) {
     ctx.response.body = { "status": "failed" };
   }
 }
-
+//!add volume removal logic on deleting the subdomain
 async function deleteSubdomain(ctx: Context) {
   if (!ctx.request.hasBody) {
     ctx.throw(415);
