@@ -85,7 +85,7 @@ export async function createDomain(userApiKey: string, user: string, provider: s
     if (response.data.status === 'success') {
       console.log(`✅ Domain '${subdomain}.${domain}' created successfully!`);
     } else {
-      if(response.error=="INSUFFICIENT_STORAGE")console.log("INSUFFICIENT_STORAGE")
+      if(response.data.error=="INSUFFICIENT_STORAGE")console.log("INSUFFICIENT_STORAGE")
       console.log('❌ Domain creation failed!');
       console.log("Either the domain exist or the domain is not created");
     }

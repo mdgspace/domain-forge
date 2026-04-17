@@ -12,8 +12,8 @@ STORAGE_ROOT="/mnt/storage"
 PROJECT_STORAGE="$STORAGE_ROOT/$name"
 PROJECT_IMG="$STORAGE_ROOT/$name.img"
 SIZE_MB=100
-sudo mkdir -p $STORAGE_ROOT
-sudo chmod 755 $STORAGE_ROOT
+sudo mkdir -p "$STORAGE_ROOT"
+sudo chmod 755 "$STORAGE_ROOT"
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
     if ! ss -ln src :$port | grep -q "\<$port\>"; then
         available_ports+=($port)
@@ -23,9 +23,9 @@ done
 echo "Available ports: ${available_ports[56]}"
 AVAILABLE=0
 echo "Creating subdomain $name"
-git clone $resource $name
-sudo cp .env $name/
-cd $name
+git clone $resource "$name"
+sudo cp .env "$name/"
+cd "$name"
 
 if [ $flag = "-g" ]; then
     sudo cp ../Dockerfile ./
@@ -40,14 +40,14 @@ if [ "$enable_volume" = "true" ]; then
     echo "Creating persistent storage at $PROJECT_STORAGE"
 
     if [ ! -f "$PROJECT_IMG" ]; then
-        sudo dd if=/dev/zero of=$PROJECT_IMG bs=1M count=$SIZE_MB
-        sudo mkfs.ext4 $PROJECT_IMG
+        sudo dd if=/dev/zero of="$PROJECT_IMG" bs=1M count=$SIZE_MB
+        sudo mkfs.ext4 "$PROJECT_IMG"
     fi
-    sudo mkdir -p $PROJECT_STORAGE
-    if ! mount | grep -q "$PROJECT_STORAGE"; then
-    sudo mount -o loop $PROJECT_IMG $PROJECT_STORAGE
+    sudo mkdir -p "$PROJECT_STORAGE"
+    if ! mountpoint -q "$PROJECT_STORAGE"; then
+    sudo mount -o loop "$PROJECT_IMG" "$PROJECT_STORAGE"
     fi
-    sudo chmod 777 $PROJECT_STORAGE
+    sudo chmod 777 "$PROJECT_STORAGE"
 fi
 sudo docker build -t $name .
 
@@ -57,26 +57,26 @@ sudo docker rm -f $name 2>/dev/null || true
 if [ "$enable_volume" = "true" ]; then
     sudo docker run \
         --memory=$max_mem \
-        --name=$name \
+        --name="$name" \
         -d \
         -p ${available_ports[$AVAILABLE]}:$exp_port \
-        -v $PROJECT_STORAGE:/app/data \
+        -v "$PROJECT_STORAGE":/app/data \
         -e DATA_DIR=/app/data \
-        $name
+        "$name"
 else
     sudo docker run \
         --memory=$max_mem \
-        --name=$name \
+        --name="$name" \
         -d \
         -p ${available_ports[$AVAILABLE]}:$exp_port \
-        $name
+        "$name"
 fi
 cd ..
-sudo rm -rf $name
+sudo rm -rf "$name"
 sudo rm Dockerfile
 sudo rm .env
-sudo touch /etc/nginx/sites-available/$name.conf
-sudo chmod 666 /etc/nginx/sites-available/$name.conf
+sudo touch "/etc/nginx/sites-available/$name".conf
+sudo chmod 666 "/etc/nginx/sites-available/$name.conf"
 sudo echo "# Virtual Host configuration for $name
     server {
     listen 80;
@@ -92,6 +92,6 @@ sudo echo "# Virtual Host configuration for $name
     }
     charset utf-8;
     client_max_body_size 20M;
-    }" > /etc/nginx/sites-available/$name.conf
-sudo ln -s /etc/nginx/sites-available/$name.conf /etc/nginx/sites-enabled/$name.conf
+    }" > "/etc/nginx/sites-available/$name.conf"
+sudo ln -s "/etc/nginx/sites-available/$name.conf" "/etc/nginx/sites-enabled/$name.conf"
 sudo systemctl reload nginx

@@ -26,8 +26,8 @@ const domain = import.meta.env.VITE_APP_DOMAIN
         <div v-if="static_content === 'No'" class="stack-section">
           <div class="docker-content">
             <label for="dockerfile-content">Do you have dockerfile in your repo ?</label><br>
-            <input name="radio" type="radio" value="Yes" v-model="dockerfile_present"> Yes
-            <input name="radio" type="radio" value="No" v-model="dockerfile_present"> No
+            <input name="docker_radio" type="radio" value="Yes" v-model="dockerfile_present"> Yes
+            <input name="docker_radio" type="radio" value="No" v-model="dockerfile_present"> No
           </div>
           <div v-if="dockerfile_present === 'No'" class="dockerfile-section">
         <p>Stack:</p>
@@ -37,8 +37,8 @@ const domain = import.meta.env.VITE_APP_DOMAIN
         </div>
         <div class="volume-needed">
           <label for="volume">Do you need persistent storage (Volume)?</label><br>
-          <input name="radio" type="radio" value="Yes" v-model="volume_needed"> Yes
-          <input name="radio" type="radio" value="No" v-model="volume_needed"> No
+          <input name="volume_radio" type="radio" value="Yes" v-model="volume_needed"> Yes
+          <input name="volume_radio" type="radio" value="No" v-model="volume_needed"> No
         </div>
         <p>Port:<br><input class="input-field" v-model="port" /></p>
         <div v-if="dockerfile_present === 'No'" class="dockerfile-section">

@@ -20,18 +20,18 @@ sudo docker stop $1
 sudo docker rm $1
 sudo docker rmi $1
 
-if mount | grep -q "$PROJECT_STORAGE"; then
+if mountpoint -q "$PROJECT_STORAGE"; then
     echo "Unmounting volume..."
-    sudo umount $PROJECT_STORAGE
+    sudo umount "$PROJECT_STORAGE"
 fi
 
 if [ -d "$PROJECT_STORAGE" ]; then
-    sudo rm -rf $PROJECT_STORAGE
+    sudo rm -rf "$PROJECT_STORAGE"
 fi
 
 if [ -f "$PROJECT_IMG" ]; then
     echo "Deleting volume image..."
-    sudo rm -f $PROJECT_IMG
+    sudo rm -f "$PROJECT_IMG"
 fi
 
 sudo systemctl reload nginx
