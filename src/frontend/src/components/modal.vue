@@ -26,14 +26,19 @@ const domain = import.meta.env.VITE_APP_DOMAIN
         <div v-if="static_content === 'No'" class="stack-section">
           <div class="docker-content">
             <label for="dockerfile-content">Do you have dockerfile in your repo ?</label><br>
-            <input name="radio" type="radio" value="Yes" v-model="dockerfile_present"> Yes
-            <input name="radio" type="radio" value="No" v-model="dockerfile_present"> No
+            <input name="docker_radio" type="radio" value="Yes" v-model="dockerfile_present"> Yes
+            <input name="docker_radio" type="radio" value="No" v-model="dockerfile_present"> No
           </div>
           <div v-if="dockerfile_present === 'No'" class="dockerfile-section">
         <p>Stack:</p>
         <select class="dropdown" v-model="stack">
           <option v-for="option in stacks" :key="option">{{ option }}</option>
         </select>
+        </div>
+        <div class="volume-needed">
+          <label for="volume">Do you need persistent storage (Volume)?</label><br>
+          <input name="volume_radio" type="radio" value="Yes" v-model="volume_needed"> Yes
+          <input name="volume_radio" type="radio" value="No" v-model="volume_needed"> No
         </div>
         <p>Port:<br><input class="input-field" v-model="port" /></p>
         <div v-if="dockerfile_present === 'No'" class="dockerfile-section">
@@ -67,6 +72,7 @@ export default {
       env_content: 'key1 = value1', // Default prompt text
       static_content: 'No',
       dockerfile_present :'No',
+      volume_needed: 'No',
       port: '',
       stack: '',
       build_cmds: '',
@@ -78,14 +84,15 @@ export default {
   methods: {
     submitForm() {
       console.log(this.subdomain, this.resource_type, this.resource);
-      create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content,this.dockerfile_present,this.port, this.stack, this.build_cmds, this.enable_ci)
+      create(this.subdomain, this.resource_type, this.resource, this.env_content, this.static_content,this.dockerfile_present, this.volume_needed, this.port, this.stack, this.build_cmds,this.enable_ci)
         .then((res) => {
           console.log(res);
           if (res === 'Submitted') {
             this.closeModalAndReload();
           } else {
             this.closeModal();
-            alert('Failed to create subdomain');
+            if(res=="insufficient_storage")alert("Insufficient storage to mount a volume");
+            else alert('Failed to create subdomain');
             setTimeout(() => {
               window.location.reload();
             }, 1000);

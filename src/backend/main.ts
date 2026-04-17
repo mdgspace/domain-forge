@@ -3,7 +3,7 @@ import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken } from "./db.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
-
+import { canAllocateStorage } from "./utils/container-storage.ts";
 // ... skipping to githubWebhook
 
 
@@ -57,6 +57,19 @@ async function addSubdomain(ctx: Context) {
   }
 
   // We keep deployment config (port, stack, etc.) in the document to store them in DB for webhook usage
+  if(copy.volume_needed=="Yes"){const storageCheck=await canAllocateStorage(100);
+  if(!storageCheck.can_allocate){
+    ctx.response.status=400;
+    ctx.response.body = {
+    status: "failed",
+    error: "INSUFFICIENT_STORAGE",
+    message: storageCheck.reason || "Not enough disk space",
+    available_mb: storageCheck.available_mb,
+    requested_mb: storageCheck.requested_mb,
+    };
+    console.log(storageCheck.available_mb);
+  return;
+  }}
   const success: boolean = await addMaps(document);
 
 
@@ -132,6 +145,7 @@ async function addSubdomain(ctx: Context) {
       copy.env_content,
       copy.static_content,
       copy.dockerfile_present,
+      copy.volume_needed,
       copy.stack,
       copy.port,
       copy.build_cmds,

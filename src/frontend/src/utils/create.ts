@@ -61,6 +61,7 @@ export async function create(
   env_content: string,
   static_content: string,
   dockerfile_present:string,
+  volume_needed:string,
   port: string,
   stack: string,
   build_cmds: string,
@@ -89,6 +90,7 @@ export async function create(
     "env_content": env_content,
     "static_content": static_content,
     "dockerfile_present":dockerfile_present,
+    "volume_needed":volume_needed,
     "port": port,
     "build_cmds": build_cmds,
     "stack": stack,
@@ -106,8 +108,11 @@ export async function create(
     body: JSON.stringify(body),
   });
   const data = await resp.json();
-  if (data.status === "failed") {
-    return "Failed";
+  if(data.error=="INSUFFICIENT_STORAGE"){
+    return "insufficient_storage";
+  }
+  else if (data.status === "failed") {
+    return "failed";
   }
   return "Submitted";
 }
