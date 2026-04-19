@@ -1,18 +1,3 @@
-<script setup type="module">
-import { getMaps } from '../utils/maps.ts';
-import { check_jwt } from '../utils/authorize.ts';
-import modal from './modal.vue';
-import deletemodal from './deletemodal.vue';
-import ApiKeyModal from './ApiKeyModal.vue';
-
-const token = localStorage.getItem("JWTUser");
-const provider = localStorage.getItem("provider");
-const user = await check_jwt(token, provider);
-const apiKey = localStorage.getItem("apiKey");
-const fields = ["date", "subdomain", "resource", "resource_type", ""];
-const maps = await getMaps(user);
-</script>
-
 <template>
   <header>
     <nav>
@@ -44,20 +29,28 @@ const maps = await getMaps(user);
       <thead>
         <tr>
           <th v-for="field in fields" :key="field" style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212; border-top:1px solid #121212;font-weight: 900;">
-            <h3>{{ field }}</h3>
+            <h3>{{ field === "" ? "Actions" : field.replace("_", " ") }}</h3>
           </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in maps" :key="item">
+        <tr v-for="item in maps" :key="item.subdomain">
           <td v-for="field in fields" :key="field" style="border-bottom: 1px solid #121212">
-            <span v-if="item[field] && field !== 'subdomain'">{{ item[field] }}</span>
+            <span v-if="item[field] && field !== 'subdomain' && field !== 'status'">{{ item[field] }}</span>
             <span v-else-if="field === 'subdomain'">
               <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
             </span>
-            <span v-else>
+            <span v-else-if="field === 'status'">
+              <span :class="'status-badge status-' + (item[field] || 'READY').toLowerCase()">
+                {{ item[field] || 'READY' }}
+              </span>
+            </span>
+            <span v-else-if="field === ''">
               <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
-              <div style="text-align: center;"><button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button></div>
+              <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="logs-btn" @click="showLogsModal=true;selectedItem=item">Logs</button>
+                <button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button>
+              </div>
             </span>
           </td>
         </tr>
@@ -65,6 +58,7 @@ const maps = await getMaps(user);
     </table>
 
     <modal v-show="showModal" @close-modal="showModal = false" />
+    <LogsModal v-if="showLogsModal" :subdomain="selectedItem?.subdomain" :user="user" @close-modal="showLogsModal = false" />
     <div style="text-align: center;"><button @click="showModal = true">+ Add</button></div>
   </div>
 
@@ -76,13 +70,36 @@ const maps = await getMaps(user);
 </template>
 
 <script>
+import { getMaps } from '../utils/maps.ts';
+import { check_jwt } from '../utils/authorize.ts';
+import modal from './modal.vue';
+import deletemodal from './deletemodal.vue';
+import ApiKeyModal from './ApiKeyModal.vue';
+import LogsModal from './LogsModal.vue';
+
 export default {
-  components: { modal, deletemodal, ApiKeyModal },
+  components: { modal, deletemodal, ApiKeyModal, LogsModal },
+  async setup() {
+    const token = localStorage.getItem("JWTUser");
+    const provider = localStorage.getItem("provider");
+    const user = await check_jwt(token, provider);
+    const apiKey = localStorage.getItem("apiKey");
+    const maps = await getMaps(user);
+    const fields = ["date", "subdomain", "status", "resource", "resource_type", ""];
+
+    return {
+      user,
+      apiKey,
+      maps,
+      fields
+    };
+  },
   data() {
     return {
       showDeleteModal: false,
       showModal: false,
       showApiKeyModal: false,
+      showLogsModal: false,
       selectedItem: null,
     };
   },
@@ -94,6 +111,7 @@ export default {
   }
 };
 </script>
+
 <style scoped>
 .brand-logo {
   height: 30px;
@@ -170,6 +188,54 @@ header {
 
 .logout-button:hover {
   background-color: #0056b3;
+}
+
+.logs-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.logs-btn:hover {
+  background-color: #5a6268;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-ready {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-deploying {
+  background-color: #fff3cd;
+  color: #856404;
+  animation: pulse 2s infinite;
+}
+
+.status-failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-pending {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 footer {
