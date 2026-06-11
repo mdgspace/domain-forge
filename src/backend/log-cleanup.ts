@@ -1,23 +1,15 @@
 import { Sentry } from "./dependencies.ts";
 import { getAllActiveSubdomains } from "./db.ts";
 
-// --- Configuration ---
-// Run cleanup once every 24 hours (configurable via env)
-const CLEANUP_INTERVAL_MS = parseInt(Deno.env.get("LOG_CLEANUP_INTERVAL_MS") || String(24 * 60 * 60 * 1000));
-// Maximum log file size to keep (500KB) — the API only serves the last 100KB,
-// so 5x headroom is plenty for SSH debugging while preventing unbounded growth
-const MAX_LOG_SIZE_BYTES = parseInt(Deno.env.get("MAX_LOG_SIZE_BYTES") || String(500 * 1024));
-// Paths where logs and status files live (matches container.sh / automate.sh)
+// --- Configs ---
+const CLEANUP_INTERVAL_MS = parseInt(Deno.env.get("LOG_CLEANUP_INTERVAL_MS") || String(24 * 60 * 60 * 1000)); // Default 24h
+const MAX_LOG_SIZE_BYTES = parseInt(Deno.env.get("MAX_LOG_SIZE_BYTES") || String(500 * 1024)); // Default 500KB
 const LOG_DIR = "/hostpipe/logs";
 const STATUS_DIR = "/hostpipe/status";
 
 let cleanupInterval: number | null = null;
 let isRunning = false;
 
-/**
- * Starts the log cleanup scheduler.
- * Safe to call multiple times — subsequent calls are no-ops.
- */
 export function startLogCleanup(): void {
   if (isRunning) {
     console.log("[Log Cleanup] Already running");
@@ -30,16 +22,11 @@ export function startLogCleanup(): void {
 
   isRunning = true;
 
-  // Run first cleanup after a short delay (don't block startup)
   setTimeout(() => runCleanup(), 10_000);
   cleanupInterval = setInterval(() => runCleanup(), CLEANUP_INTERVAL_MS);
 }
 
-/**
- * Core cleanup routine — runs both strategies:
- *   1. Truncate oversized log files for active subdomains
- *   2. Delete orphaned log/status files with no matching DB record
- */
+
 async function runCleanup(): Promise<void> {
   console.log("[Log Cleanup] Running cleanup cycle...");
 
@@ -47,10 +34,8 @@ async function runCleanup(): Promise<void> {
     const activeSubdomains = new Set(await getAllActiveSubdomains());
     console.log(`[Log Cleanup] Active subdomains in DB: ${activeSubdomains.size}`);
 
-    // --- Strategy 1: Truncate oversized log files ---
     await truncateOversizedLogs(activeSubdomains);
 
-    // --- Strategy 2: Remove orphaned files ---
     await removeOrphanedFiles(activeSubdomains);
 
     console.log("[Log Cleanup] Cleanup cycle complete.");
@@ -60,11 +45,7 @@ async function runCleanup(): Promise<void> {
   }
 }
 
-/**
- * Strategy 1: Truncate log files that exceed MAX_LOG_SIZE_BYTES.
- * Keeps the LAST MAX_LOG_SIZE_BYTES of each file (the most recent logs).
- * Only processes files that belong to active subdomains.
- */
+// Truncates oversized log files
 async function truncateOversizedLogs(activeSubdomains: Set<string>): Promise<void> {
   let truncatedCount = 0;
 
@@ -74,7 +55,6 @@ async function truncateOversizedLogs(activeSubdomains: Set<string>): Promise<voi
 
       const subdomain = entry.name.replace(/\.log$/, "");
 
-      // Only truncate logs for active subdomains — orphans are handled separately
       if (!activeSubdomains.has(subdomain)) continue;
 
       const filePath = `${LOG_DIR}/${entry.name}`;
@@ -85,7 +65,6 @@ async function truncateOversizedLogs(activeSubdomains: Set<string>): Promise<voi
         if (stat.size > MAX_LOG_SIZE_BYTES) {
           console.log(`[Log Cleanup] Truncating ${entry.name}: ${(stat.size / 1024).toFixed(0)}KB -> ${(MAX_LOG_SIZE_BYTES / 1024).toFixed(0)}KB`);
 
-          // Read the last MAX_LOG_SIZE_BYTES
           const file = await Deno.open(filePath, { read: true });
           const start = stat.size - MAX_LOG_SIZE_BYTES;
           await file.seek(start, Deno.SeekMode.Start);
@@ -98,18 +77,14 @@ async function truncateOversizedLogs(activeSubdomains: Set<string>): Promise<voi
           }
           file.close();
 
-          // Overwrite the file with only the tail content
           await Deno.writeFile(filePath, buffer.subarray(0, totalRead));
-
           truncatedCount++;
         }
       } catch (fileError) {
-        // Individual file errors shouldn't stop the whole cleanup
         console.error(`[Log Cleanup] Error processing ${entry.name}:`, fileError);
       }
     }
   } catch (dirError) {
-    // Log directory might not exist yet (fresh install) — that's fine
     if (!(dirError instanceof Deno.errors.NotFound)) {
       throw dirError;
     }
@@ -121,16 +96,11 @@ async function truncateOversizedLogs(activeSubdomains: Set<string>): Promise<voi
   }
 }
 
-/**
- * Strategy 2: Remove log and status files that don't belong to any active subdomain.
- * These are "orphans" — leftover from subdomains that were deleted but whose
- * files weren't cleaned up (e.g., server crashed during deletion).
- */
+// Removes orphaned log and status files
 async function removeOrphanedFiles(activeSubdomains: Set<string>): Promise<void> {
   let removedLogs = 0;
   let removedStatus = 0;
 
-  // Clean orphaned log files
   try {
     for await (const entry of Deno.readDir(LOG_DIR)) {
       if (!entry.isFile || !entry.name.endsWith(".log")) continue;
@@ -185,9 +155,7 @@ async function removeOrphanedFiles(activeSubdomains: Set<string>): Promise<void>
   }
 }
 
-/**
- * Returns current cleanup scheduler status (for debugging / health endpoint).
- */
+// Emit current cleanup scheduler stats
 export function getCleanupStatus(): {
   running: boolean;
   intervalMs: number;
@@ -204,9 +172,7 @@ export function getCleanupStatus(): {
   };
 }
 
-/**
- * Manually trigger a cleanup cycle (useful for admin/debugging).
- */
+// For manually triggering cleanup
 export async function triggerCleanup(): Promise<void> {
   console.log("[Log Cleanup] Manual cleanup triggered");
   await runCleanup();
