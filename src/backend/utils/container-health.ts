@@ -114,7 +114,7 @@ async function queryPrometheusRange(
 
 
 export async function getAllContainerStats(): Promise<ContainerStats[]> {
-    const cpuQuery = 'rate(container_cpu_usage_seconds_total{name=~".+"}[1m]) * 100';
+    const cpuQuery = 'irate(container_cpu_usage_seconds_total{name=~".+"}[1m]) * 100';
     const cpuResult = await queryPrometheus(cpuQuery);
     const memUsageQuery = 'container_memory_usage_bytes{name=~".+"}';
     const memLimitQuery = 'container_memory_max_usage_bytes{name=~".+"}';
@@ -181,7 +181,7 @@ export async function getContainerHistory(
     containerName: string,
     range: TimeRange
 ): Promise<{ cpu: [number, number][]; memory: [number, number][] }> {
-    const cpuQuery = `rate(container_cpu_usage_seconds_total{name="${containerName}"}[1m]) * 100`;
+    const cpuQuery = `irate(container_cpu_usage_seconds_total{name="${containerName}"}[1m]) * 100`;
     const memQuery = `container_memory_usage_bytes{name="${containerName}"}`;
 
     const [cpuResult, memResult] = await Promise.all([

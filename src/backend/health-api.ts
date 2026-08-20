@@ -42,7 +42,7 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
             status: c.status,
             cpuPercent: Math.round(c.cpuPercent * 100) / 100,
             memoryPercent: Math.round(c.memoryPercent * 100) / 100,
-            memoryUsageMB: Math.round(c.memoryUsage / (1024 * 1024)),
+            memoryUsageMB: Math.round((c.memoryUsage / (1024 * 1024)) * 100) / 100,
             restartCount: getRestartCount(c.name),
             stopCount: getStopCount(c.name),
             isHealthy: !isUnhealthy(c),
@@ -80,7 +80,7 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
         })),
         memory: history.memory.map(([ts, val]) => ({
             timestamp: new Date(ts).toISOString(),
-            valueMB: Math.round(val / (1024 * 1024)),
+            valueMB: Math.round((val / (1024 * 1024)) * 100) / 100,
         })),
     };
 }
