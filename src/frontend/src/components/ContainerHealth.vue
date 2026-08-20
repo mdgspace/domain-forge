@@ -60,7 +60,7 @@
                   :class="getMetricClass(container.cpuPercent, 90)"
                 ></div>
               </div>
-              <span>{{ container.cpuPercent.toFixed(1) }}%</span>
+              <span>{{ (container.cpuPercent * 10).toFixed(2) }} mCPU</span>
             </div>
             
             <div class="metric">
@@ -72,7 +72,7 @@
                   :class="getMetricClass(container.memoryPercent, 85)"
                 ></div>
               </div>
-              <span>{{ container.memoryUsageMB }}MB</span>
+              <span>{{ container.memoryUsageMB.toFixed(2) }}MB</span>
             </div>
           </div>
 
