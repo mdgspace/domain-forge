@@ -49,6 +49,14 @@
               <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
               <div style="display: flex; gap: 10px; justify-content: center;">
                 <button class="logs-btn" @click="showLogsModal=true;selectedItem=item">Logs</button>
+                <button
+                  v-if="item.resource_type === 'GITHUB'"
+                  class="redeploy-btn"
+                  :disabled="redeploying === item.subdomain"
+                  @click="redeployItem(item)"
+                >
+                  {{ redeploying === item.subdomain ? 'Redeploying…' : 'Redeploy' }}
+                </button>
                 <button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button>
               </div>
             </span>
@@ -76,6 +84,7 @@ import modal from './modal.vue';
 import deletemodal from './deletemodal.vue';
 import ApiKeyModal from './ApiKeyModal.vue';
 import LogsModal from './LogsModal.vue';
+import { redeploySubdomain } from '../utils/redeploy.ts';
 
 export default {
   components: { modal, deletemodal, ApiKeyModal, LogsModal },
@@ -101,12 +110,29 @@ export default {
       showApiKeyModal: false,
       showLogsModal: false,
       selectedItem: null,
+      redeploying: null,
     };
   },
   methods: {
     logoutAndRedirect() {
       localStorage.clear();
       this.$router.push({ path: '/login' });
+    },
+    async redeployItem(item) {
+      if (!window.confirm(`Redeploy ${item.subdomain}? This will delete its current container and build a new one.`)) {
+        return;
+      }
+
+      this.redeploying = item.subdomain;
+      try {
+        await redeploySubdomain(item.subdomain);
+        // The host deployment script will replace this with READY or FAILED.
+        item.status = 'DEPLOYING';
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : 'Could not initiate redeployment.');
+      } finally {
+        this.redeploying = null;
+      }
     }
   }
 };
@@ -201,6 +227,24 @@ header {
 
 .logs-btn:hover {
   background-color: #5a6268;
+}
+
+.redeploy-btn {
+  background-color: #7c3aed;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.redeploy-btn:hover:not(:disabled) {
+  background-color: #6d28d9;
+}
+
+.redeploy-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .status-badge {

@@ -259,7 +259,62 @@ async function deleteSubdomain(ctx: Context) {
   ctx.response.body = data;
 }
 
-export { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook, getLogs };
+async function redeploySubdomain(ctx: Context) {
+  const subdomain = ctx.params.subdomain;
+  if (!subdomain || !isValidSubdomain(subdomain)) {
+    ctx.throw(400, "Invalid subdomain format.");
+  }
+  if (!ctx.request.hasBody) {
+    ctx.throw(415);
+  }
+
+  const body = await ctx.request.body().value;
+  let credentials;
+  try {
+    credentials = typeof body === "string" ? JSON.parse(body) : body;
+  } catch (_e) {
+    ctx.throw(400, "Invalid request body.");
+  }
+
+  const author = credentials?.author;
+  const token = credentials?.token;
+  const provider = credentials?.provider;
+  if (author !== await checkJWT(provider, token)) {
+    ctx.throw(401);
+  }
+
+  // getMaps applies the same owner/admin visibility rule used by GET /map.
+  const data = await getMaps(author, ADMIN_LIST || []);
+  const deployment = data.documents.find((doc: DfContentMap) => doc.subdomain === subdomain);
+  if (!deployment) {
+    ctx.throw(404, "Deployment not found.");
+  }
+  if (deployment.resource_type !== "GITHUB") {
+    ctx.throw(400, "Only GitHub deployments can be redeployed.");
+  }
+
+  try {
+    // Keep the database record: it is the saved configuration needed to rebuild.
+    await deleteScript(deployment);
+    const envContent = await decryptEnv(deployment.env_content || "");
+    await addScript(
+      deployment,
+      envContent,
+      deployment.static_content || "",
+      deployment.dockerfile_present || "",
+      deployment.stack || "",
+      deployment.port || "",
+      deployment.build_cmds || "",
+    );
+    ctx.response.body = { status: "success", message: "Redeployment initiated." };
+  } catch (error) {
+    console.error(`Failed to redeploy ${subdomain}`, error);
+    ctx.response.status = 500;
+    ctx.response.body = { status: "failed", message: "Could not initiate redeployment." };
+  }
+}
+
+export { addSubdomain, deleteSubdomain, redeploySubdomain, getSubdomains, githubWebhook, getLogs };
 
 async function githubWebhook(ctx: Context) {
   if (!ctx.request.hasBody) {
