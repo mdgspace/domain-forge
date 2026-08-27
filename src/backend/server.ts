@@ -23,6 +23,7 @@ import {
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
+import { startLogCleanup } from "./log-cleanup.ts";
 
 const router = new Router();
 const app = new Application();
@@ -88,6 +89,9 @@ app.use(router.allowedMethods());
 
 // Start health monitoring service
 startHealthMonitor();
+
+// Start log cleanup scheduler
+startLogCleanup();
 
 app.listen({ port: PORT });
 console.log("Listening...");

@@ -138,4 +138,11 @@ async function getUserToken(userId: string) {
   return user?.authToken;
 }
 
-export { addMaps, checkUser, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken };
+// Get all active subdomain names (used by log cleanup to detect orphaned files)
+async function getAllActiveSubdomains(): Promise<string[]> {
+  if (!contentMapsCollection) return [];
+  const docs = await contentMapsCollection.find({}, { projection: { subdomain: 1 } }).toArray();
+  return docs.map((doc: any) => doc.subdomain).filter(Boolean);
+}
+
+export { addMaps, checkUser, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken, getAllActiveSubdomains };
