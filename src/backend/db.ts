@@ -1,6 +1,7 @@
 import { MongoClient } from "./dependencies.ts";
 import getProviderUser from "./utils/get-user.ts";
 import DfContentMap from "./types/maps_interface.ts";
+import { isSuperAdmin } from "./utils/jwt.ts";
 
 // Initialize MongoClient with npm driver
 const MONGO_URI = Deno.env.get("MONGO_URI");
@@ -42,9 +43,13 @@ async function checkUser(accessToken: string, provider: string) {
 
   const userId = await getProviderUser(accessToken, provider);
 
-  // Use ADMIN_LIST to check if user is allowed
-  const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|") || [];
-  if (!ADMIN_LIST.includes(userId)) {
+  // Allow users from ADMIN_LIST or SUPER_ADMIN_LIST
+  const allowedUsers = [
+    ...(Deno.env.get("ADMIN_LIST")?.split("|") || []),
+    ...(Deno.env.get("SUPER_ADMIN_LIST")?.split("|") || []),
+  ].map((s) => s.trim()).filter(Boolean);
+
+  if (!allowedUsers.includes(userId)) {
     console.log(`User ${userId} is not in the allowed list.`);
     return { status: { matchedCount: 0, upsertedId: undefined }, userId };
   }
@@ -61,17 +66,36 @@ async function checkUser(accessToken: string, provider: string) {
   return { status, userId };
 }
 
-// Get all content maps corresponding to user
-async function getMaps(author: string, ADMIN_LIST: string[]) {
+// Get all content maps corresponding to user (or all if super admin)
+async function getMaps(author: string, isSuperAdminUser = false) {
   if (!contentMapsCollection) {
     throw new Error("Database connection not available.");
   }
-  const filter = ADMIN_LIST?.includes(author) ? {} : { "author": author };
-
-  // Convert deprecated simple filter to standard mongo filter if needed
-  // But here we use native driver which expects filter object directly.
+  const filter = isSuperAdminUser ? {} : { "author": author };
   const data = await contentMapsCollection.find(filter).toArray();
   return { documents: data };
+}
+
+// Get list of subdomains owned by a specific user
+async function getUserSubdomains(author: string): Promise<string[]> {
+  if (!contentMapsCollection) {
+    throw new Error("Database connection not available.");
+  }
+  const docs = await contentMapsCollection
+    .find({ "author": author }, { projection: { subdomain: 1 } })
+    .toArray();
+  return docs.map((d: any) => d.subdomain);
+}
+
+// Verify whether a user owns a subdomain or has super admin privileges
+async function verifySubdomainOwnership(user: string, subdomain: string): Promise<boolean> {
+  if (!user || !subdomain) return false;
+  if (isSuperAdmin(user)) return true;
+  if (!contentMapsCollection) {
+    throw new Error("Database connection not available.");
+  }
+  const doc = await contentMapsCollection.findOne({ subdomain, author: user });
+  return !!doc;
 }
 
 // Add content maps
@@ -92,22 +116,15 @@ async function addMaps(document: DfContentMap) {
 }
 
 // Delete content maps
-async function deleteMaps(document: DfContentMap, ADMIN_LIST: string[]) {
+async function deleteMaps(document: DfContentMap, isSuperAdminUser = false) {
   if (!contentMapsCollection) {
     throw new Error("Database connection not available.");
   }
-  const filter: any = { ...document };
-  // Native driver deleteOne expects a filter object
-  if (ADMIN_LIST.includes(document.author)) {
-    delete filter.author;
+  const filter: any = { subdomain: document.subdomain };
+  if (!isSuperAdminUser) {
+    filter.author = document.author;
   }
 
-  // We need to be careful with filter. Since we are passing 'document' which contains many fields
-  // Using all of them as a filter might fail if any differ slightly.
-  // Ideally, deleting by _id or subdomain is safest.
-  // Let's rely on subdomain as the unique key generally.
-
-  // However, preserving original logic logic:
   const deleteResult = await contentMapsCollection.deleteOne(filter);
   return deleteResult;
 }
@@ -138,4 +155,13 @@ async function getUserToken(userId: string) {
   return user?.authToken;
 }
 
-export { addMaps, checkUser, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken };
+export {
+  addMaps,
+  checkUser,
+  deleteMaps,
+  getDeploymentsByRepo,
+  getMaps,
+  getUserSubdomains,
+  getUserToken,
+  verifySubdomainOwnership,
+};

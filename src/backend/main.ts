@@ -1,7 +1,7 @@
 import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
-import { checkJWT } from "./utils/jwt.ts";
-import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken } from "./db.ts";
+import { checkJWT, isSuperAdmin } from "./utils/jwt.ts";
+import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken, verifySubdomainOwnership } from "./db.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
 
 // ... skipping to githubWebhook
@@ -34,10 +34,11 @@ async function getSubdomains(ctx: Context) {
   const author = ctx.request.url.searchParams.get("user");
   const token = ctx.request.url.searchParams.get("token");
   const provider = ctx.request.url.searchParams.get("provider");
-  if (author != await checkJWT(provider!, token!)) {
+  if (!author || author !== await checkJWT(provider!, token!)) {
     ctx.throw(401);
   }
-  const data = await getMaps(author, ADMIN_LIST!);
+  const isSuper = isSuperAdmin(author);
+  const data = await getMaps(author, isSuper);
 
   // If frontend needs to read subdomains, we should decrypt env_content before sending to client
   // But we'll leave it as is if frontend doesn't display it explicitly, or we map it:
@@ -71,20 +72,19 @@ async function getLogs(ctx: Context) {
   const token = ctx.request.url.searchParams.get("token");
   const provider = ctx.request.url.searchParams.get("provider");
 
-  if (author != await checkJWT(provider!, token!)) {
+  if (!author || author !== await checkJWT(provider!, token!)) {
     ctx.throw(401);
   }
 
-  // Security check: ensure user owns this subdomain
-  const data = await getMaps(author!, ADMIN_LIST!);
-  const ownsSubdomain = data.documents.some((doc: any) => doc.subdomain === subdomain);
+  if (!subdomain || !isValidSubdomain(subdomain)) {
+    ctx.throw(400, "Invalid subdomain.");
+  }
+
+  // Security check: ensure user owns this subdomain or is super admin
+  const ownsSubdomain = await verifySubdomainOwnership(author, subdomain);
   
   if (!ownsSubdomain) {
     ctx.throw(403, "You do not have permission to view these logs.");
-  }
-
-  if (!isValidSubdomain(subdomain!)) {
-    ctx.throw(400, "Invalid subdomain.");
   }
 
   try {
@@ -224,19 +224,26 @@ async function deleteSubdomain(ctx: Context) {
   let document;
   const body = await ctx.request.body().value;
   try {
-    document = JSON.parse(body);
-  } catch (e) {
+    document = typeof body === "string" ? JSON.parse(body) : body;
+  } catch (_e) {
     document = body;
   }
-  const author = document.author;
-  const token = document.token;
-  const provider = document.provider;
-  delete document.token;
-  delete document.provider;
-  if (author != await checkJWT(provider, token)) {
+  const author = document?.author;
+  const token = document?.token;
+  const provider = document?.provider;
+  delete document?.token;
+  delete document?.provider;
+  if (!author || author !== await checkJWT(provider, token)) {
     ctx.throw(401);
   }
-  const data = await deleteMaps(document, ADMIN_LIST!);
+
+  const isSuper = isSuperAdmin(author);
+  const ownsSubdomain = await verifySubdomainOwnership(author, document.subdomain);
+  if (!ownsSubdomain) {
+    ctx.throw(403, "You do not have permission to delete this subdomain.");
+  }
+
+  const data = await deleteMaps(document, isSuper);
   if (data.deletedCount) {
     deleteScript(document);
     

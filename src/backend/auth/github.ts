@@ -1,6 +1,6 @@
 import { Context, Sentry } from "../dependencies.ts";
 import { checkUser } from "../db.ts";
-import { checkJWT, createJWT } from "../utils/jwt.ts";
+import { checkJWT, createJWT, getUserRole, isSuperAdmin } from "../utils/jwt.ts";
 import { generateApiKey } from "../utils/apiKeyGen.ts";
 
 async function githubAuth(ctx: Context, id: string, secret: string) {
@@ -100,15 +100,20 @@ async function handleJwtAuthentication(ctx: Context) {
   const body = await ctx.request.body().value;
   let document;
   try {
-    document = JSON.parse(body);
-  } catch (e) {
+    document = typeof body === "string" ? JSON.parse(body) : body;
+  } catch (_e) {
     document = body;
   }
-  const jwt_token = document.jwt_token;
-  const provider = document.provider;
+  const jwt_token = document?.jwt_token;
+  const provider = document?.provider;
   const user = await checkJWT(provider, jwt_token);
-  const apiKey = generateApiKey(user)
-  ctx.response.body = { user, apiKey };
+  if (!user || user === "not verified") {
+    ctx.throw(401, "Invalid token");
+  }
+  const apiKey = await generateApiKey(user);
+  const role = getUserRole(user);
+  const isSuper = isSuperAdmin(user);
+  ctx.response.body = { user, apiKey, role, isSuperAdmin: isSuper };
 }
 
 export { githubAuth, gitlabAuth, handleJwtAuthentication };

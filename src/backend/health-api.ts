@@ -8,7 +8,8 @@ import {
 } from "./utils/container-health.ts";
 import { restartContainer, stopContainer, getRestartCount, getStopCount, validateContainerName } from "./utils/auto-restart.ts";
 import { getMonitorStatus, triggerHealthCheck } from "./health-monitor.ts";
-import { checkJWT } from "./utils/jwt.ts";
+import { checkJWT, isSuperAdmin } from "./utils/jwt.ts";
+import { getUserSubdomains, verifySubdomainOwnership } from "./db.ts";
 
 const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
     '1s': { step: '1s', duration: '5m' },
@@ -19,24 +20,35 @@ const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
     '1d': { step: '1d', duration: '7d' },
 };
 
-
 export async function getContainerHealth(ctx: Context): Promise<void> {
     const author = ctx.request.url.searchParams.get("user");
     const token = ctx.request.url.searchParams.get("token");
     const provider = ctx.request.url.searchParams.get("provider");
 
-    if (author !== await checkJWT(provider!, token!)) {
+    if (!author || author !== await checkJWT(provider!, token!)) {
         ctx.throw(401);
     }
 
     const summary = await getHealthSummary();
+    const isSuper = isSuperAdmin(author);
+    let visibleContainers = summary.containers;
 
+    if (!isSuper) {
+        const owned = new Set(await getUserSubdomains(author));
+        visibleContainers = summary.containers.filter(c =>
+            owned.has(c.subdomain) || owned.has(c.name)
+        );
+    }
+
+    const total = visibleContainers.length;
+    const healthy = visibleContainers.filter(c => !isUnhealthy(c)).length;
+    const unhealthy = total - healthy;
 
     ctx.response.body = {
-        total: summary.total,
-        healthy: summary.healthy,
-        unhealthy: summary.unhealthy,
-        containers: summary.containers.map(c => ({
+        total,
+        healthy,
+        unhealthy,
+        containers: visibleContainers.map(c => ({
             name: c.name,
             subdomain: c.subdomain,
             status: c.status,
@@ -51,7 +63,6 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
     };
 }
 
-
 export async function getContainerMetrics(ctx: Context): Promise<void> {
     const subdomain = ctx.params.subdomain;
     const stepParam = ctx.request.url.searchParams.get("step") || '1m';
@@ -59,15 +70,23 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
     const token = ctx.request.url.searchParams.get("token");
     const provider = ctx.request.url.searchParams.get("provider");
 
-    if (author !== await checkJWT(provider!, token!)) {
+    if (!author || author !== await checkJWT(provider!, token!)) {
         ctx.throw(401);
+    }
+
+    if (!subdomain) {
+        ctx.throw(400, "Subdomain parameter is required");
+    }
+
+    const hasAccess = await verifySubdomainOwnership(author, subdomain);
+    if (!hasAccess) {
+        ctx.throw(403, "You do not have permission to view metrics for this container.");
     }
 
     const step = stepParam as TimeStep;
     const range = TIME_RANGE_PRESETS[step] || TIME_RANGE_PRESETS['1m'];
 
     const history = await getContainerHistory(subdomain, range);
-
 
     ctx.response.body = {
         subdomain,
@@ -85,27 +104,38 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
     };
 }
 
-
 export async function getHealthDashboard(ctx: Context): Promise<void> {
     const author = ctx.request.url.searchParams.get("user");
     const token = ctx.request.url.searchParams.get("token");
     const provider = ctx.request.url.searchParams.get("provider");
 
-    if (author !== await checkJWT(provider!, token!)) {
+    if (!author || author !== await checkJWT(provider!, token!)) {
         ctx.throw(401);
     }
 
     const summary = await getHealthSummary();
     const monitorStatus = getMonitorStatus();
+    const isSuper = isSuperAdmin(author);
+    let visibleContainers = summary.containers;
 
+    if (!isSuper) {
+        const owned = new Set(await getUserSubdomains(author));
+        visibleContainers = summary.containers.filter(c =>
+            owned.has(c.subdomain) || owned.has(c.name)
+        );
+    }
+
+    const total = visibleContainers.length;
+    const healthy = visibleContainers.filter(c => !isUnhealthy(c)).length;
+    const unhealthy = total - healthy;
 
     ctx.response.body = {
         overview: {
-            total: summary.total,
-            healthy: summary.healthy,
-            unhealthy: summary.unhealthy,
-            healthPercent: summary.total > 0
-                ? Math.round((summary.healthy / summary.total) * 100)
+            total,
+            healthy,
+            unhealthy,
+            healthPercent: total > 0
+                ? Math.round((healthy / total) * 100)
                 : 100,
         },
         monitor: {
@@ -113,7 +143,7 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
             checkIntervalMs: monitorStatus.interval,
             thresholds: monitorStatus.thresholds,
         },
-        unhealthyContainers: summary.containers
+        unhealthyContainers: visibleContainers
             .filter(c => isUnhealthy(c))
             .map(c => ({
                 name: c.name,
@@ -123,7 +153,6 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
             })),
     };
 }
-
 
 export async function restartContainerHandler(ctx: Context): Promise<void> {
     const subdomain = ctx.params.subdomain;
@@ -146,13 +175,17 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
     const token = document?.token;
     const provider = document?.provider;
 
-    if (author !== await checkJWT(provider, token)) {
+    if (!author || author !== await checkJWT(provider, token)) {
         ctx.throw(401);
+    }
+
+    const hasAccess = await verifySubdomainOwnership(author, safeSubdomain);
+    if (!hasAccess) {
+        ctx.throw(403, "You do not have permission to restart this container.");
     }
 
     try {
         await restartContainer(safeSubdomain);
-
 
         ctx.response.body = {
             status: "success",
@@ -189,13 +222,17 @@ export async function stopContainerHandler(ctx: Context): Promise<void> {
     const token = document?.token;
     const provider = document?.provider;
 
-    if (author !== await checkJWT(provider, token)) {
+    if (!author || author !== await checkJWT(provider, token)) {
         ctx.throw(401);
+    }
+
+    const hasAccess = await verifySubdomainOwnership(author, safeSubdomain);
+    if (!hasAccess) {
+        ctx.throw(403, "You do not have permission to stop this container.");
     }
 
     try {
         await stopContainer(safeSubdomain);
-
 
         ctx.response.body = {
             status: "success",
@@ -211,7 +248,6 @@ export async function stopContainerHandler(ctx: Context): Promise<void> {
     }
 }
 
-
 export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
     const body = await ctx.request.body().value;
     let document;
@@ -221,13 +257,16 @@ export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
         document = body;
     }
 
-    const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|") || [];
     const author = document?.author;
     const token = document?.token;
     const provider = document?.provider;
 
-    if (author !== await checkJWT(provider, token) || !ADMIN_LIST.includes(author)) {
+    if (!author || author !== await checkJWT(provider, token)) {
         ctx.throw(401);
+    }
+
+    if (!isSuperAdmin(author)) {
+        ctx.throw(403, "Only super administrators can trigger health checks.");
     }
 
     await triggerHealthCheck();
@@ -237,7 +276,6 @@ export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
         message: "Health check triggered",
     };
 }
-
 
 function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
     const reasons: string[] = [];
