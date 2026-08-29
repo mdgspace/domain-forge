@@ -64,7 +64,7 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
 }
 
 export async function getContainerMetrics(ctx: Context): Promise<void> {
-    const subdomain = ctx.params.subdomain;
+    const subdomain = (ctx as any).params?.subdomain;
     const stepParam = ctx.request.url.searchParams.get("step") || '1m';
     const author = ctx.request.url.searchParams.get("user");
     const token = ctx.request.url.searchParams.get("token");
@@ -155,7 +155,7 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
 }
 
 export async function restartContainerHandler(ctx: Context): Promise<void> {
-    const subdomain = ctx.params.subdomain;
+    const subdomain = (ctx as any).params?.subdomain;
     let safeSubdomain = "";
     try {
         safeSubdomain = validateContainerName(subdomain);
@@ -202,7 +202,7 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
 }
 
 export async function stopContainerHandler(ctx: Context): Promise<void> {
-    const subdomain = ctx.params.subdomain;
+    const subdomain = (ctx as any).params?.subdomain;
     let safeSubdomain = "";
     try {
         safeSubdomain = validateContainerName(subdomain);

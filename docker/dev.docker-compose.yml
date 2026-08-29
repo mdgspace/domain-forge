@@ -19,6 +19,8 @@ services:
       - ../src/backend/.env
     depends_on:
       - prometheus
+      - loki
+
   vue:
     container_name: df_frontend
     image: df_frontend
@@ -63,5 +65,68 @@ services:
     depends_on:
       - cadvisor
 
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: df_loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+
+  alloy:
+    image: grafana/alloy:v1.0.0
+    container_name: df_alloy
+    user: root
+    restart: unless-stopped
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../docker/named_pipe/logs:/hostpipe/logs:ro
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: df_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SECURITY_COOKIE_SAMESITE=none
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_JWT_ENABLED=true
+      - GF_AUTH_JWT_ENABLE_LOGIN_TOKEN=true
+      - GF_AUTH_JWT_URL_LOGIN=true
+      - GF_AUTH_JWT_URL_PARAMETER_NAME=auth_token
+      - GF_AUTH_JWT_JWK_SET_FILE=/etc/grafana/jwt/jwks.json
+      - GF_AUTH_JWT_USERNAME_CLAIM=sub
+      - GF_AUTH_JWT_AUTO_SIGN_UP=true
+      - GF_AUTH_JWT_ALLOW_ASSIGN_GRAFANA_ADMIN=true
+      - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(roles, 'superadmin') && 'Admin' || 'Viewer'
+      - GF_USERS_AUTO_ASSIGN_ORG=true
+      - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/jwt:/etc/grafana/jwt:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "${PORT_GRAFANA:-3000}:3000"
+    depends_on:
+      - prometheus
+      - loki
+
 volumes:
   prometheus_data:
+  loki_data:
+  grafana_data:

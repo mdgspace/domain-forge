@@ -3,6 +3,7 @@ import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT, isSuperAdmin } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken, verifySubdomainOwnership } from "./db.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
+import { getBuildLogs, getCombinedLogs, getRuntimeLogs } from "./utils/log-service.ts";
 
 // ... skipping to githubWebhook
 
@@ -67,10 +68,13 @@ async function getSubdomains(ctx: Context) {
 }
 
 async function getLogs(ctx: Context) {
-  const subdomain = ctx.params.subdomain;
+  const subdomain = (ctx as any).params?.subdomain;
   const author = ctx.request.url.searchParams.get("user");
   const token = ctx.request.url.searchParams.get("token");
   const provider = ctx.request.url.searchParams.get("provider");
+  const type = ctx.request.url.searchParams.get("type") || "all";
+  const linesParam = ctx.request.url.searchParams.get("lines");
+  const lines = linesParam ? parseInt(linesParam, 10) : 200;
 
   if (!author || author !== await checkJWT(provider!, token!)) {
     ctx.throw(401);
@@ -88,12 +92,23 @@ async function getLogs(ctx: Context) {
   }
 
   try {
-    const logPath = `/hostpipe/logs/${subdomain}.log`;
-    // Return only last 100KB of logs to avoid CPU/memory pressure
-    const logs = await readLastNBytes(logPath, 100 * 1024);
-    ctx.response.body = { logs };
-  } catch (_e) {
-    ctx.response.body = { logs: "No logs found for this subdomain." };
+    if (type === "build") {
+      const logs = await getBuildLogs(subdomain);
+      ctx.response.body = { logs, type: "build" };
+    } else if (type === "runtime") {
+      const logs = await getRuntimeLogs(subdomain, lines);
+      ctx.response.body = { logs, type: "runtime" };
+    } else {
+      const result = await getCombinedLogs(subdomain, lines);
+      ctx.response.body = {
+        logs: result.all,
+        build: result.build,
+        runtime: result.runtime,
+        type: "all",
+      };
+    }
+  } catch (error) {
+    ctx.response.body = { logs: `Error retrieving logs: ${(error as Error).message}` };
   }
 }
 

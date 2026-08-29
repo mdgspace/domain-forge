@@ -1,0 +1,59 @@
+// Discover Docker containers from daemon socket
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Strip leading slash from container names and map labels
+discovery.relabel "docker_containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "^/(.*)$"
+    target_label  = "container_name"
+  }
+
+  // Drop internal system containers
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker-.*|traefik.*|caddy.*|cadvisor.*|prometheus.*|loki.*|alloy.*|grafana.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "container_id"
+  }
+}
+
+// Tail stdout/stderr of discovered Docker containers
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_containers.output
+  forward_to = [loki.write.loki_endpoint.receiver]
+}
+
+// Tail build log files and backend log from named_pipe logs directory
+local.file_match "build_logs" {
+  path_targets = [{
+    __path__ = "/hostpipe/logs/*.log",
+    job      = "domain-forge-build-logs",
+  }]
+}
+
+loki.source.file "build_logs" {
+  targets    = local.file_match.build_logs.targets
+  forward_to = [loki.write.loki_endpoint.receiver]
+}
+
+// Send all logs to Loki
+loki.write "loki_endpoint" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

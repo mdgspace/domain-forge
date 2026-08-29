@@ -234,8 +234,14 @@ export async function getHealthSummary(): Promise<{
 
 
 function isUserContainer(name: string): boolean {
-    const systemContainers = ['df_backend', 'df_frontend', 'df_prometheus', 'df_cadvisor'];
-    return name.length > 0 && !systemContainers.includes(name) && !name.startsWith('k8s_');
+    if (!name) return false;
+    if (/^[0-9a-f]{12,64}$/i.test(name)) return false;
+
+    const lower = name.toLowerCase();
+    const systemPatterns = [
+        'df_', 'docker-df_', 'cadvisor', 'prometheus', 'loki', 'alloy', 'grafana', 'traefik', 'caddy', 'k8s_'
+    ];
+    return !systemPatterns.some(pat => lower.includes(pat));
 }
 
 

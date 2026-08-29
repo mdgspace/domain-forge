@@ -56,7 +56,7 @@ async function createJWT(provider: string, githubId: string) {
 async function createGrafanaJWT(userId: string, role: string) {
   const now = Math.floor(Date.now() / 1000);
   const token = await create(
-    { alg: "HS256", typ: "JWT" },
+    { alg: "HS256", typ: "JWT", kid: "df-key-1" },
     {
       sub: userId,
       roles: [role === "superadmin" ? "superadmin" : "user"],

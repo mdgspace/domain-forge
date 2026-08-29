@@ -23,6 +23,9 @@ import {
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
+import { checkJWT, createGrafanaJWT, getUserRole, isSuperAdmin } from "./utils/jwt.ts";
+import { requestLoggerMiddleware } from "./utils/logger.ts";
+import { getSystemLogs } from "./utils/log-service.ts";
 
 const router = new Router();
 const app = new Application();
@@ -51,11 +54,47 @@ app.use(async (ctx: Context, next) => {
       ctx.response.status = Status.InternalServerError;
     }
     Sentry.captureException(err);
-    ctx.response.body = { error: err.message };
+    ctx.response.body = { error: (err as Error).message };
   }
 });
 
 app.use(Session.initMiddleware());
+app.use(requestLoggerMiddleware);
+
+async function getGrafanaTokenHandler(ctx: Context): Promise<void> {
+  const author = ctx.request.url.searchParams.get("user");
+  const token = ctx.request.url.searchParams.get("token");
+  const provider = ctx.request.url.searchParams.get("provider");
+
+  if (!author || author !== await checkJWT(provider!, token!)) {
+    ctx.throw(401);
+  }
+
+  const role = getUserRole(author);
+  const grafanaJwt = await createGrafanaJWT(author, role);
+  ctx.response.body = {
+    token: grafanaJwt,
+    role,
+    user: author,
+  };
+}
+
+async function getSystemLogsHandler(ctx: Context): Promise<void> {
+  const author = ctx.request.url.searchParams.get("user");
+  const token = ctx.request.url.searchParams.get("token");
+  const provider = ctx.request.url.searchParams.get("provider");
+
+  if (!author || author !== await checkJWT(provider!, token!)) {
+    ctx.throw(401);
+  }
+
+  if (!isSuperAdmin(author)) {
+    ctx.throw(403, "Only super administrators can view system logs.");
+  }
+
+  const logs = await getSystemLogs();
+  ctx.response.body = { logs };
+}
 
 router
   // Auth routes
@@ -68,12 +107,15 @@ router
     (ctx) => gitlabAuth(ctx, gitlabClientId, gitlabClientSecret, frontend),
   )
   .post("/auth/jwt", (ctx) => handleJwtAuthentication(ctx))
+  .get("/auth/grafana-token", (ctx) => getGrafanaTokenHandler(ctx))
   // Subdomain routes
   .get("/map", (ctx) => getSubdomains(ctx))
   .get("/map/:subdomain/logs", (ctx) => getLogs(ctx))
   .post("/map", (ctx) => addSubdomain(ctx))
   .post("/mapdel", (ctx) => deleteSubdomain(ctx))
   .post("/webhook/github", (ctx) => githubWebhook(ctx))
+  // System logs route
+  .get("/logs/system", (ctx) => getSystemLogsHandler(ctx))
   // Health monitoring routes
   .get("/health", (ctx) => getContainerHealth(ctx))
   .get("/health/summary", (ctx) => getHealthDashboard(ctx))
@@ -82,13 +124,12 @@ router
   .post("/health/:subdomain/stop", (ctx) => stopContainerHandler(ctx))
   .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx));
 
-app.use(oakCors({ origin: frontend }));
+app.use(oakCors({ origin: frontend ? [frontend, "http://localhost:8000", "http://localhost:5173"] : true }));
 app.use(router.routes());
 app.use(router.allowedMethods());
 
 // Start health monitoring service
 startHealthMonitor();
 
-app.listen({ port: PORT });
-console.log("Listening...");
-
+console.log(`Listening on port ${PORT}...`);
+await app.listen({ port: PORT });
