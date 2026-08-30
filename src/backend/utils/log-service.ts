@@ -1,5 +1,14 @@
-function isValidSubdomain(subdomain: string): boolean {
+import { getSubdomainOwner } from "../db.ts";
+
+export function isValidSubdomain(subdomain: string): boolean {
   return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(subdomain);
+}
+
+export function buildLokiQuery(subdomain: string): string {
+  if (!isValidSubdomain(subdomain)) {
+    throw new Error("Invalid subdomain format");
+  }
+  return `{container_name="${subdomain}"}`;
 }
 
 async function readLastNBytes(filePath: string, n: number): Promise<string> {
@@ -18,7 +27,11 @@ async function readLastNBytes(filePath: string, n: number): Promise<string> {
   }
 }
 
-async function fetchFromLoki(endpoint: string, params: URLSearchParams): Promise<Response> {
+async function fetchFromLoki(
+  endpoint: string,
+  params: URLSearchParams,
+  tenantId = "domain-forge-primary",
+): Promise<Response> {
   const candidateUrls = [
     Deno.env.get("LOKI_URL"),
     "http://loki:3100",
@@ -35,7 +48,10 @@ async function fetchFromLoki(endpoint: string, params: URLSearchParams): Promise
       params.forEach((v, k) => url.searchParams.set(k, v));
 
       const resp = await fetch(url.toString(), {
-        headers: { Accept: "application/json" },
+        headers: {
+          "Accept": "application/json",
+          "X-Scope-OrgID": tenantId,
+        },
         signal: AbortSignal.timeout(3000),
       });
       return resp;
@@ -55,13 +71,29 @@ export async function getBuildLogs(subdomain: string, maxBytes = 100 * 1024): Pr
   return await readLastNBytes(logPath, maxBytes);
 }
 
-export async function getRuntimeLogs(subdomain: string, lines = 200): Promise<string> {
+export async function getRuntimeLogs(
+  subdomain: string,
+  lines = 200,
+  tenantId?: string,
+): Promise<string> {
   if (!isValidSubdomain(subdomain)) {
     throw new Error("Invalid subdomain format");
   }
 
+  // Loki queries must always use the single subdomain owner tenant (never Mimir pipe federation syntax)
+  const owner = await getSubdomainOwner(subdomain).catch(() => null);
+  let targetTenant: string | undefined = owner || undefined;
+
+  if (!targetTenant && tenantId && tenantId !== "not verified" && !tenantId.includes("|")) {
+    targetTenant = tenantId;
+  }
+
+  if (!targetTenant || targetTenant === "not verified") {
+    return "No runtime container logs found (unauthorized or unknown tenant).";
+  }
+
   try {
-    const query = `{container_name=~".*${subdomain}.*"}`;
+    const query = buildLokiQuery(subdomain);
     const nowNs = BigInt(Date.now()) * 1000000n;
     const fourteenDaysAgoNs = nowNs - (14n * 24n * 60n * 60n * 1000n * 1000000n);
 
@@ -73,7 +105,7 @@ export async function getRuntimeLogs(subdomain: string, lines = 200): Promise<st
       direction: "BACKWARD",
     });
 
-    const response = await fetchFromLoki("/loki/api/v1/query_range", params);
+    const response = await fetchFromLoki("/loki/api/v1/query_range", params, targetTenant);
 
     if (!response.ok) {
       return `Loki returned status ${response.status}: ${response.statusText}`;
@@ -105,10 +137,11 @@ export async function getRuntimeLogs(subdomain: string, lines = 200): Promise<st
 export async function getCombinedLogs(
   subdomain: string,
   lines = 200,
+  tenantId?: string,
 ): Promise<{ build: string; runtime: string; all: string }> {
   const [build, runtime] = await Promise.all([
     getBuildLogs(subdomain),
-    getRuntimeLogs(subdomain, lines),
+    getRuntimeLogs(subdomain, lines, tenantId),
   ]);
 
   const all = [

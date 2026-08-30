@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -24,7 +24,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "Mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -73,10 +73,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "Prometheus"
+            "uid": "Mimir"
           },
           "editorMode": "code",
-          "expr": "irate(container_cpu_usage_seconds_total{name=~\"$subdomain\"}[1m]) * 100",
+          "expr": "irate(container_cpu_usage_seconds_total{name=~\"^/?$subdomain$\"}[1m]) * 100 or irate(container_cpu_usage_seconds_total{container_name=~\"^/?$subdomain$\"}[1m]) * 100 or irate(container_cpu_usage_seconds_total{subdomain=~\"^/?$subdomain$\"}[1m]) * 100",
           "legendFormat": "{{name}} (CPU)",
           "range": true,
           "refId": "A"
@@ -88,7 +88,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "Prometheus"
+        "uid": "Mimir"
       },
       "fieldConfig": {
         "defaults": {
@@ -132,10 +132,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "Prometheus"
+            "uid": "Mimir"
           },
           "editorMode": "code",
-          "expr": "container_memory_usage_bytes{name=~\"$subdomain\"} / (1024 * 1024)",
+          "expr": "(container_memory_usage_bytes{name=~\"^/?$subdomain$\"} or container_memory_usage_bytes{container_name=~\"^/?$subdomain$\"} or container_memory_usage_bytes{subdomain=~\"^/?$subdomain$\"}) / (1024 * 1024)",
           "legendFormat": "{{name}} (Memory)",
           "range": true,
           "refId": "A"
@@ -185,7 +185,7 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container_name=~\"$subdomain\"}",
+          "expr": "{container_name=~\"^/?$subdomain$\"}",
           "queryType": "range",
           "refId": "A"
         }

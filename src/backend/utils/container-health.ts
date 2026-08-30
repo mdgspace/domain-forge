@@ -1,3 +1,6 @@
+import { isSuperAdmin, getAdmins, getSuperAdmins } from "./jwt.ts";
+import { getAllTenantsWithSubdomains, getSubdomainOwner } from "../db.ts";
+
 export interface ContainerStats {
     containerId: string;
     name: string;
@@ -13,7 +16,6 @@ export interface ContainerStats {
 
 export type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
 
-
 export interface TimeRange {
     step: TimeStep;
     duration: string;
@@ -21,13 +23,11 @@ export interface TimeRange {
 
 export type TimeStep = '1s' | '15s' | '1m' | '5m' | '1h' | '1d';
 
-
 export interface HealthThresholds {
     maxCpuPercent: number;
     maxMemoryPercent: number;
     maxRestartCount: number;
 }
-
 
 interface PrometheusResult {
     status: 'success' | 'error';
@@ -44,7 +44,11 @@ interface PrometheusMetric {
     values?: [number, string][];
 }
 
-const PROMETHEUS_URL = Deno.env.get('PROMETHEUS_URL') || 'http://prometheus:9090';
+const RAW_MIMIR_URL = Deno.env.get('MIMIR_URL') || Deno.env.get('PROMETHEUS_URL') || 'http://mimir:8080';
+const PROMETHEUS_URL = RAW_MIMIR_URL.endsWith('/prometheus')
+    ? RAW_MIMIR_URL
+    : `${RAW_MIMIR_URL.replace(/\/$/, '')}/prometheus`;
+
 const DEBUG = Deno.env.get('HEALTH_DEBUG') === 'true';
 
 const DEFAULT_THRESHOLDS: HealthThresholds = {
@@ -53,16 +57,41 @@ const DEFAULT_THRESHOLDS: HealthThresholds = {
     maxRestartCount: Number(Deno.env.get('MAX_RESTART_COUNT')) || 5,
 };
 
+async function resolveTenantHeader(user?: string): Promise<string> {
+    if (user && !isSuperAdmin(user)) {
+        return user;
+    }
+    try {
+        const dbTenants = await getAllTenantsWithSubdomains().catch(() => ({}));
+        const allTenants = Array.from(
+            new Set([
+                ...Object.keys(dbTenants),
+                ...getAdmins(),
+                ...getSuperAdmins(),
+            ])
+        ).filter((t) => t && t !== "not verified" && t !== "anonymous");
 
-async function queryPrometheus(query: string): Promise<PrometheusResult> {
+        return allTenants.length > 0 ? allTenants.join("|") : "admin";
+    } catch (_e) {
+        return "admin";
+    }
+}
+
+async function queryPrometheus(query: string, tenantId = "admin"): Promise<PrometheusResult> {
     const url = `${PROMETHEUS_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
 
     if (DEBUG) {
-        console.log('[Health] Prometheus query:', query);
+        console.log(`[Health] Mimir/Prometheus query [tenant: ${tenantId}]:`, query);
     }
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                "Accept": "application/json",
+                "X-Scope-OrgID": tenantId,
+            },
+            signal: AbortSignal.timeout(4000),
+        });
         const result = await response.json() as PrometheusResult;
 
         if (DEBUG) {
@@ -76,10 +105,10 @@ async function queryPrometheus(query: string): Promise<PrometheusResult> {
     }
 }
 
-
 async function queryPrometheusRange(
     query: string,
-    range: TimeRange
+    range: TimeRange,
+    tenantId = "admin",
 ): Promise<PrometheusResult> {
     const now = Math.floor(Date.now() / 1000);
     const durationSeconds = parseDuration(range.duration);
@@ -94,11 +123,17 @@ async function queryPrometheusRange(
     });
 
     if (DEBUG) {
-        console.log('[Health] Prometheus range query:', query, range);
+        console.log(`[Health] Range query [tenant: ${tenantId}]:`, query, range);
     }
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                "Accept": "application/json",
+                "X-Scope-OrgID": tenantId,
+            },
+            signal: AbortSignal.timeout(4000),
+        });
         const result = await response.json() as PrometheusResult;
 
         if (DEBUG) {
@@ -112,16 +147,16 @@ async function queryPrometheusRange(
     }
 }
 
-
-export async function getAllContainerStats(): Promise<ContainerStats[]> {
+export async function getAllContainerStats(user?: string): Promise<ContainerStats[]> {
+    const tenantId = await resolveTenantHeader(user);
     const cpuQuery = 'irate(container_cpu_usage_seconds_total{name=~".+"}[1m]) * 100';
-    const cpuResult = await queryPrometheus(cpuQuery);
+    const cpuResult = await queryPrometheus(cpuQuery, tenantId);
     const memUsageQuery = 'container_memory_usage_bytes{name=~".+"}';
     const memLimitQuery = 'container_memory_max_usage_bytes{name=~".+"}';
 
     const [memUsageResult, memLimitResult] = await Promise.all([
-        queryPrometheus(memUsageQuery),
-        queryPrometheus(memLimitQuery),
+        queryPrometheus(memUsageQuery, tenantId),
+        queryPrometheus(memLimitQuery, tenantId),
     ]);
 
     const statsMap = new Map<string, Partial<ContainerStats>>();
@@ -129,7 +164,8 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
 
     // Process CPU metrics
     for (const metric of cpuResult.data?.result || []) {
-        const name = metric.metric.name || metric.metric.container_name || '';
+        const rawName = metric.metric.name || metric.metric.container_name || '';
+        const name = rawName.replace(/^\//, '');
         if (isUserContainer(name)) {
             const existing = statsMap.get(name) || { name, lastUpdated: now };
             existing.cpuPercent = parseFloat(metric.value?.[1] || '0');
@@ -141,7 +177,8 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
 
     // Process memory metrics
     for (const metric of memUsageResult.data?.result || []) {
-        const name = metric.metric.name || metric.metric.container_name || '';
+        const rawName = metric.metric.name || metric.metric.container_name || '';
+        const name = rawName.replace(/^\//, '');
         if (isUserContainer(name)) {
             const existing = statsMap.get(name) || { name, lastUpdated: now };
             existing.memoryUsage = parseFloat(metric.value?.[1] || '0');
@@ -151,7 +188,8 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
 
     // Process memory limit metrics
     for (const metric of memLimitResult.data?.result || []) {
-        const name = metric.metric.name || metric.metric.container_name || '';
+        const rawName = metric.metric.name || metric.metric.container_name || '';
+        const name = rawName.replace(/^\//, '');
         if (isUserContainer(name)) {
             const existing = statsMap.get(name) || { name, lastUpdated: now };
             existing.memoryLimit = parseFloat(metric.value?.[1] || '0');
@@ -176,17 +214,25 @@ export async function getAllContainerStats(): Promise<ContainerStats[]> {
     }));
 }
 
-
 export async function getContainerHistory(
     containerName: string,
-    range: TimeRange
+    range: TimeRange,
+    user?: string,
 ): Promise<{ cpu: [number, number][]; memory: [number, number][] }> {
-    const cpuQuery = `irate(container_cpu_usage_seconds_total{name="${containerName}"}[1m]) * 100`;
-    const memQuery = `container_memory_usage_bytes{name="${containerName}"}`;
+    const normalizedName = containerName.replace(/^\//, '');
+    let tenantId: string;
+    if (user && !isSuperAdmin(user)) {
+        tenantId = user;
+    } else {
+        const owner = await getSubdomainOwner(normalizedName).catch(() => null);
+        tenantId = owner || (await resolveTenantHeader(user));
+    }
+    const cpuQuery = `irate(container_cpu_usage_seconds_total{name=~"^/?${normalizedName}$"}[1m]) * 100`;
+    const memQuery = `container_memory_usage_bytes{name=~"^/?${normalizedName}$"}`;
 
     const [cpuResult, memResult] = await Promise.all([
-        queryPrometheusRange(cpuQuery, range),
-        queryPrometheusRange(memQuery, range),
+        queryPrometheusRange(cpuQuery, range, tenantId),
+        queryPrometheusRange(memQuery, range, tenantId),
     ]);
 
     const cpuData = cpuResult.data?.result?.[0]?.values?.map(
@@ -199,7 +245,6 @@ export async function getContainerHistory(
 
     return { cpu: cpuData, memory: memData };
 }
-
 
 export function isUnhealthy(
     stats: ContainerStats,
@@ -214,14 +259,13 @@ export function isUnhealthy(
     );
 }
 
-
-export async function getHealthSummary(): Promise<{
+export async function getHealthSummary(user?: string): Promise<{
     total: number;
     healthy: number;
     unhealthy: number;
     containers: ContainerStats[];
 }> {
-    const containers = await getAllContainerStats();
+    const containers = await getAllContainerStats(user);
     const unhealthyCount = containers.filter(c => isUnhealthy(c)).length;
 
     return {
@@ -232,19 +276,16 @@ export async function getHealthSummary(): Promise<{
     };
 }
 
-
-function isUserContainer(name: string): boolean {
+export function isUserContainer(name: string): boolean {
     if (!name) return false;
     if (/^[0-9a-f]{12,64}$/i.test(name)) return false;
 
-    const lower = name.toLowerCase();
-    const systemPatterns = [
-        'df_', 'docker-df_', 'cadvisor', 'prometheus', 'loki', 'alloy', 'grafana', 'traefik', 'caddy', 'k8s_'
-    ];
-    return !systemPatterns.some(pat => lower.includes(pat));
+    // Use exact and anchored system pattern matching to avoid false positives
+    const normalized = name.replace(/^\//, "").toLowerCase();
+    const systemPattern = /^(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|k8s_.*|(cadvisor|prometheus|mimir|loki|alloy|grafana|traefik|caddy)([-_]\d+)?)$/i;
+
+    return !systemPattern.test(normalized);
 }
-
-
 
 function determineStatus(stats: Partial<ContainerStats>): ContainerStatus {
     if (!stats.cpuPercent && !stats.memoryUsage) {
@@ -253,8 +294,7 @@ function determineStatus(stats: Partial<ContainerStats>): ContainerStatus {
     return 'running';
 }
 
-
-function parseDuration(duration: string): number {
+export function parseDuration(duration: string): number {
     const match = duration.match(/^(\d+)([smhd])$/);
     if (!match) return 3600;
 
@@ -270,8 +310,7 @@ function parseDuration(duration: string): number {
     }
 }
 
-
-function parseStep(step: TimeStep): number {
+export function parseStep(step: TimeStep): number {
     switch (step) {
         case '1s': return 1;
         case '15s': return 15;

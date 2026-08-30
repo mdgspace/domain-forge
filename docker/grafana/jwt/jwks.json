@@ -1,11 +1,12 @@
 {
   "keys": [
     {
-      "kty": "oct",
-      "k": "ZGZfc2VjcmV0X2tleV8xMjM",
-      "alg": "HS256",
+      "kty": "RSA",
       "use": "sig",
-      "kid": "df-key-1"
+      "alg": "RS256",
+      "kid": "df-key-1",
+      "n": "67_y2Aysgs6fErcq-4a6_M1GeV9XeBOO9kaj2sXMBRNSvfiybhlr_-RnnhIyVPrjPFqp6NqbigSgiK9sHZsqgZ453cJ0sg_qw2QgAmwU7UrUuRGkNKp8iG28sPN166iI_nzDM2gBm0JvNNJPCNc_lb3egxABGvzWpO0N1eZsGoFyYkEMNKqdZToKTRchkTUeLBs_tmk_RTTb3ZLz-uxATwOd2BAVtq-tuRaIupdzar3QcHPEjc86904hOuAZKcO5mSGjB-z_1OT1phVYUDSvGGPr6imIsZCTQ7G2v65CAQ5JyCuzCIKv83Ge7JVbcy04qauPLGGbiuj5wrK2vqPx7w",
+      "e": "AQAB"
     }
   ]
 }

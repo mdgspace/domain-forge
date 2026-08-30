@@ -39,35 +39,30 @@ async function authenticateAndCreateJWT(
   }
 
   if (code !== null) {
-    const rootUrl = new URL(oauthUrl);
-    rootUrl.search = provider === "github"
-      ? new URLSearchParams({
+    // Send OAuth credentials in request body, not URL query string (P2-1 Remediation)
+    const payload = provider === "github"
+      ? { client_id: id, client_secret: secret, code }
+      : {
         client_id: id,
         client_secret: secret,
         code,
-      }).toString()
-      : provider === "gitlab"
-        ? new URLSearchParams({
-          client_id: id,
-          client_secret: secret,
-          code,
-          grant_type: "authorization_code",
-          redirect_uri: `${frontend}/login`,
-        }).toString()
-        : "";
+        grant_type: "authorization_code",
+        redirect_uri: `${frontend}/login`,
+      };
 
-    const resp = await fetch(rootUrl.toString(), {
+    const resp = await fetch(oauthUrl, {
       method: "POST",
       headers: {
-        Accept: "application/json",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(payload),
     });
 
     const body = await resp.json();
-    console.log("OAuth Response Body:", body);
 
     if (body.error) {
-      console.error("OAuth Error:", body.error_description);
+      console.error("OAuth Error:", body.error_description || body.error);
       ctx.response.body = "not authorized";
       return;
     }
@@ -75,11 +70,7 @@ async function authenticateAndCreateJWT(
     // Pass the access token to checkUser
     const { status, userId } = await checkUser(body.access_token, provider);
 
-    console.log("DB Status for User:", userId, status);
-
-
-
-    if (status.matchedCount == 1 || status.upsertedId !== undefined) {
+    if (status.matchedCount === 1 || status.upsertedId !== undefined) {
       const id_jwt = await createJWT(provider, userId);
       Sentry.captureMessage("User " + userId + " logged in", "info");
       ctx.response.body = id_jwt;

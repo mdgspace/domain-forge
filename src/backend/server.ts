@@ -14,6 +14,7 @@ import {
   handleJwtAuthentication,
 } from "./auth/github.ts";
 import { addSubdomain, deleteSubdomain, getLogs, getSubdomains, githubWebhook } from "./main.ts";
+import { verifySubdomainOwnership } from "./db.ts";
 import {
   getContainerHealth,
   getContainerMetrics,
@@ -23,26 +24,31 @@ import {
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
-import { checkJWT, createGrafanaJWT, getUserRole, isSuperAdmin } from "./utils/jwt.ts";
-import { requestLoggerMiddleware } from "./utils/logger.ts";
+import { createGrafanaJWT, getUserRole, isSuperAdmin } from "./utils/jwt.ts";
+import { logger, requestLoggerMiddleware } from "./utils/logger.ts";
 import { getSystemLogs } from "./utils/log-service.ts";
+import { authenticateRequest } from "./utils/auth-helper.ts";
+import { ensureTenantGrafanaOrg, getTenantOrgName } from "./utils/grafana-provisioner.ts";
+import { syncAlloyConfig } from "./utils/alloy-provisioner.ts";
 
 const router = new Router();
 const app = new Application();
 const PORT = 7000;
 
-const githubClientId: string = Deno.env.get("GITHUB_OAUTH_CLIENT_ID")!;
-const githubClientSecret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET")!;
-const gitlabClientId: string = Deno.env.get("GITLAB_OAUTH_CLIENT_ID")!;
-const gitlabClientSecret: string = Deno.env.get("GITLAB_OAUTH_CLIENT_SECRET")!;
-const dsn: string = Deno.env.get("SENTRY_DSN")!;
-const frontend: string = Deno.env.get("FRONTEND")!;
+const githubClientId: string = Deno.env.get("GITHUB_OAUTH_CLIENT_ID") || "";
+const githubClientSecret: string = Deno.env.get("GITHUB_OAUTH_CLIENT_SECRET") || "";
+const gitlabClientId: string = Deno.env.get("GITLAB_OAUTH_CLIENT_ID") || "";
+const gitlabClientSecret: string = Deno.env.get("GITLAB_OAUTH_CLIENT_SECRET") || "";
+const dsn: string = Deno.env.get("SENTRY_DSN") || "";
+const frontend: string = Deno.env.get("FRONTEND") || "";
 
-Sentry.init({
-  dsn: dsn,
-  debug: true,
-  tracesSampleRate: 1.0,
-});
+if (dsn) {
+  Sentry.init({
+    dsn: dsn,
+    debug: false,
+    tracesSampleRate: 1.0,
+  });
+}
 
 app.use(async (ctx: Context, next) => {
   try {
@@ -50,11 +56,17 @@ app.use(async (ctx: Context, next) => {
   } catch (err) {
     if (isHttpError(err)) {
       ctx.response.status = err.status;
+      const message = err.expose || err.status < 500 ? err.message : "An unexpected error occurred.";
+      ctx.response.body = { error: message };
     } else {
       ctx.response.status = Status.InternalServerError;
+      ctx.response.body = { error: "Internal Server Error" };
     }
-    Sentry.captureException(err);
-    ctx.response.body = { error: (err as Error).message };
+    if (dsn) Sentry.captureException(err);
+    logger.error("Unhandled server error", {
+      status: ctx.response.status,
+      error: (err as Error)?.message || String(err),
+    });
   }
 });
 
@@ -62,31 +74,42 @@ app.use(Session.initMiddleware());
 app.use(requestLoggerMiddleware);
 
 async function getGrafanaTokenHandler(ctx: Context): Promise<void> {
-  const author = ctx.request.url.searchParams.get("user");
-  const token = ctx.request.url.searchParams.get("token");
-  const provider = ctx.request.url.searchParams.get("provider");
+  const auth = await authenticateRequest(ctx);
+  if (!auth) {
+    ctx.throw(401, "Unauthorized");
+  }
+  const author = auth.user;
+  const subdomain = ctx.request.url.searchParams.get("subdomain");
 
-  if (!author || author !== await checkJWT(provider!, token!)) {
-    ctx.throw(401);
+  // If a specific subdomain was requested by a non-superadmin, verify ownership
+  if (subdomain && !isSuperAdmin(author)) {
+    const ownsSubdomain = await verifySubdomainOwnership(author, subdomain);
+    if (!ownsSubdomain) {
+      ctx.throw(403, "You do not have permission to access telemetry for this container.");
+    }
   }
 
   const role = getUserRole(author);
-  const grafanaJwt = await createGrafanaJWT(author, role);
+  const orgName = getTenantOrgName(author);
+
+  // Ensure dedicated Grafana Organization and tenant datasources exist
+  await ensureTenantGrafanaOrg(author, subdomain || undefined);
+
+  const grafanaJwt = await createGrafanaJWT(author, role, subdomain || undefined);
   ctx.response.body = {
     token: grafanaJwt,
     role,
+    org: orgName,
     user: author,
   };
 }
 
 async function getSystemLogsHandler(ctx: Context): Promise<void> {
-  const author = ctx.request.url.searchParams.get("user");
-  const token = ctx.request.url.searchParams.get("token");
-  const provider = ctx.request.url.searchParams.get("provider");
-
-  if (!author || author !== await checkJWT(provider!, token!)) {
-    ctx.throw(401);
+  const auth = await authenticateRequest(ctx);
+  if (!auth) {
+    ctx.throw(401, "Unauthorized");
   }
+  const author = auth.user;
 
   if (!isSuperAdmin(author)) {
     ctx.throw(403, "Only super administrators can view system logs.");
@@ -124,9 +147,46 @@ router
   .post("/health/:subdomain/stop", (ctx) => stopContainerHandler(ctx))
   .post("/health/check", (ctx) => triggerHealthCheckHandler(ctx));
 
-app.use(oakCors({ origin: frontend ? [frontend, "http://localhost:8000", "http://localhost:5173"] : true }));
+const isProd = Deno.env.get("DENO_ENV") === "production";
+const rawFrontend = Deno.env.get("FRONTEND");
+const configuredOrigins = rawFrontend
+  ? rawFrontend.split(",").map((o) => o.trim()).filter(Boolean)
+  : [];
+const defaultDevOrigins = [
+  "http://localhost:8000",
+  "http://localhost:5173",
+  "http://127.0.0.1:8000",
+  "http://127.0.0.1:5173",
+];
+
+if (isProd && configuredOrigins.length === 0) {
+  throw new Error("[SECURITY FATAL] FRONTEND must be configured with allowed origins in production!");
+}
+
+const grafanaAdminPassword = Deno.env.get("GF_SECURITY_ADMIN_PASSWORD");
+if (isProd && (!grafanaAdminPassword || grafanaAdminPassword === "admin")) {
+  logger.warn("[SECURITY] GF_SECURITY_ADMIN_PASSWORD is unset or using default 'admin' in production!");
+}
+
+const allowedOrigins = isProd
+  ? configuredOrigins
+  : Array.from(new Set([...configuredOrigins, ...defaultDevOrigins]));
+
+app.use(
+  oakCors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Auth-Provider"],
+    credentials: true,
+  }),
+);
 app.use(router.routes());
 app.use(router.allowedMethods());
+
+// Initialize Alloy telemetry pipeline configurations for known tenants
+syncAlloyConfig().catch((e) => {
+  logger.warn("Initial Alloy config synchronization notice", { error: (e as Error)?.message });
+});
 
 // Start health monitoring service
 startHealthMonitor();

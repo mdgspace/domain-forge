@@ -1,7 +1,15 @@
+function generateOAuthState(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  const state = Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  sessionStorage.setItem("oauth_state", state);
+  return state;
+}
+
 function oauthUrl(provider: string) {
   let rootUrl: string, clientId: string, redirectUri: string, scope: string;
   const responseType = "code";
-  console.log(provider);
+
   if (provider === "github") {
     rootUrl = "https://github.com/login/oauth/authorize";
     clientId = import.meta.env.VITE_APP_GITHUB_OAUTH_CLIENT_ID;
@@ -17,11 +25,13 @@ function oauthUrl(provider: string) {
     return "";
   }
 
+  const state = generateOAuthState();
   const options = {
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: scope,
     response_type: responseType,
+    state: state,
   };
   const qs = new URLSearchParams(options);
   return `${rootUrl}?${qs.toString()}`;

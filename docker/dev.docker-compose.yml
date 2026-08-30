@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   deno:
     container_name: df_backend
@@ -7,18 +5,26 @@ services:
     restart: always
     volumes:
       - type: bind
-        source: ../docker/named_pipe
+        source: ./named_pipe
         target: /hostpipe
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
       target: base
     ports:
-      - "${PORT_BACKEND}:7000"
+      - "${PORT_BACKEND:-7000}:7000"
+    environment:
+      - PROMETHEUS_URL=http://mimir:8080/prometheus
+      - MIMIR_URL=http://mimir:8080
+      - LOKI_URL=http://loki:3100
+      - GRAFANA_URL=http://grafana:3000
+      - ALLOY_URL=http://alloy:12345
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD must be set}
     env_file:
       - ../src/backend/.env
     depends_on:
-      - prometheus
+      - mimir
       - loki
 
   vue:
@@ -30,7 +36,7 @@ services:
       dockerfile: docker/Dockerfile.frontend
       target: base
     ports:
-      - "${PORT_FRONTEND}:8000"
+      - "${PORT_FRONTEND:-8000}:8000"
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.0
@@ -44,24 +50,19 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
 
-  prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: df_prometheus
+  mimir:
+    image: grafana/mimir:2.11.0
+    container_name: df_mimir
     restart: unless-stopped
-    mem_limit: 384m
+    mem_limit: 512m
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=24h'
-      - '--storage.tsdb.retention.size=256MB'
-      - '--web.enable-lifecycle'
+      - "-config.file=/etc/mimir/mimir.yaml"
+      - "-target=all"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
+      - ./mimir-config.yaml:/etc/mimir/mimir.yaml:ro
+      - mimir_data:/data/mimir
     depends_on:
       - cadvisor
 
@@ -73,8 +74,8 @@ services:
     volumes:
       - ./loki-config.yml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
-    ports:
-      - "3100:3100"
+    depends_on:
+      - cadvisor
 
   alloy:
     image: grafana/alloy:v1.0.0
@@ -82,51 +83,55 @@ services:
     user: root
     restart: unless-stopped
     volumes:
-      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - ./named_pipe/alloy:/etc/alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../docker/named_pipe/logs:/hostpipe/logs:ro
+      - ./named_pipe/logs:/hostpipe/logs:ro
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
       - /etc/alloy/config.alloy
-    ports:
-      - "12345:12345"
     depends_on:
+      - mimir
       - loki
 
   grafana:
-    image: grafana/grafana:10.2.0
+    image: grafana/grafana:11.2.0
     container_name: df_grafana
     restart: unless-stopped
     environment:
+      - GF_LOG_LEVEL=debug
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD must be set}
+      - GF_SECURITY_PASSWORD_POLICY_ENABLED=false
       - GF_SECURITY_ALLOW_EMBEDDING=true
-      - GF_SECURITY_COOKIE_SAMESITE=none
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_SECURITY_COOKIE_SAMESITE=lax
+      - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_AUTH_JWT_ENABLED=true
+      - GF_AUTH_JWT_HEADER_NAME=X-JWT-Assertion
       - GF_AUTH_JWT_ENABLE_LOGIN_TOKEN=true
       - GF_AUTH_JWT_URL_LOGIN=true
-      - GF_AUTH_JWT_URL_PARAMETER_NAME=auth_token
+      - GF_AUTH_JWT_PARAM_NAME=auth_token
       - GF_AUTH_JWT_JWK_SET_FILE=/etc/grafana/jwt/jwks.json
       - GF_AUTH_JWT_USERNAME_CLAIM=sub
+      - GF_AUTH_JWT_EMAIL_CLAIM=email
       - GF_AUTH_JWT_AUTO_SIGN_UP=true
       - GF_AUTH_JWT_ALLOW_ASSIGN_GRAFANA_ADMIN=true
       - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(roles, 'superadmin') && 'Admin' || 'Viewer'
-      - GF_USERS_AUTO_ASSIGN_ORG=true
-      - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Admin
+      - GF_AUTH_JWT_ORG_ATTRIBUTE_PATH=org_name
+      - GF_USERS_AUTO_ASSIGN_ORG=false
+      - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - ./grafana/jwt:/etc/grafana/jwt:ro
+      - ./named_pipe/jwt:/etc/grafana/jwt:ro
       - grafana_data:/var/lib/grafana
     ports:
       - "${PORT_GRAFANA:-3000}:3000"
     depends_on:
-      - prometheus
+      - mimir
       - loki
 
 volumes:
-  prometheus_data:
+  mimir_data:
   loki_data:
   grafana_data:

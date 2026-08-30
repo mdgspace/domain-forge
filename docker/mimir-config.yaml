@@ -1,0 +1,58 @@
+multitenancy_enabled: true
+
+server:
+  http_listen_port: 8080
+  grpc_listen_port: 9095
+  log_level: info
+
+common:
+  storage:
+    backend: filesystem
+    filesystem:
+      dir: /data/mimir/data
+
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+
+ingester:
+  ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/mimir/data/tsdb
+  bucket_store:
+    sync_dir: /data/mimir/data/tsdb-sync
+  tsdb:
+    dir: /data/mimir/data/tsdb-ingester
+    block_ranges_period: [2h]
+    retention_period: 24h
+
+compactor:
+  data_dir: /data/mimir/data/compactor
+  block_ranges: [2h, 12h, 24h]
+  deletion_delay: 2h
+
+store_gateway:
+  sharding_ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+querier:
+  max_concurrent: 20
+  timeout: 1m
+
+tenant_federation:
+  enabled: true
+
+limits:
+  max_global_series_per_user: 100000
+  max_label_names_per_series: 30
+  ingestion_rate: 10000
+  ingestion_burst_size: 20000

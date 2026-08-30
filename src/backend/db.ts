@@ -2,6 +2,7 @@ import { MongoClient } from "./dependencies.ts";
 import getProviderUser from "./utils/get-user.ts";
 import DfContentMap from "./types/maps_interface.ts";
 import { isSuperAdmin } from "./utils/jwt.ts";
+import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
 
 // Initialize MongoClient with npm driver
 const MONGO_URI = Deno.env.get("MONGO_URI");
@@ -43,22 +44,27 @@ async function checkUser(accessToken: string, provider: string) {
 
   const userId = await getProviderUser(accessToken, provider);
 
-  // Allow users from ADMIN_LIST or SUPER_ADMIN_LIST
+  // Allow users from ADMIN_LIST or SUPER_ADMIN_LIST (case-insensitive)
   const allowedUsers = [
     ...(Deno.env.get("ADMIN_LIST")?.split("|") || []),
     ...(Deno.env.get("SUPER_ADMIN_LIST")?.split("|") || []),
   ].map((s) => s.trim()).filter(Boolean);
 
-  if (!allowedUsers.includes(userId)) {
+  const isAllowed = allowedUsers.some((u) => u.toLowerCase() === userId.toLowerCase());
+  if (!isAllowed) {
     console.log(`User ${userId} is not in the allowed list.`);
     return { status: { matchedCount: 0, upsertedId: undefined }, userId };
   }
+
+  // Encrypt OAuth access token with AES-GCM 256 before persisting
+  const encryptedToken = await encryptEnv(accessToken);
 
   const query = { [`${provider}Id`]: userId };
   const update = {
     $set: {
       [`${provider}Id`]: userId,
-      "authToken": accessToken,
+      "authToken": encryptedToken,
+      "updatedAt": new Date(),
     },
   };
 
@@ -76,6 +82,23 @@ async function getMaps(author: string, isSuperAdminUser = false) {
   return { documents: data };
 }
 
+// Get all tenants and their associated subdomains
+export async function getAllTenantsWithSubdomains(): Promise<Record<string, string[]>> {
+  if (!contentMapsCollection) return {};
+  try {
+    const docs = await contentMapsCollection.find({}, { projection: { author: 1, subdomain: 1 } }).toArray();
+    const mapping: Record<string, string[]> = {};
+    for (const d of docs) {
+      if (!d.author || d.author === "not verified" || d.author === "anonymous") continue;
+      if (!mapping[d.author]) mapping[d.author] = [];
+      if (d.subdomain) mapping[d.author].push(d.subdomain);
+    }
+    return mapping;
+  } catch (_e) {
+    return {};
+  }
+}
+
 // Get list of subdomains owned by a specific user
 async function getUserSubdomains(author: string): Promise<string[]> {
   if (!contentMapsCollection) {
@@ -85,6 +108,17 @@ async function getUserSubdomains(author: string): Promise<string[]> {
     .find({ "author": author }, { projection: { subdomain: 1 } })
     .toArray();
   return docs.map((d: any) => d.subdomain);
+}
+
+// Get the owner of a specific subdomain
+export async function getSubdomainOwner(subdomain: string): Promise<string | null> {
+  if (!contentMapsCollection) return null;
+  try {
+    const doc = await contentMapsCollection.findOne({ subdomain }, { projection: { author: 1 } });
+    return doc?.author || null;
+  } catch (_e) {
+    return null;
+  }
 }
 
 // Verify whether a user owns a subdomain or has super admin privileges
@@ -147,12 +181,13 @@ async function getDeploymentsByRepo(repoUrl: string) {
   }).toArray();
 }
 
-async function getUserToken(userId: string) {
+async function getUserToken(userId: string): Promise<string | null> {
   if (!userAuthCollection) return null;
   const user = await userAuthCollection.findOne({ 
     $or: [ { githubId: userId }, { gitlabId: userId } ] 
   });
-  return user?.authToken;
+  if (!user?.authToken) return null;
+  return await decryptEnv(user.authToken);
 }
 
 export {

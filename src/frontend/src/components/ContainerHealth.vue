@@ -147,16 +147,20 @@ export default defineComponent({
 
     const BACKEND_URL = import.meta.env.VITE_APP_BACKEND || 'http://localhost:7000';
 
-    const getAuthParams = () => {
+    const getAuthHeaders = () => {
       const token = localStorage.getItem('JWTUser') || '';
-      const provider = localStorage.getItem('provider') || '';
-      return `user=${encodeURIComponent(username.value)}&token=${encodeURIComponent(token)}&provider=${encodeURIComponent(provider)}`;
+      const provider = localStorage.getItem('provider') || 'github';
+      return {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'X-Auth-Provider': provider,
+      };
     };
 
     const fetchUsername = async () => {
       const token = localStorage.getItem('JWTUser');
-      const provider = localStorage.getItem('provider');
-      if (!token || !provider) {
+      const provider = localStorage.getItem('provider') || 'github';
+      if (!token) {
         router.push('/login');
         return;
       }
@@ -164,7 +168,7 @@ export default defineComponent({
       try {
         const resp = await fetch(`${BACKEND_URL}/auth/jwt`, {
           method: 'POST',
-          headers: { 'Accept': 'application/json' },
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify({ jwt_token: token, provider }),
         });
         const data = await resp.json();
@@ -184,7 +188,9 @@ export default defineComponent({
 
       loading.value = true;
       try {
-        const response = await fetch(`${BACKEND_URL}/health?${getAuthParams()}`);
+        const response = await fetch(`${BACKEND_URL}/health?user=${encodeURIComponent(username.value)}`, {
+          headers: getAuthHeaders(),
+        });
         const data = await response.json();
         
         containers.value = data.containers || [];
@@ -228,10 +234,11 @@ export default defineComponent({
         if (!username.value) {
           await fetchUsername();
         }
-        const token = localStorage.getItem('JWTUser') || '';
-        const provider = localStorage.getItem('provider') || '';
 
-        const resp = await fetch(`${BACKEND_URL}/auth/grafana-token?user=${encodeURIComponent(username.value)}&token=${encodeURIComponent(token)}&provider=${encodeURIComponent(provider)}`);
+        const resp = await fetch(
+          `${BACKEND_URL}/auth/grafana-token?user=${encodeURIComponent(username.value)}&subdomain=${encodeURIComponent(subdomain)}`,
+          { headers: getAuthHeaders() },
+        );
         if (!resp.ok) {
           throw new Error(`Failed to fetch Grafana token (HTTP ${resp.status})`);
         }
@@ -257,12 +264,16 @@ export default defineComponent({
 
       try {
         const token = localStorage.getItem('JWTUser') || '';
-        const provider = localStorage.getItem('provider') || '';
+        const provider = localStorage.getItem('provider') || 'github';
 
         const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/restart`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: username.value, token: token, provider }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Auth-Provider': provider,
+          },
+          body: JSON.stringify({ author: username.value, token, provider }),
         });
 
         if (!response.ok) {
@@ -292,12 +303,16 @@ export default defineComponent({
 
       try {
         const token = localStorage.getItem('JWTUser') || '';
-        const provider = localStorage.getItem('provider') || '';
+        const provider = localStorage.getItem('provider') || 'github';
 
         const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/stop`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: username.value, token: token, provider }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Auth-Provider': provider,
+          },
+          body: JSON.stringify({ author: username.value, token, provider }),
         });
 
         if (!response.ok) {

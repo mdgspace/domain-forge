@@ -17,21 +17,21 @@ let refreshInterval = null;
 const fetchLogs = async () => {
   try {
     const backend = import.meta.env.VITE_APP_BACKEND;
-    const token = localStorage.getItem("JWTUser");
-    const provider = localStorage.getItem("provider");
+    const token = localStorage.getItem("JWTUser") || "";
+    const provider = localStorage.getItem("provider") || "github";
 
     const baseUrl = backend.replace(/\/$/, "");
     const url = new URL(`${baseUrl}/map/${encodeURIComponent(props.subdomain ?? "")}/logs`);
     url.search = new URLSearchParams({
       user: props.user ?? "",
-      token: token ?? "",
-      provider: provider ?? "",
       type: logType.value,
     }).toString();
 
     const response = await fetch(url.toString(), {
       headers: {
-        Accept: "application/json"
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Auth-Provider": provider,
       }
     });
     if (!response.ok) throw new Error("Failed to fetch logs");

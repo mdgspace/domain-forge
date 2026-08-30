@@ -8,8 +8,10 @@ import {
 } from "./utils/container-health.ts";
 import { restartContainer, stopContainer, getRestartCount, getStopCount, validateContainerName } from "./utils/auto-restart.ts";
 import { getMonitorStatus, triggerHealthCheck } from "./health-monitor.ts";
-import { checkJWT, isSuperAdmin } from "./utils/jwt.ts";
+import { isSuperAdmin } from "./utils/jwt.ts";
 import { getUserSubdomains, verifySubdomainOwnership } from "./db.ts";
+import { authenticateRequest } from "./utils/auth-helper.ts";
+import { isValidSubdomain } from "./utils/log-service.ts";
 
 const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
     '1s': { step: '1s', duration: '5m' },
@@ -21,15 +23,13 @@ const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
 };
 
 export async function getContainerHealth(ctx: Context): Promise<void> {
-    const author = ctx.request.url.searchParams.get("user");
-    const token = ctx.request.url.searchParams.get("token");
-    const provider = ctx.request.url.searchParams.get("provider");
-
-    if (!author || author !== await checkJWT(provider!, token!)) {
-        ctx.throw(401);
+    const auth = await authenticateRequest(ctx);
+    if (!auth) {
+        ctx.throw(401, "Unauthorized");
     }
+    const author = auth.user;
 
-    const summary = await getHealthSummary();
+    const summary = await getHealthSummary(author);
     const isSuper = isSuperAdmin(author);
     let visibleContainers = summary.containers;
 
@@ -66,16 +66,14 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
 export async function getContainerMetrics(ctx: Context): Promise<void> {
     const subdomain = (ctx as any).params?.subdomain;
     const stepParam = ctx.request.url.searchParams.get("step") || '1m';
-    const author = ctx.request.url.searchParams.get("user");
-    const token = ctx.request.url.searchParams.get("token");
-    const provider = ctx.request.url.searchParams.get("provider");
-
-    if (!author || author !== await checkJWT(provider!, token!)) {
-        ctx.throw(401);
+    const auth = await authenticateRequest(ctx);
+    if (!auth) {
+        ctx.throw(401, "Unauthorized");
     }
+    const author = auth.user;
 
-    if (!subdomain) {
-        ctx.throw(400, "Subdomain parameter is required");
+    if (!subdomain || !isValidSubdomain(subdomain)) {
+        ctx.throw(400, "Subdomain parameter is invalid or missing");
     }
 
     const hasAccess = await verifySubdomainOwnership(author, subdomain);
@@ -86,7 +84,7 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
     const step = stepParam as TimeStep;
     const range = TIME_RANGE_PRESETS[step] || TIME_RANGE_PRESETS['1m'];
 
-    const history = await getContainerHistory(subdomain, range);
+    const history = await getContainerHistory(subdomain, range, author);
 
     ctx.response.body = {
         subdomain,
@@ -105,15 +103,13 @@ export async function getContainerMetrics(ctx: Context): Promise<void> {
 }
 
 export async function getHealthDashboard(ctx: Context): Promise<void> {
-    const author = ctx.request.url.searchParams.get("user");
-    const token = ctx.request.url.searchParams.get("token");
-    const provider = ctx.request.url.searchParams.get("provider");
-
-    if (!author || author !== await checkJWT(provider!, token!)) {
-        ctx.throw(401);
+    const auth = await authenticateRequest(ctx);
+    if (!auth) {
+        ctx.throw(401, "Unauthorized");
     }
+    const author = auth.user;
 
-    const summary = await getHealthSummary();
+    const summary = await getHealthSummary(author);
     const monitorStatus = getMonitorStatus();
     const isSuper = isSuperAdmin(author);
     let visibleContainers = summary.containers;
@@ -163,21 +159,11 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
         ctx.throw(400, "Invalid container identifier");
     }
 
-    const body = await ctx.request.body().value;
-    let document;
-    try {
-        document = typeof body === 'string' ? JSON.parse(body) : body;
-    } catch {
-        document = body;
+    const auth = await authenticateRequest(ctx);
+    if (!auth || !auth.user || auth.user === "not verified") {
+        ctx.throw(401, "Unauthorized");
     }
-
-    const author = document?.author;
-    const token = document?.token;
-    const provider = document?.provider;
-
-    if (!author || author !== await checkJWT(provider, token)) {
-        ctx.throw(401);
-    }
+    const author = auth.user;
 
     const hasAccess = await verifySubdomainOwnership(author, safeSubdomain);
     if (!hasAccess) {
@@ -210,21 +196,11 @@ export async function stopContainerHandler(ctx: Context): Promise<void> {
         ctx.throw(400, "Invalid container identifier");
     }
 
-    const body = await ctx.request.body().value;
-    let document;
-    try {
-        document = typeof body === 'string' ? JSON.parse(body) : body;
-    } catch {
-        document = body;
+    const auth = await authenticateRequest(ctx);
+    if (!auth || !auth.user || auth.user === "not verified") {
+        ctx.throw(401, "Unauthorized");
     }
-
-    const author = document?.author;
-    const token = document?.token;
-    const provider = document?.provider;
-
-    if (!author || author !== await checkJWT(provider, token)) {
-        ctx.throw(401);
-    }
+    const author = auth.user;
 
     const hasAccess = await verifySubdomainOwnership(author, safeSubdomain);
     if (!hasAccess) {
@@ -249,21 +225,11 @@ export async function stopContainerHandler(ctx: Context): Promise<void> {
 }
 
 export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
-    const body = await ctx.request.body().value;
-    let document;
-    try {
-        document = typeof body === 'string' ? JSON.parse(body) : body;
-    } catch {
-        document = body;
+    const auth = await authenticateRequest(ctx);
+    if (!auth || !auth.user || auth.user === "not verified") {
+        ctx.throw(401, "Unauthorized");
     }
-
-    const author = document?.author;
-    const token = document?.token;
-    const provider = document?.provider;
-
-    if (!author || author !== await checkJWT(provider, token)) {
-        ctx.throw(401);
-    }
+    const author = auth.user;
 
     if (!isSuperAdmin(author)) {
         ctx.throw(403, "Only super administrators can trigger health checks.");
