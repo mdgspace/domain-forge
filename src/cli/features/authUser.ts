@@ -7,7 +7,7 @@ export async function verifyApiKey(apiKey: string, provider: string , backendUrl
         jwt_token: apiKey,
         provider: provider,
       });
-      return response.data;
+      return response.data?.user || 'not verified';
     } catch (error) {
       console.error(chalk.red('Error verifying API key:'));
       return 'not verified';

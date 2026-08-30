@@ -1,46 +1,29 @@
 import { Context, Sentry } from "./dependencies.ts";
 import { addScript, deleteScript } from "./scripts.ts";
-import { checkJWT } from "./utils/jwt.ts";
-import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken } from "./db.ts";
+import { isSuperAdmin } from "./utils/jwt.ts";
+import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getSubdomainOwner, getUserToken, verifySubdomainOwnership } from "./db.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
-
-// ... skipping to githubWebhook
-
-
-const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|");
+import { getBuildLogs, getCombinedLogs, getRuntimeLogs } from "./utils/log-service.ts";
+import { logger } from "./utils/logger.ts";
+import { authenticateRequest } from "./utils/auth-helper.ts";
+import { verifyGitHubSignature } from "./utils/webhook-verify.ts";
+import { ensureTenantGrafanaOrg } from "./utils/grafana-provisioner.ts";
+import { ensureTenantAlloyPipeline } from "./utils/alloy-provisioner.ts";
 
 function isValidSubdomain(subdomain: string): boolean {
   // Strict allowlist: alphanumeric, dots, and hyphens. Length between 1 and 63.
   return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(subdomain);
 }
 
-async function readLastNBytes(filePath: string, n: number): Promise<string> {
-  try {
-    const file = await Deno.open(filePath, { read: true });
-    const fileSize = (await file.stat()).size;
-    const start = Math.max(0, fileSize - n);
-    await file.seek(start, Deno.SeekMode.Start);
-    const buffer = new Uint8Array(n);
-    const bytesRead = await file.read(buffer);
-    file.close();
-    if (bytesRead === null) return "";
-    return new TextDecoder().decode(buffer.subarray(0, bytesRead));
-  } catch (_e) {
-    return "No logs found or error reading log file.";
-  }
-}
-
 async function getSubdomains(ctx: Context) {
-  const author = ctx.request.url.searchParams.get("user");
-  const token = ctx.request.url.searchParams.get("token");
-  const provider = ctx.request.url.searchParams.get("provider");
-  if (author != await checkJWT(provider!, token!)) {
-    ctx.throw(401);
+  const auth = await authenticateRequest(ctx);
+  if (!auth) {
+    ctx.throw(401, "Unauthorized");
   }
-  const data = await getMaps(author, ADMIN_LIST!);
+  const author = auth.user;
+  const isSuper = isSuperAdmin(author);
+  const data = await getMaps(author, isSuper);
 
-  // If frontend needs to read subdomains, we should decrypt env_content before sending to client
-  // But we'll leave it as is if frontend doesn't display it explicitly, or we map it:
   const decryptedDocs = await Promise.all(data.documents.map(async (doc: any) => {
     if (doc.env_content) {
       doc.env_content = await decryptEnv(doc.env_content);
@@ -66,34 +49,49 @@ async function getSubdomains(ctx: Context) {
 }
 
 async function getLogs(ctx: Context) {
-  const subdomain = ctx.params.subdomain;
-  const author = ctx.request.url.searchParams.get("user");
-  const token = ctx.request.url.searchParams.get("token");
-  const provider = ctx.request.url.searchParams.get("provider");
+  const subdomain = (ctx as any).params?.subdomain;
+  const auth = await authenticateRequest(ctx);
+  if (!auth) {
+    ctx.throw(401, "Unauthorized");
+  }
+  const author = auth.user;
+  const type = ctx.request.url.searchParams.get("type") || "all";
+  const linesParam = ctx.request.url.searchParams.get("lines");
+  const lines = linesParam ? parseInt(linesParam, 10) : 200;
 
-  if (author != await checkJWT(provider!, token!)) {
-    ctx.throw(401);
+  if (!subdomain || !isValidSubdomain(subdomain)) {
+    ctx.throw(400, "Invalid subdomain.");
   }
 
-  // Security check: ensure user owns this subdomain
-  const data = await getMaps(author!, ADMIN_LIST!);
-  const ownsSubdomain = data.documents.some((doc: any) => doc.subdomain === subdomain);
+  // Security check: ensure user owns this subdomain or is super admin
+  const ownsSubdomain = await verifySubdomainOwnership(author, subdomain);
   
   if (!ownsSubdomain) {
     ctx.throw(403, "You do not have permission to view these logs.");
   }
 
-  if (!isValidSubdomain(subdomain!)) {
-    ctx.throw(400, "Invalid subdomain.");
-  }
+  const targetTenant = (isSuperAdmin(author) ? await getSubdomainOwner(subdomain) : null) || author;
 
   try {
-    const logPath = `/hostpipe/logs/${subdomain}.log`;
-    // Return only last 100KB of logs to avoid CPU/memory pressure
-    const logs = await readLastNBytes(logPath, 100 * 1024);
-    ctx.response.body = { logs };
-  } catch (_e) {
-    ctx.response.body = { logs: "No logs found for this subdomain." };
+    if (type === "build") {
+      const logs = await getBuildLogs(subdomain);
+      ctx.response.body = { logs, type: "build" };
+    } else if (type === "runtime") {
+      const logs = await getRuntimeLogs(subdomain, lines, targetTenant);
+      ctx.response.body = { logs, type: "runtime" };
+    } else {
+      const result = await getCombinedLogs(subdomain, lines, targetTenant);
+      ctx.response.body = {
+        logs: result.all,
+        build: result.build,
+        runtime: result.runtime,
+        type: "all",
+      };
+    }
+  } catch (error) {
+    logger.error("Error retrieving logs for subdomain", { subdomain, error: (error as Error)?.message });
+    ctx.response.status = 500;
+    ctx.response.body = { error: "Failed to retrieve logs." };
   }
 }
 
@@ -104,17 +102,24 @@ async function addSubdomain(ctx: Context) {
   let document;
   const body = await ctx.request.body().value;
   try {
-    document = JSON.parse(body);
-  } catch (e) {
+    document = typeof body === "string" ? JSON.parse(body) : body;
+  } catch (_e) {
     document = body;
   }
   const copy = { ...document };
-  const token = document.token;
-  const provider = document.provider;
-  if (document.author != await checkJWT(provider, token)) {
-    ctx.throw(401);
+
+  // Strict header-based authentication enforcement
+  const auth = await authenticateRequest(ctx);
+  if (!auth || !auth.user || auth.user === "not verified") {
+    ctx.throw(401, "Unauthorized");
+  }
+
+  // Non-superadmin users can only create subdomains under their own identity
+  if (document.author !== auth.user && !isSuperAdmin(auth.user)) {
+    ctx.throw(403, "Forbidden: cannot author subdomains for another user");
   }
   
+  // Strip any accidental auth parameters from document payload
   delete document.token;
   delete document.provider;
 
@@ -127,12 +132,15 @@ async function addSubdomain(ctx: Context) {
     document.env_content = await encryptEnv(document.env_content);
   }
 
+  // Pre-provision tenant Grafana Org & Alloy telemetry pipeline
+  await ensureTenantGrafanaOrg(document.author).catch(() => {});
+  await ensureTenantAlloyPipeline(document.author).catch(() => {});
+
   // We keep deployment config (port, stack, etc.) in the document to store them in DB for webhook usage
   const success: boolean = await addMaps(document);
 
-
   if (success) {
-    if (document.enable_ci === true && document.resource_type === 'GITHUB' && provider === 'github') {
+    if (document.enable_ci === true && document.resource_type === 'GITHUB' && auth.provider === 'github') {
       try {
         const url = new URL(document.resource);
         if (url.hostname === "github.com") {
@@ -154,6 +162,8 @@ async function addSubdomain(ctx: Context) {
                 'Authorization': `Bearer ${authToken}`
               };
 
+              const webhookSecret = Deno.env.get("GITHUB_WEBHOOK_SECRET");
+
               // First, check if webhook already exists to prevent duplicate triggers
               fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, { headers })
                 .then(res => res.json())
@@ -173,7 +183,8 @@ async function addSubdomain(ctx: Context) {
                       name: "web",
                       config: {
                         url: webhookUrl,
-                        content_type: 'json'
+                        content_type: 'json',
+                        ...(webhookSecret ? { secret: webhookSecret } : {})
                       },
                       events: ['push'],
                       active: true
@@ -224,34 +235,55 @@ async function deleteSubdomain(ctx: Context) {
   let document;
   const body = await ctx.request.body().value;
   try {
-    document = JSON.parse(body);
-  } catch (e) {
+    document = typeof body === "string" ? JSON.parse(body) : body;
+  } catch (_e) {
     document = body;
   }
-  const author = document.author;
-  const token = document.token;
-  const provider = document.provider;
-  delete document.token;
-  delete document.provider;
-  if (author != await checkJWT(provider, token)) {
-    ctx.throw(401);
+
+  const auth = await authenticateRequest(ctx);
+  if (!auth || !auth.user || auth.user === "not verified") {
+    ctx.throw(401, "Unauthorized");
   }
-  const data = await deleteMaps(document, ADMIN_LIST!);
+
+  const author = auth.user;
+  delete document?.token;
+  delete document?.provider;
+
+  if (!document?.subdomain || !isValidSubdomain(document.subdomain)) {
+    ctx.throw(400, "Invalid subdomain format.");
+  }
+  document.author = author;
+
+  const isSuper = isSuperAdmin(author);
+  const ownsSubdomain = await verifySubdomainOwnership(author, document.subdomain);
+  if (!ownsSubdomain) {
+    ctx.throw(403, "You do not have permission to delete this subdomain.");
+  }
+
+  const data = await deleteMaps(document, isSuper);
   if (data.deletedCount) {
     deleteScript(document);
     
-    // Also delete status and log files
+    // Clean up all temporary, log, and status files for this subdomain (P2-5 Remediation)
     if (isValidSubdomain(document.subdomain)) {
-      try {
-        await Deno.remove(`/hostpipe/status/${document.subdomain}.status`);
-      } catch (_e) { /* ignore if not exists */ }
-      try {
-        await Deno.remove(`/hostpipe/logs/${document.subdomain}.log`);
-      } catch (_e) { /* ignore if not exists */ }
+      const filesToDelete = [
+        `/hostpipe/status/${document.subdomain}.status`,
+        `/hostpipe/logs/${document.subdomain}.log`,
+        `/hostpipe/.env.${document.subdomain}`,
+        `/hostpipe/Dockerfile.${document.subdomain}`,
+        `/hostpipe/.dockerignore.${document.subdomain}`,
+      ];
+      for (const filePath of filesToDelete) {
+        try {
+          await Deno.remove(filePath);
+        } catch (_e) {
+          // Ignore if file does not exist
+        }
+      }
     }
 
     Sentry.captureMessage(
-      "User " + document.author + " deleted subdomain " + document.subdomain,
+      "User " + author + " deleted subdomain " + document.subdomain,
       "info",
     );
   }
@@ -266,8 +298,16 @@ async function githubWebhook(ctx: Context) {
     ctx.throw(415);
   }
 
-  // Read raw payload for exact signature verification
+  // Read raw payload for exact HMAC-SHA256 signature verification (P1-7 Remediation)
   const rawBody = await ctx.request.body({ type: "bytes" }).value;
+  const signature = ctx.request.headers.get("x-hub-signature-256");
+  const webhookSecret = Deno.env.get("GITHUB_WEBHOOK_SECRET") || "";
+
+  // Strictly enforce webhook verification across all environments
+  if (!webhookSecret || !(await verifyGitHubSignature(rawBody, signature, webhookSecret))) {
+    ctx.throw(401, "Invalid webhook signature");
+  }
+
   const event = ctx.request.headers.get("x-github-event");
 
   // Ignore non-push events (e.g. ping event when webhook is added)
@@ -281,7 +321,7 @@ async function githubWebhook(ctx: Context) {
   let payload;
   try {
     payload = JSON.parse(bodyString);
-  } catch (e) {
+  } catch (_e) {
     ctx.throw(400, "Invalid JSON");
   }
 
@@ -295,7 +335,7 @@ async function githubWebhook(ctx: Context) {
 
   const cloneUrl = payload.repository?.clone_url;
   if (!cloneUrl) {
-    ctx.throw(400, "Missng clone_url");
+    ctx.throw(400, "Missing clone_url");
   }
 
   // Find subdomains using this repo with enable_ci = true

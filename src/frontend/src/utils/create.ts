@@ -98,10 +98,15 @@ export async function create(
     "provider": localStorage.getItem("provider"),
     "enable_ci": enable_ci,
   };
+  const token = localStorage.getItem("JWTUser") || "";
+  const provider = localStorage.getItem("provider") || "github";
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",
     headers: {
       "Accept": "application/json",
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      "X-Auth-Provider": provider,
     },
     body: JSON.stringify(body),
   });

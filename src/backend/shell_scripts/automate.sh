@@ -37,8 +37,8 @@ if [ "$arg1" = "-u" ]; then
     echo "Generating url.conf"
     echo "url: $arg2"
     sudo touch /etc/nginx/sites-available/$arg3.conf
-    sudo chmod 666 /etc/nginx/sites-available/$arg3.conf
-    sudo echo "  server {
+    sudo chmod 644 /etc/nginx/sites-available/$arg3.conf
+    echo "  server {
       listen 80;
       listen [::]:80;
       server_name $arg3;
@@ -48,17 +48,17 @@ if [ "$arg1" = "-u" ]; then
       }
       charset utf-8;
       client_max_body_size 20M;
-   }" > /etc/nginx/sites-available/$arg3.conf;
-     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
-     sudo systemctl reload nginx;
+   }" | sudo tee /etc/nginx/sites-available/$arg3.conf > /dev/null
+     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf
+     sudo systemctl reload nginx
      echo "READY" > "$STATUS_FILE"
 elif [ "$arg1" = "-p" ]; then
     echo "Creating subdomain $arg3 which redirects to port $2"
     echo "Generating port.conf"
     echo "redirect: $arg2"
     sudo touch /etc/nginx/sites-available/$arg3.conf
-    sudo chmod 666 /etc/nginx/sites-available/$arg3.conf
-    sudo echo "# Virtual Host configuration for example.com
+    sudo chmod 644 /etc/nginx/sites-available/$arg3.conf
+    echo "# Virtual Host configuration for example.com
   server {
      listen 80;
      listen [::]:80;
@@ -73,9 +73,9 @@ elif [ "$arg1" = "-p" ]; then
      }
      charset utf-8;
      client_max_body_size 20M;
-     }" > /etc/nginx/sites-available/$arg3.conf;
-     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf;
-     sudo systemctl reload nginx;
+     }" | sudo tee /etc/nginx/sites-available/$arg3.conf > /dev/null
+     sudo ln -sf /etc/nginx/sites-available/$arg3.conf /etc/nginx/sites-enabled/$arg3.conf
+     sudo systemctl reload nginx
      echo "READY" > "$STATUS_FILE"
 
 else

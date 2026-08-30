@@ -16,7 +16,7 @@ const THRESHOLDS: HealthThresholds = {
     maxRestartCount: parseInt(Deno.env.get('MAX_RESTART_COUNT') || '5'),
 };
 
-let monitorInterval: number | null = null;
+let monitorInterval: ReturnType<typeof setInterval> | number | null = null;
 let isRunning = false;
 
 const restartAttempts = new Map<string, { count: number; lastAttempt: Date }>();
