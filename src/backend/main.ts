@@ -3,6 +3,7 @@ import { addScript, deleteScript } from "./scripts.ts";
 import { checkJWT } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken } from "./db.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
+import DfContentMap from "./types/maps_interface.ts";
 
 // ... skipping to githubWebhook
 

@@ -50,7 +50,7 @@
               <div style="display: flex; gap: 10px; justify-content: center;">
                 <button class="logs-btn" @click="showLogsModal=true;selectedItem=item">Logs</button>
                 <button
-                  v-if="item.resource_type === 'GITHUB'"
+                  v-if="item.resource_type && item.resource_type.toLowerCase().includes('github')"
                   class="redeploy-btn"
                   :disabled="redeploying === item.subdomain"
                   @click="redeployItem(item)"
@@ -111,6 +111,7 @@ export default {
       showLogsModal: false,
       selectedItem: null,
       redeploying: null,
+      statusEventSource: null,
     };
   },
   methods: {
@@ -133,7 +134,35 @@ export default {
       } finally {
         this.redeploying = null;
       }
+    },
+    connectStatusStream() {
+      const backend = import.meta.env.VITE_APP_BACKEND.replace(/\/$/, '');
+      const url = new URL(`${backend}/map/status-stream`);
+      url.search = new URLSearchParams({
+        user: this.user,
+        token: localStorage.getItem('JWTUser') || '',
+        provider: localStorage.getItem('provider') || '',
+      }).toString();
+
+      const source = new EventSource(url.toString());
+      source.addEventListener('status', (event) => {
+        try {
+          const update = JSON.parse(event.data);
+          const map = this.maps.find((item) => item.subdomain === update.subdomain);
+          if (map) map.status = update.status;
+        } catch (error) {
+          console.error('Ignoring malformed deployment status event.', error);
+        }
+      });
+      // EventSource automatically reconnects after network/server interruptions.
+      this.statusEventSource = source;
     }
+  },
+  mounted() {
+    this.connectStatusStream();
+  },
+  beforeUnmount() {
+    this.statusEventSource?.close();
   }
 };
 </script>

@@ -23,6 +23,7 @@ import {
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
+import { startStatusWatcher, streamStatuses } from "./status-stream.ts";
 
 const router = new Router();
 const app = new Application();
@@ -70,6 +71,7 @@ router
   .post("/auth/jwt", (ctx) => handleJwtAuthentication(ctx))
   // Subdomain routes
   .get("/map", (ctx) => getSubdomains(ctx))
+  .get("/map/status-stream", (ctx) => streamStatuses(ctx))
   .get("/map/:subdomain/logs", (ctx) => getLogs(ctx))
   .post("/map", (ctx) => addSubdomain(ctx))
   .post("/map/:subdomain/redeploy", (ctx) => redeploySubdomain(ctx))
@@ -89,6 +91,7 @@ app.use(router.allowedMethods());
 
 // Start health monitoring service
 startHealthMonitor();
+startStatusWatcher();
 
 app.listen({ port: PORT });
 console.log("Listening...");
