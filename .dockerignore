@@ -1,28 +1,25 @@
-# Editor Stuff
-.vscode
-.idea
-
-# Environment
+# Environment and Secrets
 .env
+*.pem
+*.key
+docker/named_pipe/jwt/
 
 # Logs
 logs
 *.log
-docker/grafana/jwt/
-docker/named_pipe/jwt/
-!docker/named_pipe/alloy/config.alloy
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Node / Deno dependencies and build artifacts
 node_modules
 .vite
 dist
 dist-ssr
 *.local
-deno.lock
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -33,3 +30,14 @@ deno.lock
 *.njsproj
 *.sln
 *.sw?
+
+# Version control
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile.backend
+Dockerfile.frontend
+docker-compose.yml
+dev.docker-compose.yml

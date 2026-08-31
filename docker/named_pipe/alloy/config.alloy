@@ -1,0 +1,723 @@
+// Grafana Alloy Configuration for Domain Forge (Tenant-Isolated Ingestion)
+// Automatically managed by Alloy Provisioner
+
+// Discover Docker containers from daemon socket
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Strip leading slash and extract tenant metadata for Loki logs
+discovery.relabel "docker_logs_filter" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "^/(.*)$"
+    target_label  = "container_name"
+  }
+
+  // Drop internal system infrastructure containers
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_df_author"]
+    target_label  = "tenant_id"
+  }
+
+  // Ensure missing or empty tenant_id falls back to anonymous, never cross-tenant
+  rule {
+    source_labels = ["tenant_id"]
+    regex         = "^$"
+    target_label  = "tenant_id"
+    replacement   = "anonymous"
+  }
+}
+
+// Process user container logs and attach dynamic tenant ID
+loki.process "docker_logs_process" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      container_name = "container_name",
+      subdomain      = "subdomain",
+      tenant_id      = "tenant_id",
+    }
+  }
+
+  stage.tenant {
+    label = "tenant_id"
+  }
+}
+
+// Tail stdout/stderr of discovered Docker containers
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_logs_filter.output
+  forward_to = [loki.process.docker_logs_process.receiver]
+}
+
+// Tenant build logs for 'opbot-xd'
+local.file_match "build_logs_opbot_xd" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/cipoc.domains.pluto.mdgspace.org.log", subdomain = "cipoc.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/idk.domains.pluto.mdgspace.org.log", subdomain = "idk.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/weaver-test.domains.pluto.mdgspace.org.log", subdomain = "weaver-test.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_opbot_xd" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "opbot-xd"
+  }
+}
+
+loki.source.file "build_logs_opbot_xd" {
+  targets    = local.file_match.build_logs_opbot_xd.targets
+  forward_to = [loki.process.build_logs_process_opbot_xd.receiver]
+}
+
+// Tenant build logs for 'MS-githubaccnt'
+local.file_match "build_logs_MS_githubaccnt" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/crown_test.domains.pluto.mdgspace.org.log", subdomain = "crown_test.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/crown_test2.domains.pluto.mdgspace.org.log", subdomain = "crown_test2.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/crown_test4.domains.pluto.mdgspace.org.log", subdomain = "crown_test4.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/testsrsti.domains.pluto.mdgspace.org.log", subdomain = "testsrsti.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_MS_githubaccnt" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "MS-githubaccnt"
+  }
+}
+
+loki.source.file "build_logs_MS_githubaccnt" {
+  targets    = local.file_match.build_logs_MS_githubaccnt.targets
+  forward_to = [loki.process.build_logs_process_MS_githubaccnt.receiver]
+}
+
+// Tenant build logs for 'alronova'
+local.file_match "build_logs_alronova" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/novaji.domains.pluto.mdgspace.org.log", subdomain = "novaji.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/hello101.domains.pluto.mdgspace.org.log", subdomain = "hello101.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/new-test.domains.pluto.mdgspace.org.log", subdomain = "new-test.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/hulk-is-back.domains.pluto.mdgspace.org.log", subdomain = "hulk-is-back.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/naya-domain.domains.pluto.mdgspace.org.log", subdomain = "naya-domain.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_alronova" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "alronova"
+  }
+}
+
+loki.source.file "build_logs_alronova" {
+  targets    = local.file_match.build_logs_alronova.targets
+  forward_to = [loki.process.build_logs_process_alronova.receiver]
+}
+
+// Tenant build logs for 'LordRyuga'
+local.file_match "build_logs_LordRyuga" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/srishti-demo-testing.domains.pluto.mdgspace.org.log", subdomain = "srishti-demo-testing.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_LordRyuga" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "LordRyuga"
+  }
+}
+
+loki.source.file "build_logs_LordRyuga" {
+  targets    = local.file_match.build_logs_LordRyuga.targets
+  forward_to = [loki.process.build_logs_process_LordRyuga.receiver]
+}
+
+// Tenant build logs for 'baync180705'
+local.file_match "build_logs_baync180705" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/hulk.domains.pluto.mdgspace.org.log", subdomain = "hulk.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_baync180705" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "baync180705"
+  }
+}
+
+loki.source.file "build_logs_baync180705" {
+  targets    = local.file_match.build_logs_baync180705.targets
+  forward_to = [loki.process.build_logs_process_baync180705.receiver]
+}
+
+// Tenant build logs for 'Annonnymmousss'
+local.file_match "build_logs_Annonnymmousss" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/jatin.domains.pluto.mdgspace.org.log", subdomain = "jatin.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/jattin.domains.pluto.mdgspace.org.log", subdomain = "jattin.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/rrr.domains.pluto.mdgspace.org.log", subdomain = "rrr.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_Annonnymmousss" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "Annonnymmousss"
+  }
+}
+
+loki.source.file "build_logs_Annonnymmousss" {
+  targets    = local.file_match.build_logs_Annonnymmousss.targets
+  forward_to = [loki.process.build_logs_process_Annonnymmousss.receiver]
+}
+
+// Tenant build logs for 'Weaver1209'
+local.file_match "build_logs_Weaver1209" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/weave.domains.pluto.mdgspace.org.log", subdomain = "weave.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_Weaver1209" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "Weaver1209"
+  }
+}
+
+loki.source.file "build_logs_Weaver1209" {
+  targets    = local.file_match.build_logs_Weaver1209.targets
+  forward_to = [loki.process.build_logs_process_Weaver1209.receiver]
+}
+
+// Tenant build logs for 'error110-bit'
+local.file_match "build_logs_error110_bit" {
+  path_targets = [
+    { __path__ = "/hostpipe/logs/okk.domains.pluto.mdgspace.org.log", subdomain = "okk.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/maggi.domains.pluto.mdgspace.org.log", subdomain = "maggi.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+    { __path__ = "/hostpipe/logs/ok.domains.pluto.mdgspace.org.log", subdomain = "ok.domains.pluto.mdgspace.org", job = "domain-forge-build-logs" },
+  ]
+}
+
+loki.process "build_logs_process_error110_bit" {
+  forward_to = [loki.write.loki_endpoint.receiver]
+
+  stage.labels {
+    values = {
+      subdomain = "subdomain",
+    }
+  }
+
+  stage.tenant {
+    value = "error110-bit"
+  }
+}
+
+loki.source.file "build_logs_error110_bit" {
+  targets    = local.file_match.build_logs_error110_bit.targets
+  forward_to = [loki.process.build_logs_process_error110_bit.receiver]
+}
+
+// Push logs to multi-tenant Loki endpoint
+loki.write "loki_endpoint" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// ==========================================
+// METRIC COLLECTION & MIMIR REMOTE WRITE
+// ==========================================
+
+// Scrape cAdvisor for container telemetry
+prometheus.scrape "cadvisor" {
+  targets = [{
+    __address__ = "cadvisor:8080",
+  }]
+  forward_to = [
+    prometheus.relabel.filter_metrics_opbot_xd.receiver,
+    prometheus.relabel.filter_metrics_MS_githubaccnt.receiver,
+    prometheus.relabel.filter_metrics_alronova.receiver,
+    prometheus.relabel.filter_metrics_LordRyuga.receiver,
+    prometheus.relabel.filter_metrics_baync180705.receiver,
+    prometheus.relabel.filter_metrics_Annonnymmousss.receiver,
+    prometheus.relabel.filter_metrics_Weaver1209.receiver,
+    prometheus.relabel.filter_metrics_error110_bit.receiver,
+    prometheus.relabel.filter_metrics_admin.receiver,
+  ]
+  scrape_interval = "15s"
+}
+
+// Tenant metric ingestion pipeline for 'opbot-xd'
+prometheus.relabel "filter_metrics_opbot_xd" {
+  forward_to = [
+    prometheus.remote_write.mimir_opbot_xd.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^opbot-xd;.*|.*;(cipoc\\.domains\\.pluto\\.mdgspace\\.org|idk\\.domains\\.pluto\\.mdgspace\\.org|weaver-test\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_opbot_xd" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "opbot-xd",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'MS-githubaccnt'
+prometheus.relabel "filter_metrics_MS_githubaccnt" {
+  forward_to = [
+    prometheus.remote_write.mimir_MS_githubaccnt.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^MS-githubaccnt;.*|.*;(crown_test\\.domains\\.pluto\\.mdgspace\\.org|crown_test2\\.domains\\.pluto\\.mdgspace\\.org|crown_test4\\.domains\\.pluto\\.mdgspace\\.org|testsrsti\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_MS_githubaccnt" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "MS-githubaccnt",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'alronova'
+prometheus.relabel "filter_metrics_alronova" {
+  forward_to = [
+    prometheus.remote_write.mimir_alronova.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^alronova;.*|.*;(novaji\\.domains\\.pluto\\.mdgspace\\.org|hello101\\.domains\\.pluto\\.mdgspace\\.org|new-test\\.domains\\.pluto\\.mdgspace\\.org|hulk-is-back\\.domains\\.pluto\\.mdgspace\\.org|naya-domain\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_alronova" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "alronova",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'LordRyuga'
+prometheus.relabel "filter_metrics_LordRyuga" {
+  forward_to = [
+    prometheus.remote_write.mimir_LordRyuga.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^LordRyuga;.*|.*;(srishti-demo-testing\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_LordRyuga" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "LordRyuga",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'baync180705'
+prometheus.relabel "filter_metrics_baync180705" {
+  forward_to = [
+    prometheus.remote_write.mimir_baync180705.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^baync180705;.*|.*;(hulk\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_baync180705" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "baync180705",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'Annonnymmousss'
+prometheus.relabel "filter_metrics_Annonnymmousss" {
+  forward_to = [
+    prometheus.remote_write.mimir_Annonnymmousss.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^Annonnymmousss;.*|.*;(jatin\\.domains\\.pluto\\.mdgspace\\.org|jattin\\.domains\\.pluto\\.mdgspace\\.org|rrr\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_Annonnymmousss" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "Annonnymmousss",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'Weaver1209'
+prometheus.relabel "filter_metrics_Weaver1209" {
+  forward_to = [
+    prometheus.remote_write.mimir_Weaver1209.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^Weaver1209;.*|.*;(weave\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_Weaver1209" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "Weaver1209",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'error110-bit'
+prometheus.relabel "filter_metrics_error110_bit" {
+  forward_to = [
+    prometheus.remote_write.mimir_error110_bit.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author", "container_name"]
+    regex         = "^error110-bit;.*|.*;(okk\\.domains\\.pluto\\.mdgspace\\.org|maggi\\.domains\\.pluto\\.mdgspace\\.org|ok\\.domains\\.pluto\\.mdgspace\\.org)$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_error110_bit" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "error110-bit",
+    }
+  }
+}
+
+// Tenant metric ingestion pipeline for 'admin'
+prometheus.relabel "filter_metrics_admin" {
+  forward_to = [
+    prometheus.remote_write.mimir_admin.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_usage_bytes|memory_max_usage_bytes|network_.*_bytes_total|fs_usage_bytes|fs_limit_bytes)"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["name"]
+    regex         = "^/?(.*)$"
+    target_label  = "container_name"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    regex         = "(df_.*|docker[-_]df_.*|domain[-_]forge[-_].*|cadvisor.*|prometheus.*|mimir.*|loki.*|alloy.*|grafana.*|traefik.*|caddy.*)"
+    action        = "drop"
+  }
+
+  rule {
+    source_labels = ["container_label_df_author"]
+    regex         = "^admin$"
+    action        = "keep"
+  }
+
+  rule {
+    source_labels = ["container_name"]
+    target_label  = "subdomain"
+  }
+}
+
+prometheus.remote_write "mimir_admin" {
+  endpoint {
+    url = "http://mimir:8080/api/v1/push"
+    headers = {
+      "X-Scope-OrgID" = "admin",
+    }
+  }
+}
