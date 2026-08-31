@@ -49,6 +49,22 @@ async function publishStatus(path: string): Promise<void> {
   }
 }
 
+/** Send the current values so reconnecting clients cannot retain a stale badge. */
+async function sendStatusSnapshot(subscriber: Subscriber): Promise<void> {
+  await Promise.all([...subscriber.subdomains].map(async (subdomain) => {
+    if (!isValidSubdomain(subdomain)) return;
+
+    try {
+      const status = (await Deno.readTextFile(`${STATUS_DIR}/${subdomain}.status`)).trim();
+      if (status) {
+        subscriber.controller.enqueue(eventMessage("status", { subdomain, status }));
+      }
+    } catch {
+      // A status file may not exist yet for a pending deployment.
+    }
+  }));
+}
+
 /** Start one shared host-status watcher for all connected dashboards. */
 async function watchStatuses(): Promise<void> {
   while (true) {
@@ -87,7 +103,7 @@ async function streamStatuses(ctx: Context): Promise<void> {
 
   let subscriber: Subscriber | undefined;
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
+    async start(controller) {
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": keepalive\n\n"));
@@ -109,6 +125,7 @@ async function streamStatuses(ctx: Context): Promise<void> {
       subscriber = { subdomains, controller, close };
       subscribers.add(subscriber);
       controller.enqueue(encoder.encode(": connected\n\n"));
+      await sendStatusSnapshot(subscriber);
     },
     cancel() {
       subscriber?.close();
