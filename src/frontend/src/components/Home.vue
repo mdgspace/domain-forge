@@ -111,7 +111,8 @@ export default {
       showLogsModal: false,
       selectedItem: null,
       redeploying: null,
-      statusEventSource: null,
+      statusStreamAbortController: null,
+      statusReconnectTimer: null,
     };
   },
   methods: {
@@ -135,34 +136,68 @@ export default {
         this.redeploying = null;
       }
     },
-    connectStatusStream() {
-      const backend = import.meta.env.VITE_APP_BACKEND.replace(/\/$/, '');
-      const url = new URL(`${backend}/map/status-stream`);
-      url.search = new URLSearchParams({
-        user: this.user,
-        token: localStorage.getItem('JWTUser') || '',
-        provider: localStorage.getItem('provider') || '',
-      }).toString();
+    async connectStatusStream() {
+      const token = localStorage.getItem('JWTUser');
+      const provider = localStorage.getItem('provider');
+      if (!token || !provider) return;
 
-      const source = new EventSource(url.toString());
-      source.addEventListener('status', (event) => {
-        try {
-          const update = JSON.parse(event.data);
-          const map = this.maps.find((item) => item.subdomain === update.subdomain);
-          if (map) map.status = update.status;
-        } catch (error) {
-          console.error('Ignoring malformed deployment status event.', error);
+      const backend = import.meta.env.VITE_APP_BACKEND.replace(/\/$/, '');
+      const controller = new AbortController();
+      this.statusStreamAbortController = controller;
+
+      try {
+        const response = await fetch(`${backend}/map/status-stream`, {
+          headers: {
+            'Accept': 'text/event-stream',
+            'Authorization': `Bearer ${token}`,
+            'X-Auth-Provider': provider,
+          },
+          signal: controller.signal,
+        });
+        if (!response.ok || !response.body) throw new Error('Unable to open status stream.');
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let pending = '';
+        while (!controller.signal.aborted) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          pending += decoder.decode(value, { stream: true });
+          const events = pending.split('\n\n');
+          pending = events.pop() || '';
+          for (const event of events) this.applyStatusEvent(event);
         }
-      });
-      // EventSource automatically reconnects after network/server interruptions.
-      this.statusEventSource = source;
+      } catch (error) {
+        if (!controller.signal.aborted) console.error('Status stream disconnected.', error);
+      } finally {
+        if (this.statusStreamAbortController === controller) {
+          this.statusStreamAbortController = null;
+          if (!controller.signal.aborted) {
+            this.statusReconnectTimer = window.setTimeout(() => this.connectStatusStream(), 2000);
+          }
+        }
+      }
+    },
+    applyStatusEvent(event) {
+      const eventType = event.match(/^event:\s*(.+)$/m)?.[1];
+      const data = event.match(/^data:\s*(.+)$/m)?.[1];
+      if (eventType !== 'status' || !data) return;
+
+      try {
+        const update = JSON.parse(data);
+        const map = this.maps.find((item) => item.subdomain === update.subdomain);
+        if (map) map.status = update.status;
+      } catch (error) {
+        console.error('Ignoring malformed deployment status event.', error);
+      }
     }
   },
   mounted() {
     this.connectStatusStream();
   },
   beforeUnmount() {
-    this.statusEventSource?.close();
+    this.statusStreamAbortController?.abort();
+    if (this.statusReconnectTimer) window.clearTimeout(this.statusReconnectTimer);
   }
 };
 </script>

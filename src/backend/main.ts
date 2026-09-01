@@ -3,20 +3,14 @@ import { addScript, deleteScript } from "./scripts.ts";
 import { isSuperAdmin } from "./utils/jwt.ts";
 import { addMaps, deleteMaps, getMaps, getDeploymentsByRepo, getSubdomainOwner, getUserToken, verifySubdomainOwnership } from "./db.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
-import DfContentMap from "./types/maps_interface.ts";
 import { getBuildLogs, getCombinedLogs, getRuntimeLogs } from "./utils/log-service.ts";
 import { logger } from "./utils/logger.ts";
 import { authenticateRequest } from "./utils/auth-helper.ts";
 import { verifyGitHubSignature } from "./utils/webhook-verify.ts";
 import { ensureTenantGrafanaOrg } from "./utils/grafana-provisioner.ts";
 import { ensureTenantAlloyPipeline } from "./utils/alloy-provisioner.ts";
-
-const ADMIN_LIST = Deno.env.get("ADMIN_LIST")?.split("|");
-
-function isValidSubdomain(subdomain: string): boolean {
-  // Strict allowlist: alphanumeric, dots, and hyphens. Length between 1 and 63.
-  return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(subdomain);
-}
+import { selectRedeployableDeployment } from "./utils/redeploy.ts";
+import { isValidSubdomain } from "./utils/subdomain.ts";
 
 async function getSubdomains(ctx: Context) {
   const auth = await authenticateRequest(ctx);
@@ -295,42 +289,30 @@ async function deleteSubdomain(ctx: Context) {
 }
 
 async function redeploySubdomain(ctx: Context) {
-  const subdomain = ctx.params.subdomain;
+  const subdomain = (ctx as any).params?.subdomain;
   if (!subdomain || !isValidSubdomain(subdomain)) {
     ctx.throw(400, "Invalid subdomain format.");
   }
-  if (!ctx.request.hasBody) {
-    ctx.throw(415);
+  const auth = await authenticateRequest(ctx);
+  if (!auth) {
+    ctx.throw(401, "Unauthorized");
   }
-
-  const body = await ctx.request.body().value;
-  let credentials;
-  try {
-    credentials = typeof body === "string" ? JSON.parse(body) : body;
-  } catch (_e) {
-    ctx.throw(400, "Invalid request body.");
-  }
-
-  const author = credentials?.author;
-  const token = credentials?.token;
-  const provider = credentials?.provider;
-  if (author !== await checkJWT(provider, token)) {
-    ctx.throw(401);
-  }
-
-  // getMaps applies the same owner/admin visibility rule used by GET /map.
-  const data = await getMaps(author, ADMIN_LIST || []);
-  const deployment = data.documents.find((doc: DfContentMap) => doc.subdomain === subdomain);
+  const author = auth.user;
+  const isSuper = isSuperAdmin(author);
+  const data = await getMaps(author, isSuper);
+  const deployment = selectRedeployableDeployment(data.documents, subdomain);
   if (!deployment) {
-    ctx.throw(404, "Deployment not found.");
-  }
-  if (deployment.resource_type !== "GITHUB") {
     ctx.throw(400, "Only GitHub deployments can be redeployed.");
   }
 
   try {
-    // Keep the database record: it is the saved configuration needed to rebuild.
-    await deleteScript(deployment);
+    // Remove an old terminal status before the new build writes DEPLOYING/READY/FAILED.
+    try {
+      await Deno.remove(`/hostpipe/status/${subdomain}.status`);
+    } catch (_e) { /* The first deployment may not have a status file. */ }
+
+    // container.sh builds first, then replaces the named container. This preserves the
+    // working deployment if the new build fails instead of creating avoidable downtime.
     const envContent = await decryptEnv(deployment.env_content || "");
     await addScript(
       deployment,
@@ -343,6 +325,9 @@ async function redeploySubdomain(ctx: Context) {
     );
     ctx.response.body = { status: "success", message: "Redeployment initiated." };
   } catch (error) {
+    try {
+      await Deno.writeTextFile(`/hostpipe/status/${subdomain}.status`, "FAILED\n");
+    } catch (_e) { /* Preserve the original redeploy error if status reporting fails. */ }
     console.error(`Failed to redeploy ${subdomain}`, error);
     ctx.response.status = 500;
     ctx.response.body = { status: "failed", message: "Could not initiate redeployment." };

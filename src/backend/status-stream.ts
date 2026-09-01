@@ -1,6 +1,9 @@
 import { Context } from "./dependencies.ts";
 import { getMaps } from "./db.ts";
-import { checkJWT } from "./utils/jwt.ts";
+import { authenticateRequest } from "./utils/auth-helper.ts";
+import { isSuperAdmin } from "./utils/jwt.ts";
+import { isValidSubdomain } from "./utils/subdomain.ts";
+import { getStatusSnapshot } from "./utils/status-snapshot.ts";
 
 const STATUS_DIR = "/hostpipe/status";
 const encoder = new TextEncoder();
@@ -13,10 +16,6 @@ type Subscriber = {
 
 const subscribers = new Set<Subscriber>();
 let watcherStarted = false;
-
-function isValidSubdomain(subdomain: string): boolean {
-  return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(subdomain);
-}
 
 function eventMessage(event: string, payload: unknown): Uint8Array {
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
@@ -51,18 +50,8 @@ async function publishStatus(path: string): Promise<void> {
 
 /** Send the current values so reconnecting clients cannot retain a stale badge. */
 async function sendStatusSnapshot(subscriber: Subscriber): Promise<void> {
-  await Promise.all([...subscriber.subdomains].map(async (subdomain) => {
-    if (!isValidSubdomain(subdomain)) return;
-
-    try {
-      const status = (await Deno.readTextFile(`${STATUS_DIR}/${subdomain}.status`)).trim();
-      if (status) {
-        subscriber.controller.enqueue(eventMessage("status", { subdomain, status }));
-      }
-    } catch {
-      // A status file may not exist yet for a pending deployment.
-    }
-  }));
+  const updates = await getStatusSnapshot(STATUS_DIR, subscriber.subdomains, Deno.readTextFile);
+  for (const update of updates) subscriber.controller.enqueue(eventMessage("status", update));
 }
 
 /** Start one shared host-status watcher for all connected dashboards. */
@@ -90,15 +79,9 @@ function startStatusWatcher(): void {
 }
 
 async function streamStatuses(ctx: Context): Promise<void> {
-  const author = ctx.request.url.searchParams.get("user");
-  const token = ctx.request.url.searchParams.get("token");
-  const provider = ctx.request.url.searchParams.get("provider");
-  if (author !== await checkJWT(provider!, token!)) {
-    ctx.throw(401);
-  }
-
-  const adminList = Deno.env.get("ADMIN_LIST")?.split("|") || [];
-  const maps = await getMaps(author!, adminList);
+  const auth = await authenticateRequest(ctx);
+  if (!auth) ctx.throw(401, "Unauthorized");
+  const maps = await getMaps(auth.user, isSuperAdmin(auth.user));
   const subdomains = new Set<string>(maps.documents.map((map: { subdomain: string }) => map.subdomain));
 
   let subscriber: Subscriber | undefined;
