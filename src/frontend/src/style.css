@@ -88,38 +88,52 @@ body {
 }
 
 button {
-  border-radius: 8px;
-  border: 2px solid #121212;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid rgba(18, 18, 18, 0.12);
+  padding: 0.7em 1.2em;
+  font-size: 0.95em;
+  font-weight: 700;
   font-family: inherit;
-  background-color: #2080F6;
+  background: linear-gradient(180deg, #2080F6 0%, #1667d9 100%);
   color: #ffffff;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   width: 20rem;
   text-align: center;
+  box-shadow: 0 6px 16px rgba(32, 128, 246, 0.18);
 }
-.delete {
-  margin: 0.75rem;
-  height: 2rem;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6rem 1.2rem;
-  font-size: 0.75rem;
-  font-family: inherit;
-  background-color: #2080F6;
-  color: #ffffff;
-  cursor: pointer;
-  transition: border-color 0.25s;
-  width: 10rem;
-  text-align: center;
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(32, 128, 246, 0.22);
 }
 
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 3px solid rgba(32, 128, 246, 0.3);
+  outline-offset: 2px;
+}
+
+.delete {
+  margin: 0.75rem;
+  height: 2.2rem;
+  border-radius: 10px;
+  border: 1px solid rgba(18, 18, 18, 0.12);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.75rem;
+  font-family: inherit;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: 9rem;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.18);
+}
+
+.delete:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.22);
 }
 
 h1 {

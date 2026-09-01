@@ -199,19 +199,31 @@ export default {
 
 .cancel-button,
 .submit-button {
-  padding: 10px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
+  font-weight: 700;
+  min-width: 120px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cancel-button {
-  background-color: #ccc;
-  color: #000;
+  background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 100%);
+  color: #111827;
 }
 
 .submit-button {
-  background-color: #2080f6;
+  background: linear-gradient(180deg, #2080f6 0%, #1667d9 100%);
   color: #fff;
+  box-shadow: 0 6px 16px rgba(32, 128, 246, 0.18);
+}
+
+.cancel-button:hover,
+.submit-button:hover {
+  transform: translateY(-1px);
 }
 </style>

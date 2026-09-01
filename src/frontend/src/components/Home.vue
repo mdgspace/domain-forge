@@ -266,44 +266,56 @@ header {
 
 .logout-button {
   width: 10rem;
-  padding: 8px 4px;
+  padding: 8px 14px;
   font-size: 14px;
-  background-color: #007bff;
+  background: linear-gradient(180deg, #2080F6 0%, #1667d9 100%);
   color: #fff;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 6px 16px rgba(32, 128, 246, 0.18);
 }
 
 .logout-button:hover {
-  background-color: #0056b3;
+  background: linear-gradient(180deg, #1d73ea 0%, #1354b1 100%);
+  transform: translateY(-1px);
+}
+
+.logs-btn,
+.redeploy-btn,
+.delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
 .logs-btn {
-  background-color: #6c757d;
+  background: linear-gradient(180deg, #6c757d 0%, #5a6268 100%);
   color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
   cursor: pointer;
 }
 
 .logs-btn:hover {
-  background-color: #5a6268;
+  background: linear-gradient(180deg, #5a6268 0%, #4d565e 100%);
 }
 
 .redeploy-btn {
-  background-color: #7c3aed;
+  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
   color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
   cursor: pointer;
 }
 
 .redeploy-btn:hover:not(:disabled) {
-  background-color: #6d28d9;
+  background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
 }
 
 .redeploy-btn:disabled {
