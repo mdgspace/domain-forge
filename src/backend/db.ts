@@ -1,8 +1,9 @@
 import { MongoClient } from "./dependencies.ts";
 import getProviderUser from "./utils/get-user.ts";
-import DfContentMap from "./types/maps_interface.ts";
 import { isSuperAdmin } from "./utils/jwt.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
+import { buildMapsFilter } from "./utils/maps-access.ts";
+import DfContentMap from "./types/maps_interface.ts";
 
 // Initialize MongoClient with npm driver
 const MONGO_URI = Deno.env.get("MONGO_URI");
@@ -20,6 +21,7 @@ let userAuthCollection: any;
 let contentMapsCollection: any;
 
 try {
+  
   if (MONGO_URI && client) {
     console.log("Attempting to connect to MongoDB...");
     await client.connect();
@@ -77,7 +79,7 @@ async function getMaps(author: string, isSuperAdminUser = false) {
   if (!contentMapsCollection) {
     throw new Error("Database connection not available.");
   }
-  const filter = isSuperAdminUser ? {} : { "author": author };
+  const filter = buildMapsFilter(author, isSuperAdminUser);
   const data = await contentMapsCollection.find(filter).toArray();
   return { documents: data };
 }

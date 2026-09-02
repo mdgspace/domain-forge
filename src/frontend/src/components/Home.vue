@@ -49,6 +49,14 @@
               <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
               <div style="display: flex; gap: 10px; justify-content: center;">
                 <button class="logs-btn" @click="showLogsModal=true;selectedItem=item">Logs</button>
+                <button
+                  v-if="item.resource_type && item.resource_type.toLowerCase().includes('github')"
+                  class="redeploy-btn"
+                  :disabled="redeploying === item.subdomain"
+                  @click="redeployItem(item)"
+                >
+                  {{ redeploying === item.subdomain ? 'Redeploying…' : 'Redeploy' }}
+                </button>
                 <button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button>
               </div>
             </span>
@@ -70,12 +78,14 @@
 </template>
 
 <script>
+import { ref } from 'vue';
 import { getMaps } from '../utils/maps.ts';
 import { check_jwt } from '../utils/authorize.ts';
 import modal from './modal.vue';
 import deletemodal from './deletemodal.vue';
 import ApiKeyModal from './ApiKeyModal.vue';
 import LogsModal from './LogsModal.vue';
+import { redeploySubdomain } from '../utils/redeploy.ts';
 
 export default {
   components: { modal, deletemodal, ApiKeyModal, LogsModal },
@@ -84,7 +94,8 @@ export default {
     const provider = localStorage.getItem("provider");
     const user = await check_jwt(token, provider);
     const apiKey = localStorage.getItem("apiKey");
-    const maps = await getMaps(user);
+    // Wrap in ref so live status updates from the SSE stream re-render the table.
+    const maps = ref(await getMaps(user));
     const fields = ["date", "subdomain", "status", "resource", "resource_type", ""];
 
     return {
@@ -101,13 +112,114 @@ export default {
       showApiKeyModal: false,
       showLogsModal: false,
       selectedItem: null,
+      redeploying: null,
+      statusStreamAbortController: null,
+      statusReconnectTimer: null,
+      statusStreamTimedOut: false,
     };
   },
   methods: {
     logoutAndRedirect() {
       localStorage.clear();
       this.$router.push({ path: '/login' });
+    },
+    async redeployItem(item) {
+      if (!window.confirm(`Redeploy ${item.subdomain}? This will delete its current container and build a new one.`)) {
+        return;
+      }
+
+      this.redeploying = item.subdomain;
+      try {
+        await redeploySubdomain(item.subdomain);
+        // The host deployment script will replace this with READY or FAILED.
+        item.status = 'DEPLOYING';
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : 'Could not initiate redeployment.');
+      } finally {
+        this.redeploying = null;
+      }
+    },
+    async connectStatusStream() {
+      const token = localStorage.getItem('JWTUser');
+      const provider = localStorage.getItem('provider');
+      if (!token || !provider) return;
+
+      const backend = import.meta.env.VITE_APP_BACKEND.replace(/\/$/, '');
+      const controller = new AbortController();
+      this.statusStreamAbortController = controller;
+      this.statusStreamTimedOut = false;
+
+      // Fail fast if the response headers do not arrive (e.g. a buffering proxy).
+      // This stops the request from staying "pending" forever on staging.
+      const connectTimeout = window.setTimeout(() => {
+        this.statusStreamTimedOut = true;
+        controller.abort();
+      }, 10000);
+
+      try {
+        const response = await fetch(`${backend}/map/status-stream`, {
+          headers: {
+            'Accept': 'text/event-stream',
+            'Authorization': `Bearer ${token}`,
+            'X-Auth-Provider': provider,
+          },
+          signal: controller.signal,
+        });
+        window.clearTimeout(connectTimeout);
+        if (!response.ok || !response.body) throw new Error('Unable to open status stream.');
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let pending = '';
+        while (!controller.signal.aborted) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          pending += decoder.decode(value, { stream: true });
+          const events = pending.split('\n\n');
+          pending = events.pop() || '';
+          for (const event of events) this.applyStatusEvent(event);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) console.error('Status stream disconnected.', error);
+      } finally {
+        window.clearTimeout(connectTimeout);
+        if (this.statusStreamAbortController === controller) {
+          this.statusStreamAbortController = null;
+          // Reconnect on unexpected disconnect OR on the connection timeout, but
+          // never after an intentional abort from beforeUnmount().
+          if (!controller.signal.aborted || this.statusStreamTimedOut) {
+            this.statusReconnectTimer = window.setTimeout(() => this.connectStatusStream(), 2000);
+          }
+        }
+      }
+    },
+    applyStatusEvent(event) {
+      const eventType = event.match(/^event:\s*(.+)$/m)?.[1];
+      const data = event.match(/^data:\s*(.+)$/m)?.[1];
+      if (eventType !== 'status' || !data) return;
+
+      try {
+        const update = JSON.parse(data);
+        // Case-insensitive match to tolerate subdomain casing differences.
+        const map = this.maps.find(
+          (item) => item.subdomain?.toLowerCase() === update.subdomain?.toLowerCase(),
+        );
+        if (map) {
+          map.status = update.status;
+        } else {
+          console.warn('Status event for unknown subdomain:', update);
+        }
+      } catch (error) {
+        console.error('Ignoring malformed deployment status event.', error);
+      }
     }
+  },
+  mounted() {
+    this.connectStatusStream();
+  },
+  beforeUnmount() {
+    this.statusStreamAbortController?.abort();
+    if (this.statusReconnectTimer) window.clearTimeout(this.statusReconnectTimer);
   }
 };
 </script>
@@ -176,31 +288,61 @@ header {
 
 .logout-button {
   width: 10rem;
-  padding: 8px 4px;
+  padding: 8px 14px;
   font-size: 14px;
-  background-color: #007bff;
+  background: linear-gradient(180deg, #2080F6 0%, #1667d9 100%);
   color: #fff;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 6px 16px rgba(32, 128, 246, 0.18);
 }
 
 .logout-button:hover {
-  background-color: #0056b3;
+  background: linear-gradient(180deg, #1d73ea 0%, #1354b1 100%);
+  transform: translateY(-1px);
+}
+
+.logs-btn,
+.redeploy-btn,
+.delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
 .logs-btn {
-  background-color: #6c757d;
+  background: linear-gradient(180deg, #6c757d 0%, #5a6268 100%);
   color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
   cursor: pointer;
 }
 
 .logs-btn:hover {
-  background-color: #5a6268;
+  background: linear-gradient(180deg, #5a6268 0%, #4d565e 100%);
+}
+
+.redeploy-btn {
+  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  cursor: pointer;
+}
+
+.redeploy-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+.redeploy-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .status-badge {
