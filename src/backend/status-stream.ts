@@ -86,7 +86,12 @@ async function streamStatuses(ctx: Context): Promise<void> {
 
   let subscriber: Subscriber | undefined;
   const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
+    start(controller) {
+      // Keep start() synchronous. If start() returns a promise, the stream stays
+      // in the "starting" state until it resolves, which stops Deno from flushing
+      // the HTTP response headers. The browser then sees /map/status-stream stuck
+      // at "pending" with no "EventStream" tab. Set up the subscriber and send the
+      // connected comment synchronously, then push the snapshot in the background.
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": keepalive\n\n"));
@@ -108,7 +113,10 @@ async function streamStatuses(ctx: Context): Promise<void> {
       subscriber = { subdomains, controller, close };
       subscribers.add(subscriber);
       controller.enqueue(encoder.encode(": connected\n\n"));
-      await sendStatusSnapshot(subscriber);
+      // Fire-and-forget so the response head is never delayed by the snapshot.
+      sendStatusSnapshot(subscriber).catch(() => {
+        // If the snapshot fails, live updates still arrive via the file watcher.
+      });
     },
     cancel() {
       subscriber?.close();
@@ -118,6 +126,7 @@ async function streamStatuses(ctx: Context): Promise<void> {
   ctx.response.headers.set("Content-Type", "text/event-stream");
   ctx.response.headers.set("Cache-Control", "no-cache");
   ctx.response.headers.set("Connection", "keep-alive");
+  ctx.response.headers.set("X-Accel-Buffering", "no");
   ctx.response.body = stream;
 }
 

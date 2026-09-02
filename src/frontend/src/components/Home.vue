@@ -113,6 +113,7 @@ export default {
       redeploying: null,
       statusStreamAbortController: null,
       statusReconnectTimer: null,
+      statusStreamTimedOut: false,
     };
   },
   methods: {
@@ -144,6 +145,14 @@ export default {
       const backend = import.meta.env.VITE_APP_BACKEND.replace(/\/$/, '');
       const controller = new AbortController();
       this.statusStreamAbortController = controller;
+      this.statusStreamTimedOut = false;
+
+      // Fail fast if the response headers do not arrive (e.g. a buffering proxy).
+      // This stops the request from staying "pending" forever on staging.
+      const connectTimeout = window.setTimeout(() => {
+        this.statusStreamTimedOut = true;
+        controller.abort();
+      }, 10000);
 
       try {
         const response = await fetch(`${backend}/map/status-stream`, {
@@ -154,6 +163,7 @@ export default {
           },
           signal: controller.signal,
         });
+        window.clearTimeout(connectTimeout);
         if (!response.ok || !response.body) throw new Error('Unable to open status stream.');
 
         const reader = response.body.getReader();
@@ -170,9 +180,12 @@ export default {
       } catch (error) {
         if (!controller.signal.aborted) console.error('Status stream disconnected.', error);
       } finally {
+        window.clearTimeout(connectTimeout);
         if (this.statusStreamAbortController === controller) {
           this.statusStreamAbortController = null;
-          if (!controller.signal.aborted) {
+          // Reconnect on unexpected disconnect OR on the connection timeout, but
+          // never after an intentional abort from beforeUnmount().
+          if (!controller.signal.aborted || this.statusStreamTimedOut) {
             this.statusReconnectTimer = window.setTimeout(() => this.connectStatusStream(), 2000);
           }
         }

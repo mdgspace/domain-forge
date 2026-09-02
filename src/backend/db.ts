@@ -1,7 +1,5 @@
 import { MongoClient } from "./dependencies.ts";
 import getProviderUser from "./utils/get-user.ts";
-import DfContentMap from "./types/maps_interface.ts";
-
 import { isSuperAdmin } from "./utils/jwt.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
 import { buildMapsFilter } from "./utils/maps-access.ts";
@@ -74,16 +72,12 @@ async function checkUser(accessToken: string, provider: string) {
   return { status, userId };
 }
 
-// Get all content maps corresponding to user
-async function getMaps(author: string, isSuperAdminUser: boolean) {
+// Get all content maps corresponding to user (or all if super admin)
+async function getMaps(author: string, isSuperAdminUser = false) {
   if (!contentMapsCollection) {
     throw new Error("Database connection not available.");
   }
   const filter = buildMapsFilter(author, isSuperAdminUser);
-
-  // Convert deprecated simple filter to standard mongo filter if needed
-  // But here we use native driver which expects filter object directly.
-
   const data = await contentMapsCollection.find(filter).toArray();
   return { documents: data };
 }
