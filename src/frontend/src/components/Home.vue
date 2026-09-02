@@ -78,6 +78,7 @@
 </template>
 
 <script>
+import { ref } from 'vue';
 import { getMaps } from '../utils/maps.ts';
 import { check_jwt } from '../utils/authorize.ts';
 import modal from './modal.vue';
@@ -93,7 +94,8 @@ export default {
     const provider = localStorage.getItem("provider");
     const user = await check_jwt(token, provider);
     const apiKey = localStorage.getItem("apiKey");
-    const maps = await getMaps(user);
+    // Wrap in ref so live status updates from the SSE stream re-render the table.
+    const maps = ref(await getMaps(user));
     const fields = ["date", "subdomain", "status", "resource", "resource_type", ""];
 
     return {
@@ -198,8 +200,15 @@ export default {
 
       try {
         const update = JSON.parse(data);
-        const map = this.maps.find((item) => item.subdomain === update.subdomain);
-        if (map) map.status = update.status;
+        // Case-insensitive match to tolerate subdomain casing differences.
+        const map = this.maps.find(
+          (item) => item.subdomain?.toLowerCase() === update.subdomain?.toLowerCase(),
+        );
+        if (map) {
+          map.status = update.status;
+        } else {
+          console.warn('Status event for unknown subdomain:', update);
+        }
       } catch (error) {
         console.error('Ignoring malformed deployment status event.', error);
       }
