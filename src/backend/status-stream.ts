@@ -17,6 +17,11 @@ type Subscriber = {
 const subscribers = new Set<Subscriber>();
 let watcherStarted = false;
 
+// Tracks the last status published per subdomain. Prevents the polling fallback
+// (which is more reliable than Deno.watchFs for host-written files on bind mounts)
+// from flooding subscribers with unchanged statuses.
+const lastPublishedStatus = new Map<string, string>();
+
 function eventMessage(event: string, payload: unknown): Uint8Array {
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
 }
@@ -36,6 +41,10 @@ async function publishStatus(path: string): Promise<void> {
   }
   if (!status) return;
 
+  // Only push when the value actually changes; the poller calls this repeatedly.
+  if (lastPublishedStatus.get(subdomain) === status) return;
+  lastPublishedStatus.set(subdomain, status);
+
   const message = eventMessage("status", { subdomain, status });
   for (const subscriber of subscribers) {
     if (subscriber.subdomains.has(subdomain)) {
@@ -51,7 +60,10 @@ async function publishStatus(path: string): Promise<void> {
 /** Send the current values so reconnecting clients cannot retain a stale badge. */
 async function sendStatusSnapshot(subscriber: Subscriber): Promise<void> {
   const updates = await getStatusSnapshot(STATUS_DIR, subscriber.subdomains, Deno.readTextFile);
-  for (const update of updates) subscriber.controller.enqueue(eventMessage("status", update));
+  for (const update of updates) {
+    lastPublishedStatus.set(update.subdomain, update.status);
+    subscriber.controller.enqueue(eventMessage("status", update));
+  }
 }
 
 /** Start one shared host-status watcher for all connected dashboards. */
@@ -72,10 +84,35 @@ async function watchStatuses(): Promise<void> {
   }
 }
 
+/**
+ * Polls /hostpipe/status every 2s. Deno.watchFs does not reliably report file
+ * changes made by host-side processes on a bind mount, so container.sh writing
+ * /hostpipe/status/<subdomain>.status may be missed (e.g. the final READY write).
+ * Polling is the dependable fallback that makes Redeploy status (DEPLOYING ->
+ * READY/FAILED) update live without a manual refresh.
+ */
+async function pollStatuses(): Promise<void> {
+  while (true) {
+    try {
+      await Deno.mkdir(STATUS_DIR, { recursive: true });
+      const entries = Array.from(Deno.readDirSync(STATUS_DIR));
+      await Promise.all(
+        entries
+          .filter((entry) => entry.isFile && entry.name.endsWith(".status"))
+          .map((entry) => publishStatus(`${STATUS_DIR}/${entry.name}`)),
+      );
+    } catch (error) {
+      console.error("Status polling error; retrying in two seconds.", error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+}
+
 function startStatusWatcher(): void {
   if (watcherStarted) return;
   watcherStarted = true;
   void watchStatuses();
+  void pollStatuses();
 }
 
 async function streamStatuses(ctx: Context): Promise<void> {

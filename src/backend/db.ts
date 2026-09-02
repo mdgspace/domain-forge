@@ -3,6 +3,7 @@ import getProviderUser from "./utils/get-user.ts";
 import { isSuperAdmin } from "./utils/jwt.ts";
 import { encryptEnv, decryptEnv } from "./utils/crypto.ts";
 import { buildMapsFilter } from "./utils/maps-access.ts";
+import DfContentMap from "./types/maps_interface.ts";
 
 // Initialize MongoClient with npm driver
 const MONGO_URI = Deno.env.get("MONGO_URI");
@@ -20,6 +21,7 @@ let userAuthCollection: any;
 let contentMapsCollection: any;
 
 try {
+  
   if (MONGO_URI && client) {
     console.log("Attempting to connect to MongoDB...");
     await client.connect();
