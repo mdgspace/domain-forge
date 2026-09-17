@@ -13,7 +13,7 @@ import {
   gitlabAuth,
   handleJwtAuthentication,
 } from "./auth/github.ts";
-import { addSubdomain, deleteSubdomain, getLogs, getSubdomains, githubWebhook } from "./main.ts";
+import { addSubdomain, deleteSubdomain, getLogs, getSubdomains, githubWebhook, redeploySubdomain } from "./main.ts";
 import { verifySubdomainOwnership } from "./db.ts";
 import {
   getContainerHealth,
@@ -24,6 +24,7 @@ import {
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
+import { startStatusWatcher, streamStatuses } from "./status-stream.ts";
 import { createGrafanaJWT, getUserRole, isSuperAdmin } from "./utils/jwt.ts";
 import { logger, requestLoggerMiddleware } from "./utils/logger.ts";
 import { getSystemLogs } from "./utils/log-service.ts";
@@ -133,8 +134,10 @@ router
   .get("/auth/grafana-token", (ctx) => getGrafanaTokenHandler(ctx))
   // Subdomain routes
   .get("/map", (ctx) => getSubdomains(ctx))
+  .get("/map/status-stream", (ctx) => streamStatuses(ctx))
   .get("/map/:subdomain/logs", (ctx) => getLogs(ctx))
   .post("/map", (ctx) => addSubdomain(ctx))
+  .post("/map/:subdomain/redeploy", (ctx) => redeploySubdomain(ctx))
   .post("/mapdel", (ctx) => deleteSubdomain(ctx))
   .post("/webhook/github", (ctx) => githubWebhook(ctx))
   // System logs route
@@ -190,6 +193,7 @@ syncAlloyConfig().catch((e) => {
 
 // Start health monitoring service
 startHealthMonitor();
+startStatusWatcher();
 
 console.log(`Listening on port ${PORT}...`);
 await app.listen({ port: PORT });

@@ -9,11 +9,8 @@ import { authenticateRequest } from "./utils/auth-helper.ts";
 import { verifyGitHubSignature } from "./utils/webhook-verify.ts";
 import { ensureTenantGrafanaOrg } from "./utils/grafana-provisioner.ts";
 import { ensureTenantAlloyPipeline } from "./utils/alloy-provisioner.ts";
-
-function isValidSubdomain(subdomain: string): boolean {
-  // Strict allowlist: alphanumeric, dots, and hyphens. Length between 1 and 63.
-  return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(subdomain);
-}
+import { selectRedeployableDeployment } from "./utils/redeploy.ts";
+import { isValidSubdomain } from "./utils/subdomain.ts";
 
 async function getSubdomains(ctx: Context) {
   const auth = await authenticateRequest(ctx);
@@ -291,7 +288,53 @@ async function deleteSubdomain(ctx: Context) {
   ctx.response.body = data;
 }
 
-export { addSubdomain, deleteSubdomain, getSubdomains, githubWebhook, getLogs };
+async function redeploySubdomain(ctx: Context) {
+  const subdomain = (ctx as any).params?.subdomain;
+  if (!subdomain || !isValidSubdomain(subdomain)) {
+    ctx.throw(400, "Invalid subdomain format.");
+  }
+  const auth = await authenticateRequest(ctx);
+  if (!auth) {
+    ctx.throw(401, "Unauthorized");
+  }
+  const author = auth.user;
+  const isSuper = isSuperAdmin(author);
+  const data = await getMaps(author, isSuper);
+  const deployment = selectRedeployableDeployment(data.documents, subdomain);
+  if (!deployment) {
+    ctx.throw(400, "Only GitHub deployments can be redeployed.");
+  }
+
+  try {
+    // Remove an old terminal status before the new build writes DEPLOYING/READY/FAILED.
+    try {
+      await Deno.remove(`/hostpipe/status/${subdomain}.status`);
+    } catch (_e) { /* The first deployment may not have a status file. */ }
+
+    // container.sh builds first, then replaces the named container. This preserves the
+    // working deployment if the new build fails instead of creating avoidable downtime.
+    const envContent = await decryptEnv(deployment.env_content || "");
+    await addScript(
+      deployment,
+      envContent,
+      deployment.static_content || "",
+      deployment.dockerfile_present || "",
+      deployment.stack || "",
+      deployment.port || "",
+      deployment.build_cmds || "",
+    );
+    ctx.response.body = { status: "success", message: "Redeployment initiated." };
+  } catch (error) {
+    try {
+      await Deno.writeTextFile(`/hostpipe/status/${subdomain}.status`, "FAILED\n");
+    } catch (_e) { /* Preserve the original redeploy error if status reporting fails. */ }
+    console.error(`Failed to redeploy ${subdomain}`, error);
+    ctx.response.status = 500;
+    ctx.response.body = { status: "failed", message: "Could not initiate redeployment." };
+  }
+}
+
+export { addSubdomain, deleteSubdomain, redeploySubdomain, getSubdomains, githubWebhook, getLogs };
 
 async function githubWebhook(ctx: Context) {
   if (!ctx.request.hasBody) {
