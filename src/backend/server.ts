@@ -24,6 +24,7 @@ import {
   triggerHealthCheckHandler,
 } from "./health-api.ts";
 import { startHealthMonitor } from "./health-monitor.ts";
+import { startLogCleanup } from "./log-cleanup.ts";
 import { startStatusWatcher, streamStatuses } from "./status-stream.ts";
 import { createGrafanaJWT, getUserRole, isSuperAdmin } from "./utils/jwt.ts";
 import { logger, requestLoggerMiddleware } from "./utils/logger.ts";
@@ -195,5 +196,9 @@ syncAlloyConfig().catch((e) => {
 startHealthMonitor();
 startStatusWatcher();
 
-console.log(`Listening on port ${PORT}...`);
-await app.listen({ port: PORT });
+// Start log cleanup scheduler
+startLogCleanup();
+
+app.listen({ port: PORT });
+console.log("Listening...");
+
