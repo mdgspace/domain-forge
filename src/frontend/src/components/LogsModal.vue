@@ -11,25 +11,27 @@ const emit = defineEmits(['close-modal']);
 const logs = ref("Loading logs...");
 const error = ref(null);
 const autoRefresh = ref(true);
+const logType = ref("all");
 let refreshInterval = null;
 
 const fetchLogs = async () => {
   try {
     const backend = import.meta.env.VITE_APP_BACKEND;
-    const token = localStorage.getItem("JWTUser");
-    const provider = localStorage.getItem("provider");
+    const token = localStorage.getItem("JWTUser") || "";
+    const provider = localStorage.getItem("provider") || "github";
 
     const baseUrl = backend.replace(/\/$/, "");
     const url = new URL(`${baseUrl}/map/${encodeURIComponent(props.subdomain ?? "")}/logs`);
     url.search = new URLSearchParams({
       user: props.user ?? "",
-      token: token ?? "",
-      provider: provider ?? ""
+      type: logType.value,
     }).toString();
 
     const response = await fetch(url.toString(), {
       headers: {
-        Accept: "application/json"
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+        "X-Auth-Provider": provider,
       }
     });
     if (!response.ok) throw new Error("Failed to fetch logs");
@@ -82,12 +84,19 @@ onUnmounted(() => {
   <div class="modal-overlay" @click="$emit('close-modal')">
     <div class="modal" @click.stop>
       <div class="modal-header">
-        <h3>Logs for {{ subdomain }}</h3>
+        <div class="title-container">
+          <h3>Logs for <span class="subdomain-highlight">{{ subdomain }}</span></h3>
+        </div>
         <div class="header-actions">
-          <button @click="toggleAutoRefresh" :class="{ 'active': autoRefresh }">
-            {{ autoRefresh ? 'Auto-refresh: ON' : 'Auto-refresh: OFF' }}
+          <div class="log-type-toggle">
+            <button :class="{ active: logType === 'all' }" @click="logType = 'all'; fetchLogs()">All</button>
+            <button :class="{ active: logType === 'build' }" @click="logType = 'build'; fetchLogs()">Build</button>
+            <button :class="{ active: logType === 'runtime' }" @click="logType = 'runtime'; fetchLogs()">Runtime</button>
+          </div>
+          <button class="action-btn" :class="{ 'active': autoRefresh }" @click="toggleAutoRefresh">
+            {{ autoRefresh ? 'Auto: ON' : 'Auto: OFF' }}
           </button>
-          <button @click="fetchLogs" class="refresh-btn">Refresh</button>
+          <button class="action-btn refresh-btn" @click="fetchLogs">Refresh</button>
           <span class="close" @click="$emit('close-modal')">&times;</span>
         </div>
       </div>
@@ -108,47 +117,117 @@ onUnmounted(() => {
   right: 0;
   display: flex;
   justify-content: center;
-  background-color: #000000da;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.75);
   z-index: 1000;
 }
 
 .modal {
   background-color: #1e1e1e;
-  height: 80%;
-  width: 80%;
-  margin-top: 5%;
+  height: 85vh;
+  width: 85vw;
+  max-width: 1200px;
   padding: 20px;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   color: #d4d4d4;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  border: 1px solid #333;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 15px;
   margin-bottom: 15px;
   border-bottom: 1px solid #333;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.title-container h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.subdomain-highlight {
+  color: #60a5fa;
+  word-break: break-all;
 }
 
 .header-actions {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-.modal-header h3 {
-  margin: 0;
-  color: #fff;
+.log-type-toggle {
+  display: flex;
+  background-color: #111;
+  border: 1px solid #383838;
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.log-type-toggle button {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.log-type-toggle button.active {
+  background-color: #3b82f6;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.log-type-toggle button:hover:not(.active) {
+  color: #ffffff;
+  background-color: #262626;
+}
+
+.action-btn {
+  padding: 5px 12px;
+  background-color: #262626;
+  color: #e5e5e5;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #333;
+  border-color: #555;
+}
+
+.action-btn.active {
+  background-color: #047857;
+  border-color: #10b981;
+  color: #ffffff;
 }
 
 .close {
-  font-size: 28px;
+  font-size: 24px;
+  line-height: 1;
   cursor: pointer;
   color: #888;
+  padding: 0 4px;
+  transition: color 0.2s;
 }
 
 .close:hover {
@@ -164,35 +243,23 @@ onUnmounted(() => {
 
 .log-container {
   flex: 1;
-  background-color: #000;
-  color: #0f0;
-  padding: 15px;
-  border-radius: 4px;
+  background-color: #0c0c0c;
+  color: #4ade80;
+  padding: 16px;
+  border-radius: 6px;
   overflow-y: auto;
   font-family: 'Courier New', Courier, monospace;
   font-size: 13px;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
   text-align: left;
-}
-
-.refresh-btn, .header-actions button {
-  padding: 5px 12px;
-  background-color: #333;
-  color: #fff;
-  border: 1px solid #555;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.header-actions button.active {
-  background-color: #007bff;
-  border-color: #0056b3;
+  border: 1px solid #262626;
 }
 
 .error {
-  color: #ff4d4d;
+  color: #f87171;
   margin-top: 10px;
+  font-size: 13px;
 }
 </style>

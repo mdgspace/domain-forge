@@ -18,6 +18,7 @@ export default async function getProviderUser(
   const user_resp = await fetch(apiUrl, {
     headers: {
       Authorization: authorizationHeader,
+      "User-Agent": "Domain-Forge-Auth",
     },
   });
 

@@ -60,7 +60,7 @@
                   :class="getMetricClass(container.cpuPercent, 90)"
                 ></div>
               </div>
-              <span>{{ container.cpuPercent.toFixed(1) }}%</span>
+              <span>{{ (container.cpuPercent * 10).toFixed(2) }} mCPU</span>
             </div>
             
             <div class="metric">
@@ -72,7 +72,7 @@
                   :class="getMetricClass(container.memoryPercent, 85)"
                 ></div>
               </div>
-              <span>{{ container.memoryUsageMB }}MB</span>
+              <span>{{ container.memoryUsageMB.toFixed(2) }}MB</span>
             </div>
           </div>
 
@@ -82,8 +82,11 @@
           </div>
 
           <div class="container-actions">
-            <button @click="viewMetrics(container)" class="view-btn">
+            <button @click="openGrafana(container)" class="view-btn">
               View Metrics
+            </button>
+            <button @click="openLogs(container)" class="logs-btn">
+              View Logs
             </button>
             <button @click="stopContainer(container)" class="stop-btn">
               Stop
@@ -96,45 +99,19 @@
       </div>
     </section>
 
-    <div v-if="selectedContainer" class="modal-overlay" @click.self="closeMetrics">
-      <div class="metrics-modal">
-        <header class="modal-header">
-          <h2>{{ selectedContainer.subdomain }} - Metrics</h2>
-          <button @click="closeMetrics" class="close-btn">×</button>
-        </header>
-
-        <div class="time-selector">
-          <label>Time Range:</label>
-          <select v-model="selectedTimeStep" @change="loadMetrics">
-            <option value="1s">Per Second (5 min)</option>
-            <option value="15s">Per 15 Sec (15 min)</option>
-            <option value="1m">Per Minute (1 hour)</option>
-            <option value="5m">Per 5 Min (6 hours)</option>
-            <option value="1h">Per Hour (24 hours)</option>
-            <option value="1d">Per Day (7 days)</option>
-          </select>
-        </div>
-
-        <div class="charts-container">
-          <div class="chart-wrapper">
-            <h3>CPU Usage (%)</h3>
-            <canvas ref="cpuChart"></canvas>
-          </div>
-          <div class="chart-wrapper">
-            <h3>Memory Usage (MB)</h3>
-            <canvas ref="memoryChart"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
+    <LogsModal 
+      v-if="showLogsModal" 
+      :subdomain="selectedLogSubdomain" 
+      :user="username" 
+      @close-modal="showLogsModal = false" 
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, nextTick } from 'vue';
+import { defineComponent, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-
-let Chart: any = null;
+import LogsModal from './LogsModal.vue';
 
 interface Container {
   name: string;
@@ -158,32 +135,32 @@ interface HealthSummary {
 
 export default defineComponent({
   name: 'ContainerHealth',
+  components: { LogsModal },
   setup() {
     const router = useRouter();
     const loading = ref(false);
     const containers = ref<Container[]>([]);
     const summary = ref<HealthSummary | null>(null);
-    const selectedContainer = ref<Container | null>(null);
-    const selectedTimeStep = ref('1m');
-    const cpuChart = ref<HTMLCanvasElement | null>(null);
-    const memoryChart = ref<HTMLCanvasElement | null>(null);
     const username = ref<string>('');
-    
-    let cpuChartInstance: any = null;
-    let memoryChartInstance: any = null;
+    const showLogsModal = ref(false);
+    const selectedLogSubdomain = ref('');
 
     const BACKEND_URL = import.meta.env.VITE_APP_BACKEND || 'http://localhost:7000';
 
-    const getAuthParams = () => {
+    const getAuthHeaders = () => {
       const token = localStorage.getItem('JWTUser') || '';
-      const provider = localStorage.getItem('provider') || '';
-      return `user=${encodeURIComponent(username.value)}&token=${encodeURIComponent(token)}&provider=${encodeURIComponent(provider)}`;
-    }
+      const provider = localStorage.getItem('provider') || 'github';
+      return {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'X-Auth-Provider': provider,
+      };
+    };
 
     const fetchUsername = async () => {
       const token = localStorage.getItem('JWTUser');
-      const provider = localStorage.getItem('provider');
-      if (!token || !provider) {
+      const provider = localStorage.getItem('provider') || 'github';
+      if (!token) {
         router.push('/login');
         return;
       }
@@ -191,7 +168,7 @@ export default defineComponent({
       try {
         const resp = await fetch(`${BACKEND_URL}/auth/jwt`, {
           method: 'POST',
-          headers: { 'Accept': 'application/json' },
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify({ jwt_token: token, provider }),
         });
         const data = await resp.json();
@@ -211,7 +188,9 @@ export default defineComponent({
 
       loading.value = true;
       try {
-        const response = await fetch(`${BACKEND_URL}/health?${getAuthParams()}`);
+        const response = await fetch(`${BACKEND_URL}/health?user=${encodeURIComponent(username.value)}`, {
+          headers: getAuthHeaders(),
+        });
         const data = await response.json();
         
         containers.value = data.containers || [];
@@ -244,105 +223,38 @@ export default defineComponent({
       return 'normal';
     };
 
-    const viewMetrics = async (container: Container) => {
-      selectedContainer.value = container;
-      await nextTick();
-      loadMetrics();
+    const openLogs = (container: Container) => {
+      selectedLogSubdomain.value = container.subdomain || container.name;
+      showLogsModal.value = true;
     };
 
-    const closeMetrics = () => {
-      selectedContainer.value = null;
-      if (cpuChartInstance) cpuChartInstance.destroy();
-      if (memoryChartInstance) memoryChartInstance.destroy();
-    };
-
-    const loadMetrics = async () => {
-      if (!selectedContainer.value) return;
-
-      const containerIdentifier = selectedContainer.value.subdomain || selectedContainer.value.name;
-      if (!containerIdentifier) {
-        console.error('No container identifier available');
-        return;
-      }
-
+    const openGrafana = async (container: Container) => {
+      const subdomain = container.subdomain || container.name;
       try {
-        const response = await fetch(
-          `${BACKEND_URL}/health/${containerIdentifier}/metrics?step=${selectedTimeStep.value}&${getAuthParams()}`
+        if (!username.value) {
+          await fetchUsername();
+        }
+
+        const resp = await fetch(
+          `${BACKEND_URL}/auth/grafana-token?user=${encodeURIComponent(username.value)}&subdomain=${encodeURIComponent(subdomain)}`,
+          { headers: getAuthHeaders() },
         );
-        const data = await response.json();
-
-        if (!Chart) {
-          const module = await import('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/+esm');
-          Chart = module.Chart;
-          const { 
-            CategoryScale, 
-            LinearScale, 
-            PointElement, 
-            LineElement, 
-            LineController,
-            Title, 
-            Tooltip, 
-            Legend,
-            Filler 
-          } = module;
-          Chart.register(CategoryScale, LinearScale, PointElement, LineElement, LineController, Title, Tooltip, Legend, Filler);
+        if (!resp.ok) {
+          throw new Error(`Failed to fetch Grafana token (HTTP ${resp.status})`);
+        }
+        const data = await resp.json();
+        if (!data?.token) {
+          throw new Error('No Grafana token received from server');
         }
 
-        if (cpuChartInstance) cpuChartInstance.destroy();
-        if (memoryChartInstance) memoryChartInstance.destroy();
+        const host = window.location.hostname;
+        const port = import.meta.env.VITE_APP_GRAFANA_PORT || '3000';
+        const url = `http://${host}:${port}/d/container-telemetry?var-subdomain=${encodeURIComponent(subdomain)}&auth_token=${encodeURIComponent(data.token)}&kiosk=tv`;
 
-        const labels = data.cpu.map((d: any) => {
-          const date = new Date(d.timestamp);
-          return date.toLocaleTimeString();
-        });
-
-        if (cpuChart.value) {
-          cpuChartInstance = new Chart(cpuChart.value, {
-            type: 'line',
-            data: {
-              labels,
-              datasets: [{
-                label: 'CPU %',
-                data: data.cpu.map((d: any) => d.value),
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                fill: true,
-                tension: 0.3,
-              }],
-            },
-            options: {
-              responsive: true,
-              scales: {
-                y: { beginAtZero: true, max: 100 },
-              },
-            },
-          });
-        }
-
-        if (memoryChart.value) {
-          memoryChartInstance = new Chart(memoryChart.value, {
-            type: 'line',
-            data: {
-              labels,
-              datasets: [{
-                label: 'Memory (MB)',
-                data: data.memory.map((d: any) => d.valueMB),
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                fill: true,
-                tension: 0.3,
-              }],
-            },
-            options: {
-              responsive: true,
-              scales: {
-                y: { beginAtZero: true },
-              },
-            },
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load metrics:', error);
+        window.open(url, '_blank');
+      } catch (err) {
+        console.error('Failed to open Grafana:', err);
+        alert(err instanceof Error ? err.message : 'Failed to launch Grafana dashboard');
       }
     };
 
@@ -352,12 +264,16 @@ export default defineComponent({
 
       try {
         const token = localStorage.getItem('JWTUser') || '';
-        const provider = localStorage.getItem('provider') || '';
+        const provider = localStorage.getItem('provider') || 'github';
 
         const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/restart`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: username.value, token: token, provider }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Auth-Provider': provider,
+          },
+          body: JSON.stringify({ author: username.value, token, provider }),
         });
 
         if (!response.ok) {
@@ -387,12 +303,16 @@ export default defineComponent({
 
       try {
         const token = localStorage.getItem('JWTUser') || '';
-        const provider = localStorage.getItem('provider') || '';
+        const provider = localStorage.getItem('provider') || 'github';
 
         const response = await fetch(`${BACKEND_URL}/health/${containerIdentifier}/stop`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: username.value, token: token, provider }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-Auth-Provider': provider,
+          },
+          body: JSON.stringify({ author: username.value, token, provider }),
         });
 
         if (!response.ok) {
@@ -416,7 +336,7 @@ export default defineComponent({
       }
     };
 
-    onMounted(async() => {
+    onMounted(async () => {
       await fetchUsername();
       fetchHealth();
     });
@@ -425,16 +345,14 @@ export default defineComponent({
       loading,
       containers,
       summary,
-      selectedContainer,
-      selectedTimeStep,
-      cpuChart,
-      memoryChart,
+      username,
+      showLogsModal,
+      selectedLogSubdomain,
       refreshData,
       goBack,
       getMetricClass,
-      viewMetrics,
-      closeMetrics,
-      loadMetrics,
+      openLogs,
+      openGrafana,
       restartContainer,
       stopContainer,
     };
@@ -468,81 +386,74 @@ export default defineComponent({
 
 .refresh-btn, .back-btn {
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
   cursor: pointer;
   font-weight: 500;
-  width: auto;
+  color: #121212;
 }
 
-.refresh-btn {
-  background: #3b82f6;
-  color: white;
-  border: none;
-}
-
-.back-btn {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .summary-section {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
 .summary-card {
   padding: 1.5rem;
-  border-radius: 12px;
-  text-align: center;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.summary-card.total { border-left: 4px solid #6366f1; }
-.summary-card.healthy { border-left: 4px solid #10b981; }
-.summary-card.unhealthy { border-left: 4px solid #ef4444; }
-.summary-card.percent { border-left: 4px solid #f59e0b; }
-
 .summary-value {
-  display: block;
   font-size: 2.5rem;
-  font-weight: 700;
-  color: #111827;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #121212;
 }
 
 .summary-label {
-  color: #6b7280;
+  color: #666;
   font-size: 0.875rem;
+  text-transform: uppercase;
 }
 
+.summary-card.total { border-top: 4px solid #3b82f6; }
+.summary-card.healthy { border-top: 4px solid #10b981; }
+.summary-card.unhealthy { border-top: 4px solid #ef4444; }
+.summary-card.percent { border-top: 4px solid #8b5cf6; }
+
 .containers-section h2 {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .container-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.5rem;
 }
 
 .container-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background: #fff;
+  border-radius: 8px;
   padding: 1.5rem;
-  transition: box-shadow 0.2s;
-}
-
-.container-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
 }
 
 .container-card.unhealthy {
-  border-color: #fecaca;
-  background: #fef2f2;
+  border-color: #ef4444;
 }
 
 .container-header {
@@ -554,7 +465,9 @@ export default defineComponent({
 
 .container-header h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+  color: #121212;
+  word-break: break-all;
 }
 
 .status-badge {
@@ -606,10 +519,11 @@ export default defineComponent({
 .progress-fill.critical { background: #ef4444; }
 
 .metric span:last-child {
-  width: 60px;
+  width: 70px;
   text-align: right;
   font-size: 0.875rem;
   font-weight: 500;
+  color: #374151;
 }
 
 .container-stats {
@@ -622,22 +536,31 @@ export default defineComponent({
 
 .container-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.view-btn, .restart-btn, .stop-btn {
+.view-btn, .logs-btn, .restart-btn, .stop-btn {
   flex: 1;
-  padding: 0.5rem;
+  min-width: 70px;
+  padding: 0.45rem 0.5rem;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
-  width: auto;
+  text-align: center;
 }
 
 .view-btn {
   background: #eff6ff;
   color: #1d4ed8;
   border: 1px solid #bfdbfe;
+}
+
+.logs-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 .stop-btn {
@@ -652,100 +575,10 @@ export default defineComponent({
   border: 1px solid #fcd34d;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.metrics-modal {
-  background: white;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 2rem;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.modal-header h2 {
-  margin: 0;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  cursor: pointer;
-  color: #6b7280;
-  width: auto;
-  padding: 0;
-}
-
-.time-selector {
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.time-selector select {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  font-size: 1rem;
-}
-
-.charts-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-}
-
-.chart-wrapper {
-  background: #f9fafb;
-  padding: 1rem;
-  border-radius: 12px;
-}
-
-.chart-wrapper h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1rem;
-  color: #374151;
-}
-
 .no-containers {
   text-align: center;
   padding: 3rem;
   color: #6b7280;
-  font-size: 1.125rem;
-}
-
-@media (max-width: 768px) {
-  .summary-section {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .charts-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .container-grid {
-    grid-template-columns: 1fr;
-  }
+  font-size: 1.1rem;
 }
 </style>

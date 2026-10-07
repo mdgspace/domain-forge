@@ -16,7 +16,7 @@ const program = new Command();
 let userApiKey = '';
 let user = '';
 let backendUrl = '';
-const provider = 'github';
+const provider = 'CLI';
 
 
 program

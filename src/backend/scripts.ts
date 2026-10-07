@@ -1,6 +1,8 @@
 import { exec } from "./dependencies.ts";
 import dockerize, { dockerignore } from "./utils/container.ts";
 import DfContentMap from "./types/maps_interface.ts";
+import { ensureTenantAlloyPipeline } from "./utils/alloy-provisioner.ts";
+import { ensureTenantGrafanaOrg } from "./utils/grafana-provisioner.ts";
 
 const MEMORY_LIMIT = Deno.env.get("MEMORY_LIMIT");
 
@@ -19,7 +21,10 @@ function shellEscape(input: string, label = "input"): string {
 
 async function safeExec(command: string): Promise<void> {
   try {
-    await exec(command);
+    const res = await exec(command);
+    if (!res.status.success) {
+      throw new Error(`[scripts] Command failed with code ${res.status.code}: ${res.error || res.output || "Unknown error"}`);
+    }
   } catch (error) {
     console.error(`[scripts] exec failed: ${command}`);
     console.error(error);
@@ -37,9 +42,16 @@ async function addScript(
   build_cmds: string,
 ) {
   const subdomain = shellEscape(document.subdomain, "subdomain");
+  const author = shellEscape(document.author || "anonymous", "author");
   const resource = shellEscape(document.resource, "resource");
   const safePort = shellEscape(port, "port");
   const memLimit = shellEscape(MEMORY_LIMIT || "512m", "MEMORY_LIMIT");
+
+  // Ensure telemetry infrastructure is provisioned for this tenant
+  if (document.author) {
+    await ensureTenantAlloyPipeline(document.author).catch(() => {});
+    await ensureTenantGrafanaOrg(document.author).catch(() => {});
+  }
 
   if (document.resource_type === "URL") {
     await safeExec(
@@ -54,7 +66,7 @@ async function addScript(
       await Deno.writeTextFile(`/hostpipe/.env.${subdomain}`, env_content);
     }
     await safeExec(
-      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit}' > /hostpipe/pipe"`,
+      `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -s ${subdomain} ${resource} 80 ${memLimit} ${author}' > /hostpipe/pipe"`,
     );
   } else if (document.resource_type === "GITHUB" && static_content == "No") {
     if (dockerfile_present === 'No') {
@@ -64,11 +76,11 @@ async function addScript(
         await Deno.writeTextFile(`/hostpipe/.env.${subdomain}`, env_content);
       }
       await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit} ${author}' > /hostpipe/pipe"`,
       );
     } else if (dockerfile_present === 'Yes') {
       await safeExec(
-        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit}' > /hostpipe/pipe"`,
+        `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit} ${author}' > /hostpipe/pipe"`,
       );
     }
   }

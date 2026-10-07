@@ -1,6 +1,6 @@
-import axios from "axios"
-import chalk from 'chalk'
-import inquirer from 'inquirer'
+import axios from "axios";
+import chalk from 'chalk';
+import inquirer from 'inquirer';
 import { promptUser } from '../utils/promptTaker.js';
 
 let domain = 'domains.pluto.mdgspace.org';
@@ -16,6 +16,7 @@ async function selectResourceType() {
   ]);
   return resourceType;
 }
+
 async function selectDockerPresent() {
   const { resourceType } = await inquirer.prompt([
     {
@@ -28,12 +29,11 @@ async function selectDockerPresent() {
   return resourceType;
 }
 
-
 async function selectStack() {
   const { Stack } = await inquirer.prompt([
     {
       type: 'list',
-      name: 'Stack', // Must match the key you destructure
+      name: 'Stack',
       message: 'Select the tech stack:',
       choices: ['Python', 'NodeJS'],
     },
@@ -56,7 +56,7 @@ export async function createDomain(userApiKey: string, user: string, provider: s
   resourceType = await selectResourceType();
   resource = await promptUser('Enter resource:');
 
-  if (resourceType === 'GitHub') {
+  if (resourceType === 'GITHUB') {
     envContent = await promptUser('Enter environment content:');
     staticContent = await promptUser('Enter static content:');
     dockerfilePresent = await selectDockerPresent();
@@ -77,16 +77,21 @@ export async function createDomain(userApiKey: string, user: string, provider: s
     stack,
     author: user,
     date: new Date().toLocaleDateString(),
-    token: userApiKey,
-    provider,
   };
+
   try {
-    const response = await axios.post(`${backendUrl}/map`, payload);
+    const response = await axios.post(`${backendUrl}/map`, payload, {
+      headers: {
+        'Authorization': `Bearer ${userApiKey}`,
+        'X-Auth-Provider': provider,
+        'Content-Type': 'application/json',
+      },
+    });
     if (response.data.status === 'success') {
       console.log(`✅ Domain '${subdomain}.${domain}' created successfully!`);
     } else {
       console.log('❌ Domain creation failed!');
-      console.log("Either the domain exist or the domain is not created");
+      console.log("Either the domain exists or the domain was not created");
     }
   } catch (error) {
     console.error(chalk.red('Error creating domain:'));

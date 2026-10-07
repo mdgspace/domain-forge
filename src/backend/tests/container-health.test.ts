@@ -164,26 +164,43 @@ Deno.test("parseStep - parses all valid steps", () => {
 
 Deno.test("isUserContainer - allows user containers", () => {
     const isUserContainer = (name: string): boolean => {
-        const systemContainers = ['df_backend', 'df_frontend', 'df_prometheus', 'df_cadvisor'];
-        return name.length > 0 && !systemContainers.includes(name) && !name.startsWith('k8s_');
+        if (!name) return false;
+        if (/^[0-9a-f]{12,64}$/i.test(name)) return false;
+        const lower = name.toLowerCase();
+        const systemPatterns = [
+            'df_', 'docker-df_', 'cadvisor', 'prometheus', 'loki', 'alloy', 'grafana', 'traefik', 'caddy', 'k8s_'
+        ];
+        return !systemPatterns.some(pat => lower.includes(pat));
     };
 
     assertEquals(isUserContainer("my-app"), true);
     assertEquals(isUserContainer("user-project"), true);
-    assertEquals(isUserContainer("test123"), true);
+    assertEquals(isUserContainer("test123-app"), true);
     assertEquals(isUserContainer("production-api"), true);
 });
 
 Deno.test("isUserContainer - blocks system containers", () => {
     const isUserContainer = (name: string): boolean => {
-        const systemContainers = ['df_backend', 'df_frontend', 'df_prometheus', 'df_cadvisor'];
-        return name.length > 0 && !systemContainers.includes(name) && !name.startsWith('k8s_');
+        if (!name) return false;
+        if (/^[0-9a-f]{12,64}$/i.test(name)) return false;
+        const lower = name.toLowerCase();
+        const systemPatterns = [
+            'df_', 'docker-df_', 'cadvisor', 'prometheus', 'loki', 'alloy', 'grafana', 'traefik', 'caddy', 'k8s_'
+        ];
+        return !systemPatterns.some(pat => lower.includes(pat));
     };
 
     assertEquals(isUserContainer("df_backend"), false);
     assertEquals(isUserContainer("df_frontend"), false);
     assertEquals(isUserContainer("df_prometheus"), false);
     assertEquals(isUserContainer("df_cadvisor"), false);
+    assertEquals(isUserContainer("df_loki"), false);
+    assertEquals(isUserContainer("df_alloy"), false);
+    assertEquals(isUserContainer("df_grafana"), false);
+    assertEquals(isUserContainer("docker-df_backend-1"), false);
+    assertEquals(isUserContainer("traefik-traefik-1"), false);
+    assertEquals(isUserContainer("caddy-caddy-1"), false);
+    assertEquals(isUserContainer("1f776d48c327"), false);
 });
 
 Deno.test("isUserContainer - blocks kubernetes containers", () => {

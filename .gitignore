@@ -8,6 +8,9 @@
 # Logs
 logs
 *.log
+docker/grafana/jwt/
+docker/named_pipe/jwt/
+!docker/named_pipe/alloy/config.alloy
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -5,6 +5,7 @@ name=$2
 resource=$3
 exp_port=$4
 max_mem=$5 
+author=${6:-"anonymous"}
 
 # Logging and Status tracking setup
 # Use absolute paths to avoid issues when the script cd's into subdirectories
@@ -21,9 +22,15 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "DEPLOYING" > "$STATUS_FILE"
 
-# Trap errors to mark status as FAILED
+# Trap errors to mark status as FAILED and clean up temporary files (P2-5 Remediation)
+cleanup_temp_files() {
+    sudo rm -f "$SCRIPT_CWD/.env.$name" "$SCRIPT_CWD/Dockerfile.$name" "$SCRIPT_CWD/.dockerignore.$name" 2>/dev/null || true
+    sudo rm -rf "$SCRIPT_CWD/$name" 2>/dev/null || true
+}
+
 error_handler() {
     echo "FAILED" > "$STATUS_FILE"
+    cleanup_temp_files
     exit 1
 }
 trap 'error_handler' ERR
@@ -35,6 +42,11 @@ for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
         available_ports+=($port)
     fi
 done
+
+if [ ${#available_ports[@]} -eq 0 ]; then
+    echo "ERROR: No available ports in range $PORT_MIN-$PORT_MAX" >&2
+    exit 1
+fi
 
 echo "Available ports: ${available_ports[0]}"
 AVAILABLE=0
@@ -61,14 +73,18 @@ sudo docker build -t $name .
 # Safety net: If the frontend sends double requests from spam-clicking, forcefully remove any zombie container holding the name
 sudo docker rm -f $name 2>/dev/null || true
 
-sudo docker run --memory=$max_mem --name=$name -d -p ${available_ports[$AVAILABLE]}:$exp_port $name
+LABEL_ARGS="--label df_subdomain=$name"
+if [ -n "$author" ]; then
+    LABEL_ARGS="$LABEL_ARGS --label df_author=$author"
+fi
+
+sudo docker run $LABEL_ARGS --memory=$max_mem --name=$name -d -p 127.0.0.1:${available_ports[$AVAILABLE]}:$exp_port $name
 cd ..
-sudo rm -rf $name
-# Clean up the specific config files for this subdomain
-sudo rm -f "Dockerfile.$name" ".dockerignore.$name" ".env.$name" 2>/dev/null || true
+cleanup_temp_files
+
 sudo touch /etc/nginx/sites-available/$name.conf
-sudo chmod 666 /etc/nginx/sites-available/$name.conf
-sudo echo "# Virtual Host configuration for $name
+sudo chmod 644 /etc/nginx/sites-available/$name.conf
+echo "# Virtual Host configuration for $name
     server {
     listen 80;
     listen [::]:80;
@@ -83,7 +99,7 @@ sudo echo "# Virtual Host configuration for $name
     }
     charset utf-8;
     client_max_body_size 20M;
-    }" > /etc/nginx/sites-available/$name.conf
+    }" | sudo tee /etc/nginx/sites-available/$name.conf > /dev/null
 sudo ln -sf /etc/nginx/sites-available/$name.conf /etc/nginx/sites-enabled/$name.conf
 sudo systemctl reload nginx
 

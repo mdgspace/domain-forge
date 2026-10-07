@@ -32,13 +32,20 @@
 import { authorize } from '../utils/authorize';
 import { useRouter } from "vue-router";
 
-
 const route = useRouter().currentRoute.value;
 const code = route.query.code;
+const state = route.query.state;
+const savedState = sessionStorage.getItem("oauth_state");
 const provider = localStorage.getItem("provider");
 
 if (code && provider) {
-  authorize(code, provider);
+  if (savedState && state !== savedState) {
+    alert("Invalid OAuth state parameter. Authentication aborted for CSRF protection.");
+    sessionStorage.removeItem("oauth_state");
+  } else {
+    sessionStorage.removeItem("oauth_state");
+    authorize(code, provider);
+  }
 }
 </script>
 <script>

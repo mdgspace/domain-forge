@@ -5,7 +5,12 @@ const stopCounts = new Map<string, { count: number; lastStop: Date }>();
 const SAFE_CONTAINER_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
 let execCommand = async (command: string): Promise<void> => {
-    await exec(command);
+    const res = await exec(command);
+    if (!res.status.success) {
+        throw new Error(
+            `[Auto-Restart] Command failed with code ${res.status.code}: ${res.error || res.output || "Unknown error"}`
+        );
+    }
 };
 
 export function validateContainerName(containerName: string): string {
@@ -24,7 +29,12 @@ export function setCommandExecutorForTest(
     executor: ((command: string) => Promise<void>) | null,
 ): void {
     execCommand = executor ?? (async (command: string): Promise<void> => {
-        await exec(command);
+        const res = await exec(command);
+        if (!res.status.success) {
+            throw new Error(
+                `[Auto-Restart] Command failed with code ${res.status.code}: ${res.error || res.output || "Unknown error"}`
+            );
+        }
     });
 }
 

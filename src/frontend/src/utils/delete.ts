@@ -12,10 +12,15 @@ export async function deleteSubDomain(subdomain: string) {
     "token": localStorage.getItem("JWTUser"),
     "provider": localStorage.getItem("provider"),
   };
+  const token = localStorage.getItem("JWTUser") || "";
+  const provider = localStorage.getItem("provider") || "github";
   const resp = await fetch(rootUrl.toString(), {
     method: "POST",
     headers: {
       "Accept": "application/json",
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      "X-Auth-Provider": provider,
     },
     body: JSON.stringify(body),
   });
