@@ -1,7 +1,7 @@
 <template>
   <div class="page-layout">
     <header>
-      <nav>
+      <nav class="flat-nav">
         <div class="nav-wrapper">
           <router-link to="/" class="brand-container">
             <img src="/df-logo.png" class="brand-logo" alt="Domain Forge logo">
@@ -12,30 +12,35 @@
     </header>
 
     <div class="not-found-container">
-      <div class="grid-background"></div>
+      <div class="geom-shape geom-circle"></div>
+      <div class="geom-shape geom-square"></div>
+
       <div class="not-found-card">
         <div class="code-badge">404 ERROR</div>
         <h1 class="error-code">404</h1>
         <h2>Page not found</h2>
         <p class="error-description">
-          The deployment route or page you are looking for doesn't exist, has been removed, or was relocated.
+          The requested deployment route or resource does not exist, has been removed, or was relocated.
         </p>
-        <router-link to="/" class="home-btn">
-          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-          </svg>
-          Back to Overview
+        <router-link to="/" class="btn-primary">
+          <ArrowLeft :size="16" :stroke-width="2.5" />
+          <span>Back to Overview</span>
         </router-link>
       </div>
     </div>
 
-    <footer>
+    <!-- Solid High-Contrast Flat Dark Footer -->
+    <footer class="flat-footer">
       <div class="footer-content">
         <p>Made with ❤️ by <strong>MDG Space</strong></p>
       </div>
     </footer>
   </div>
 </template>
+
+<script setup>
+import { ArrowLeft } from 'lucide-vue-next';
+</script>
 
 <script>
 export default {
@@ -48,20 +53,19 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f5f7fb;
+  background-color: var(--color-canvas);
   position: relative;
+  overflow-x: hidden;
 }
 
-nav {
-  width: 100%; 
-  position: fixed; 
+.flat-nav {
+  width: 100%;
+  position: fixed;
   top: 0;
   left: 0;
   z-index: 50;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  border-bottom: 2px solid var(--color-muted);
 }
 
 .nav-wrapper {
@@ -70,7 +74,7 @@ nav {
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 14px 28px;
+  padding: 16px 28px;
 }
 
 .brand-container {
@@ -81,17 +85,15 @@ nav {
 }
 
 .brand-logo {
-  height: 32px;
+  height: 34px;
   width: auto;
-  object-fit: contain;
 }
 
 .brand {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: #172033;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-fg);
 }
 
 .not-found-container {
@@ -101,19 +103,30 @@ nav {
   align-items: center;
   justify-content: center;
   padding: 120px 24px 60px;
-  overflow: hidden;
 }
 
-.grid-background {
+.geom-shape {
   position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(23, 32, 51, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23, 32, 51, 0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, #000 70%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, #000 70%, transparent 100%);
   pointer-events: none;
+  z-index: 0;
+}
+
+.geom-circle {
+  top: 20%;
+  left: 10%;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background-color: var(--color-blue-subtle);
+}
+
+.geom-square {
+  bottom: 15%;
+  right: 12%;
+  width: 260px;
+  height: 260px;
+  background-color: var(--color-amber-subtle);
+  transform: rotate(15deg);
 }
 
 .not-found-card {
@@ -128,69 +141,44 @@ nav {
 
 .code-badge {
   display: inline-block;
-  padding: 4px 12px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #2563eb;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
+  padding: 6px 16px;
+  background-color: var(--color-blue-subtle);
+  color: var(--color-primary);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 800;
   letter-spacing: 0.08em;
   margin-bottom: 12px;
 }
 
 .error-code {
-  font-size: clamp(5.5rem, 12vw, 8rem);
+  font-size: clamp(6rem, 14vw, 9.5rem);
   font-weight: 800;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.04em;
   line-height: 0.95;
   margin: 0;
-  color: #172033;
-  background: linear-gradient(135deg, #172033 40%, #2563eb 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--color-fg);
 }
 
 .not-found-card h2 {
   margin: 16px 0 8px;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #172033;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-fg);
 }
 
 .error-description {
-  color: #64748b;
-  font-size: 0.95rem;
+  color: #6b7280;
+  font-size: 0.98rem;
   line-height: 1.5;
   margin: 0 0 28px;
 }
 
-.home-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 22px;
-  border-radius: 10px;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 0.92rem;
-  font-weight: 600;
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
-  transition: all 0.2s ease;
-}
-
-.home-btn:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
-}
-
-footer {
+/* Flat High-Contrast Dark Footer */
+.flat-footer {
   width: 100%;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-  padding: 20px 0;
+  background-color: var(--color-dark);
+  padding: 24px 0;
   margin-top: auto;
 }
 
@@ -201,13 +189,13 @@ footer {
   text-align: center;
 }
 
-footer p {
+.flat-footer p {
   margin: 0;
-  color: #64748b;
-  font-size: 0.86rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
 }
 
-footer strong {
-  color: #172033;
+.flat-footer strong {
+  color: #ffffff;
 }
 </style>

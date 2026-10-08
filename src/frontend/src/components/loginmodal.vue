@@ -1,18 +1,16 @@
 <template>
-  <div class="modal-overlay" @click.self="closeModal">
-    <div class="modal">
+  <div class="flat-modal-overlay" @click.self="closeModal">
+    <div class="flat-modal">
       <button class="close-btn" @click="closeModal" aria-label="Close modal">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-        </svg>
+        <X :size="18" :stroke-width="2.5" />
       </button>
       
-      <div class="logo-wrapper">
+      <div class="logo-circle">
         <img src="/df-logo.png" alt="Domain Forge Logo" class="logo">
       </div>
 
       <h2 class="title">Sign in to Domain Forge</h2>
-      <p class="subtitle">Choose your provider to access deployments and telemetry.</p>
+      <p class="subtitle">Select your identity provider to access deployments and telemetry.</p>
 
       <div class="button-container">
         <button class="oauth-button github-btn" @click="loginWith('github')">
@@ -27,7 +25,7 @@
       </div>
 
       <p class="modal-footnote">
-        By continuing, you authenticate securely through your Git provider.
+        Secure OAuth authentication directly through your Git provider.
       </p>
     </div>
   </div>
@@ -35,6 +33,7 @@
 
 <script setup>
 import { oauthUrl } from '../utils/oauth-urls';
+import { X } from 'lucide-vue-next';
 </script>
 
 <script>
@@ -56,44 +55,29 @@ export default {
 </script>
 
 <style scoped>
-.modal-overlay {
+.flat-modal-overlay {
   position: fixed;
   inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(17, 24, 39, 0.7);
   z-index: 100;
   padding: 20px;
 }
 
-.modal {
+.flat-modal {
   background-color: #ffffff;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 36px 32px 30px;
   max-width: 420px;
   width: 100%;
-  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.22);
-  border: 1px solid #e2e8f0;
+  border: 2px solid var(--color-muted);
   text-align: center;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: modal-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes modal-appear {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }
 
 .close-btn {
@@ -104,49 +88,47 @@ export default {
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: transparent;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  border-radius: var(--radius-md);
+  background-color: var(--color-muted);
+  color: var(--color-fg);
+  border: 0;
 }
 
 .close-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background-color: var(--color-muted-hover);
+  transform: scale(1.05);
 }
 
-.logo-wrapper {
+.logo-circle {
   display: grid;
   place-items: center;
-  width: 68px;
-  height: 68px;
-  border-radius: 18px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: var(--color-muted);
   margin-bottom: 20px;
 }
 
 .logo {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
 }
 
 .title {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #172033;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-fg);
   margin: 0 0 6px;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
-  color: #64748b;
-  font-size: 0.88rem;
-  margin: 0 0 24px;
-  max-width: 280px;
-  line-height: 1.4;
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0 0 26px;
+  max-width: 300px;
+  line-height: 1.45;
 }
 
 .button-container {
@@ -162,39 +144,32 @@ export default {
   justify-content: center;
   gap: 12px;
   width: 100%;
-  padding: 12px 18px;
-  border-radius: 10px;
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: 0;
+  transition: all var(--transition-fast);
 }
 
 .github-btn {
-  background-color: #171d2b;
+  background-color: var(--color-dark);
   color: #ffffff;
-  border: 1px solid #171d2b;
-  box-shadow: 0 2px 8px rgba(23, 29, 43, 0.18);
 }
 
 .github-btn:hover {
-  background-color: #0b0f19;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(23, 29, 43, 0.25);
+  background-color: #000000;
+  transform: scale(1.05);
 }
 
 .gitlab-btn {
-  background-color: #ffffff;
-  color: #1f2937;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  background-color: var(--color-muted);
+  color: var(--color-fg);
 }
 
 .gitlab-btn:hover {
-  background-color: #f9fafb;
-  border-color: #9ca3af;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background-color: var(--color-muted-hover);
+  transform: scale(1.05);
 }
 
 .oauth-icon {
@@ -204,9 +179,9 @@ export default {
 }
 
 .modal-footnote {
-  margin: 22px 0 0;
-  color: #94a3b8;
-  font-size: 0.76rem;
+  margin: 24px 0 0;
+  color: #9ca3af;
+  font-size: 0.78rem;
   line-height: 1.4;
 }
 </style>

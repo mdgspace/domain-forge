@@ -1,16 +1,23 @@
 <template>
   <div class="page-wrapper">
     <header>
-      <nav>
+      <nav class="flat-nav">
         <div class="nav-wrapper">
           <div class="brand-container">
             <img src="/df-logo.png" class="brand-logo" alt="logo">
-            <p class="brand">Domain Forge</p>
+            <span class="brand">Domain Forge</span>
           </div>
           <ul class="nav-links">
-            <li><a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md" target="_blank" rel="noopener noreferrer">Docs</a></li>
+            <li>
+              <a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md" target="_blank" rel="noopener noreferrer">
+                Docs
+              </a>
+            </li>
             <li class="login-provider">
-              <button @click="showModal = true" class="login-button">Login</button>
+              <button @click="showModal = true" class="nav-login-btn">
+                <LogIn :size="16" :stroke-width="2.5" />
+                <span>Login</span>
+              </button>
             </li>
           </ul>
         </div>
@@ -18,51 +25,76 @@
     </header>
 
     <div id="container">
-      <div class="grid-background"></div>
-      <div class="radial-glow"></div>
+      <!-- Strategic Flat Geometric Background Shapes (Poster Inspired) -->
+      <div class="geom-shape geom-circle"></div>
+      <div class="geom-shape geom-square"></div>
+      <div class="geom-shape geom-dot-grid"></div>
+
       <main class="hero-content">
         <div class="hero-badge">
           <span class="badge-dot"></span>
-          <span>The deployment control plane</span>
+          <span>THE DEPLOYMENT CONTROL PLANE</span>
         </div>
+
         <h1 class="main-title">
           Ship faster.<br>
-          <span class="title-gradient">Stay in control.</span>
+          <span class="title-highlight">Stay in control.</span>
         </h1>
-        <h2 class="hero-description">
-          <span class="highlight">Subdomain generation</span> integrated with robust
-          <span class="highlight">hosting infrastructure</span> for seamless website management.
-        </h2>
-        
+
+        <p class="hero-description">
+          <strong>Subdomain generation</strong> integrated with robust <strong>hosting infrastructure</strong> for seamless website and container management.
+        </p>
+
         <div class="cta-actions">
-          <button @click="showModal = true" class="primary-hero-btn">
-            Get Started
-            <svg class="arrow-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-              <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
+          <button @click="showModal = true" class="cta-primary-btn">
+            <span>Get Started</span>
+            <ArrowRight :size="18" :stroke-width="2.5" />
           </button>
-          <a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md" target="_blank" rel="noopener noreferrer" class="secondary-hero-btn">
-            Documentation
+          <a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md" target="_blank" rel="noopener noreferrer" class="cta-outline-btn">
+            <BookOpen :size="18" :stroke-width="2.5" />
+            <span>Read Documentation</span>
           </a>
         </div>
 
-        <div class="hero-pills">
-          <span class="pill-item">
-            <span class="pill-dot green"></span> Simple deployments
-          </span>
-          <span class="pill-item">
-            <span class="pill-dot blue"></span> Live observability
-          </span>
-          <span class="pill-item">
-            <span class="pill-dot purple"></span> Built for teams
-          </span>
+        <!-- Solid Flat Color Block Feature Cards with Lucide Icons -->
+        <div class="feature-blocks">
+          <div class="feature-block block-blue">
+            <div class="feature-icon-circle bg-blue">
+              <Rocket :size="20" :stroke-width="2.5" />
+            </div>
+            <div class="feature-text">
+              <strong>Instant Deployment</strong>
+              <span>Subdomains live in seconds</span>
+            </div>
+          </div>
+
+          <div class="feature-block block-emerald">
+            <div class="feature-icon-circle bg-emerald">
+              <Activity :size="20" :stroke-width="2.5" />
+            </div>
+            <div class="feature-text">
+              <strong>Live Telemetry</strong>
+              <span>Real-time container metrics</span>
+            </div>
+          </div>
+
+          <div class="feature-block block-amber">
+            <div class="feature-icon-circle bg-amber">
+              <ShieldCheck :size="20" :stroke-width="2.5" />
+            </div>
+            <div class="feature-text">
+              <strong>Secure Routing</strong>
+              <span>Built for engineering teams</span>
+            </div>
+          </div>
         </div>
       </main>
 
       <loginmodal v-show="showModal" @close-modal="showModal = false" />
     </div>
 
-    <footer>
+    <!-- Solid High-Contrast Flat Dark Footer -->
+    <footer class="flat-footer">
       <div class="footer-content">
         <p>Made with ❤️ by <strong>MDG Space</strong></p>
       </div>
@@ -73,6 +105,7 @@
 <script setup>
 import { authorize } from '../utils/authorize';
 import { useRouter } from "vue-router";
+import { ArrowRight, BookOpen, LogIn, Rocket, Activity, ShieldCheck } from "lucide-vue-next";
 
 const route = useRouter().currentRoute.value;
 const code = route.query.code;
@@ -90,6 +123,7 @@ if (code && provider) {
   }
 }
 </script>
+
 <script>
 import loginmodal from './loginmodal.vue';
 export default {
@@ -108,28 +142,27 @@ export default {
   flex-direction: column;
   min-height: 100vh;
   position: relative;
-  background-color: #f5f7fb;
+  background-color: var(--color-canvas);
+  overflow-x: hidden;
 }
 
-nav {
-  width: 100%; 
-  position: fixed; 
+.flat-nav {
+  width: 100%;
+  position: fixed;
   top: 0;
   left: 0;
   z-index: 50;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  border-bottom: 2px solid var(--color-muted);
 }
 
 .nav-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1180px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 14px 28px;
+  padding: 16px 28px;
 }
 
 .brand-container {
@@ -139,17 +172,15 @@ nav {
 }
 
 .brand-logo {
-  height: 32px;
+  height: 34px;
   width: auto;
-  object-fit: contain;
 }
 
 .brand {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: #172033;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-fg);
 }
 
 .nav-links {
@@ -158,39 +189,40 @@ nav {
   padding: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .nav-links a {
   text-decoration: none;
-  color: #64748b;
+  color: #4b5563;
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   padding: 8px 14px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
 
 .nav-links a:hover {
-  color: #172033;
-  background: rgba(0, 0, 0, 0.04);
+  background-color: var(--color-muted);
+  color: var(--color-fg);
 }
 
-.login-button {
-  padding: 9px 20px;
-  font-size: 0.88rem;
-  background-color: #2563eb;
+.nav-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background-color: var(--color-primary);
   color: #ffffff;
-  border-radius: 9px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 700;
+  font-size: 0.92rem;
+  border-radius: var(--radius-md);
+  border: 0;
 }
 
-.login-button:hover {
-  background-color: #1d4ed8;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
-  transform: translateY(-1px);
+.nav-login-btn:hover {
+  background-color: var(--color-primary-hover);
+  transform: scale(1.05);
 }
 
 #container {
@@ -201,37 +233,48 @@ nav {
   align-items: center;
   justify-content: center;
   padding: 130px 24px 70px;
-  overflow: hidden;
+  background-color: #ffffff;
 }
 
-.grid-background {
+/* Strategic Flat Geometric Shapes (Poster Design) */
+.geom-shape {
   position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(23, 32, 51, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23, 32, 51, 0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 70%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 70%, transparent 100%);
   pointer-events: none;
+  z-index: 0;
 }
 
-.radial-glow {
-  position: absolute;
-  top: 25%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 600px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, rgba(245, 247, 251, 0) 70%);
-  filter: blur(40px);
-  pointer-events: none;
+.geom-circle {
+  top: 10%;
+  right: -5%;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background-color: #eff6ff; /* Soft flat blue */
+}
+
+.geom-square {
+  bottom: 8%;
+  left: -4%;
+  width: 320px;
+  height: 320px;
+  background-color: #ecfdf5; /* Soft flat emerald */
+  transform: rotate(12deg);
+}
+
+.geom-dot-grid {
+  top: 15%;
+  left: 6%;
+  width: 180px;
+  height: 180px;
+  background-image: radial-gradient(#d1d5db 2px, transparent 2px);
+  background-size: 18px 18px;
+  opacity: 0.7;
 }
 
 .hero-content {
   position: relative;
   z-index: 2;
-  max-width: 860px;
+  max-width: 900px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -242,181 +285,200 @@ nav {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
+  padding: 8px 18px;
   margin-bottom: 24px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #2563eb;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background-color: var(--color-muted);
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-primary);
 }
 
 .badge-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  background-color: var(--color-primary);
 }
 
 .main-title {
   margin: 0;
-  color: #172033;
-  font-size: clamp(2.8rem, 6.5vw, 5.2rem);
-  letter-spacing: -0.05em;
-  line-height: 1.04;
-  font-weight: 700;
+  color: var(--color-fg);
+  font-size: clamp(2.8rem, 6.8vw, 5.4rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-weight: 800;
 }
 
-.title-gradient {
-  color: #2563eb;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.title-highlight {
+  color: var(--color-primary);
 }
 
 .hero-description {
-  max-width: 660px;
+  max-width: 680px;
   margin: 24px auto 0;
-  color: #64748b;
+  color: #4b5563;
   font-size: clamp(1.05rem, 1.8vw, 1.25rem);
   font-weight: 400;
   line-height: 1.6;
 }
 
-.highlight {
-  position: relative;
-  color: #172033;
-  font-weight: 600;
+.hero-description strong {
+  color: var(--color-fg);
 }
 
 .cta-actions {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
   margin-top: 36px;
 }
 
-.primary-hero-btn {
+.cta-primary-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 28px;
-  border-radius: 10px;
-  background: #2563eb;
+  gap: 10px;
+  padding: 15px 32px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
   color: #ffffff;
-  font-size: 0.96rem;
-  font-weight: 600;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: 0;
+  transition: all var(--transition-fast);
 }
 
-.primary-hero-btn:hover {
-  background: #1d4ed8;
-  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.38);
-  transform: translateY(-2px);
+.cta-primary-btn:hover {
+  background-color: var(--color-primary-hover);
+  transform: scale(1.05);
 }
 
-.arrow-icon {
-  transition: transform 0.2s ease;
-}
-
-.primary-hero-btn:hover .arrow-icon {
-  transform: translateX(3px);
-}
-
-.secondary-hero-btn {
-  padding: 12px 24px;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #172033;
-  border: 1px solid #e2e8f0;
-  font-size: 0.96rem;
-  font-weight: 600;
-  text-decoration: none;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
-  transition: all 0.2s ease;
-}
-
-.secondary-hero-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
-}
-
-.hero-pills {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 40px;
-}
-
-.pill-item {
+.cta-outline-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
-  font-size: 0.82rem;
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  gap: 10px;
+  padding: 12px 28px;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: 4px solid var(--color-fg);
+  color: var(--color-fg);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--transition-fast);
 }
 
-.pill-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.cta-outline-btn:hover {
+  background-color: var(--color-fg);
+  color: #ffffff;
+  transform: scale(1.05);
 }
 
-.pill-dot.green { background-color: #16a34a; }
-.pill-dot.blue { background-color: #2563eb; }
-.pill-dot.purple { background-color: #7c3aed; }
-
-footer {
+/* Color Block Feature Cards */
+.feature-blocks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 52px;
   width: 100%;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-  padding: 20px 0;
+}
+
+.feature-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  text-align: left;
+  transition: transform var(--transition-fast);
+}
+
+.feature-block:hover {
+  transform: scale(1.03);
+}
+
+.block-blue {
+  background-color: var(--color-blue-subtle);
+}
+
+.block-emerald {
+  background-color: var(--color-emerald-subtle);
+}
+
+.block-amber {
+  background-color: var(--color-amber-subtle);
+}
+
+.feature-icon-circle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bg-blue {
+  background-color: #ffffff;
+  color: var(--color-primary);
+}
+
+.bg-emerald {
+  background-color: #ffffff;
+  color: var(--color-secondary);
+}
+
+.bg-amber {
+  background-color: #ffffff;
+  color: var(--color-accent);
+}
+
+.feature-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-text strong {
+  color: var(--color-fg);
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.feature-text span {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+/* Flat High-Contrast Dark Footer */
+.flat-footer {
+  width: 100%;
+  background-color: var(--color-dark);
+  padding: 24px 0;
   margin-top: auto;
 }
 
 .footer-content {
-  max-width: 1180px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 28px;
   text-align: center;
 }
 
-footer p {
+.flat-footer p {
   margin: 0;
-  color: #64748b;
-  font-size: 0.86rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
 }
 
-footer strong {
-  color: #172033;
+.flat-footer strong {
+  color: #ffffff;
 }
 
-@media (max-width: 640px) {
-  #container {
-    padding: 110px 20px 50px;
-  }
-
-  .nav-wrapper {
-    padding: 12px 16px;
-  }
-
-  .nav-links a {
-    display: none;
+@media (max-width: 768px) {
+  .feature-blocks {
+    grid-template-columns: 1fr;
   }
 
   .cta-actions {
@@ -424,8 +486,8 @@ footer strong {
     width: 100%;
   }
 
-  .primary-hero-btn,
-  .secondary-hero-btn {
+  .cta-primary-btn,
+  .cta-outline-btn {
     width: 100%;
     justify-content: center;
   }

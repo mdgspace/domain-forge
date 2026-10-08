@@ -1,7 +1,7 @@
 <template>
   <div class="page-layout">
     <header>
-      <nav>
+      <nav class="flat-nav">
         <div class="nav-wrapper">
           <router-link to="/" class="brand-container">
             <img src="/df-logo.png" class="brand-logo" alt="Domain Forge logo">
@@ -15,14 +15,15 @@
               <router-link to="/" class="nav-link-item">Overview</router-link>
             </li>
             <li>
-              <router-link to="/health" class="nav-link-item active">Health</router-link>
+              <router-link to="/health" class="nav-link-item active">
+                <Activity :size="16" :stroke-width="2.5" />
+                <span>Health</span>
+              </router-link>
             </li>
             <li>
-              <button @click="refreshData" :disabled="loading" class="refresh-nav-btn">
-                <svg :class="{ 'spin': loading }" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                  <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-                </svg>
-                {{ loading ? 'Refreshing…' : 'Refresh' }}
+              <button @click="refreshData" :disabled="loading" class="flat-nav-btn">
+                <RefreshCw :size="14" :stroke-width="2.5" :class="{ 'spin': loading }" />
+                <span>{{ loading ? 'Refreshing…' : 'Refresh' }}</span>
               </button>
             </li>
           </ul>
@@ -33,26 +34,23 @@
     <div class="health-container">
       <div class="dashboard-header">
         <div>
-          <p class="eyebrow">System / Observability</p>
+          <p class="eyebrow">SYSTEM / OBSERVABILITY</p>
           <h1>Container Health Dashboard</h1>
-          <p class="page-subtitle">Real-time resource utilization, runtime telemetry, and container controls.</p>
+          <p class="page-subtitle">Real-time resource utilization, runtime telemetry, and container lifecycle actions.</p>
         </div>
         <div class="header-actions">
           <button @click="goBack" class="back-btn">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-              <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-            </svg>
-            Back to Overview
+            <ArrowLeft :size="16" :stroke-width="2.5" />
+            <span>Back to Overview</span>
           </button>
         </div>
       </div>
 
+      <!-- Color Block Summary Cards -->
       <section class="summary-section" v-if="summary">
-        <div class="summary-card">
-          <div class="summary-icon-wrap primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
+        <div class="summary-card block-blue">
+          <div class="summary-icon-circle bg-white text-blue">
+            <Layers :size="22" :stroke-width="2.5" />
           </div>
           <div class="summary-content">
             <strong class="summary-count">{{ summary.total }}</strong>
@@ -60,35 +58,29 @@
           </div>
         </div>
 
-        <div class="summary-card">
-          <div class="summary-icon-wrap success">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div class="summary-card block-emerald">
+          <div class="summary-icon-circle bg-white text-emerald">
+            <CheckCircle2 :size="22" :stroke-width="2.5" />
           </div>
           <div class="summary-content">
-            <strong class="summary-count text-success">{{ summary.healthy }}</strong>
+            <strong class="summary-count text-emerald">{{ summary.healthy }}</strong>
             <span class="summary-label">Healthy</span>
           </div>
         </div>
 
-        <div class="summary-card">
-          <div class="summary-icon-wrap danger">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+        <div class="summary-card block-red">
+          <div class="summary-icon-circle bg-white text-red">
+            <AlertTriangle :size="22" :stroke-width="2.5" />
           </div>
           <div class="summary-content">
-            <strong class="summary-count text-danger">{{ summary.unhealthy }}</strong>
+            <strong class="summary-count text-red">{{ summary.unhealthy }}</strong>
             <span class="summary-label">Unhealthy</span>
           </div>
         </div>
 
-        <div class="summary-card">
-          <div class="summary-icon-wrap purple">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
+        <div class="summary-card block-amber">
+          <div class="summary-icon-circle bg-white text-amber">
+            <Activity :size="22" :stroke-width="2.5" />
           </div>
           <div class="summary-content">
             <strong class="summary-count">{{ summary.healthPercent }}%</strong>
@@ -97,6 +89,7 @@
         </div>
       </section>
 
+      <!-- Containers Section -->
       <section class="containers-section">
         <div class="section-heading">
           <h2>Active Containers</h2>
@@ -104,13 +97,11 @@
         </div>
         
         <div v-if="containers.length === 0 && !loading" class="no-containers">
-          <div class="empty-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
+          <div class="empty-icon-circle">
+            <Box :size="36" :stroke-width="2.5" />
           </div>
           <strong>No containers deployed yet</strong>
-          <p>Containers will automatically show telemetry once created in your workspace.</p>
+          <p>Containers will automatically show telemetry once deployed in your workspace.</p>
         </div>
 
         <div class="container-grid">
@@ -122,13 +113,8 @@
           >
             <div class="container-card-header">
               <div class="container-title-group">
-                <span class="service-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
-                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
-                  </svg>
+                <span class="server-icon-wrap">
+                  <Server :size="16" :stroke-width="2.5" />
                 </span>
                 <h3 class="container-title" :title="container.subdomain || container.name">
                   {{ container.subdomain || container.name }}
@@ -140,7 +126,8 @@
               </span>
             </div>
 
-            <div class="metrics-container">
+            <!-- Flat Metric Gauges -->
+            <div class="metrics-block">
               <div class="metric-row">
                 <div class="metric-header">
                   <span class="metric-label">CPU Usage</span>
@@ -170,6 +157,7 @@
               </div>
             </div>
 
+            <!-- Flat Telemetry Stats -->
             <div class="container-stats">
               <div class="stat-item">
                 <span class="stat-label">Restarts</span>
@@ -180,37 +168,30 @@
                 <span class="stat-number">{{ container.stopCount }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">State</span>
-                <span class="stat-number" :class="container.isHealthy ? 'text-success' : 'text-danger'">
+                <span class="stat-label">Health</span>
+                <span class="stat-number" :class="container.isHealthy ? 'text-emerald' : 'text-red'">
                   {{ container.isHealthy ? 'Passing' : 'Failing' }}
                 </span>
               </div>
             </div>
 
+            <!-- Flat Action Buttons with Lucide Icons -->
             <div class="container-actions">
               <button @click="openGrafana(container)" class="action-btn metrics-btn">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
-                  <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-                </svg>
-                Metrics
+                <BarChart3 :size="14" :stroke-width="2.5" />
+                <span>Metrics</span>
               </button>
               <button @click="openLogs(container)" class="action-btn logs-btn">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
-                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
-                </svg>
-                Logs
+                <Terminal :size="14" :stroke-width="2.5" />
+                <span>Logs</span>
               </button>
               <button @click="restartContainer(container)" class="action-btn restart-btn">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
-                  <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-                </svg>
-                Restart
+                <RotateCw :size="14" :stroke-width="2.5" />
+                <span>Restart</span>
               </button>
               <button @click="stopContainer(container)" class="action-btn stop-btn">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
-                </svg>
-                Stop
+                <Square :size="14" :stroke-width="2.5" />
+                <span>Stop</span>
               </button>
             </div>
           </div>
@@ -225,7 +206,8 @@
       />
     </div>
 
-    <footer>
+    <!-- Solid High-Contrast Flat Dark Footer -->
+    <footer class="flat-footer">
       <div class="footer-content">
         <p>Made with ❤️ by <strong>MDG Space</strong></p>
       </div>
@@ -237,6 +219,20 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import LogsModal from './LogsModal.vue';
+import { 
+  Activity, 
+  RefreshCw, 
+  ArrowLeft, 
+  Layers, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Box, 
+  Server, 
+  BarChart3, 
+  Terminal, 
+  RotateCw, 
+  Square 
+} from 'lucide-vue-next';
 
 interface Container {
   name: string;
@@ -260,7 +256,21 @@ interface HealthSummary {
 
 export default defineComponent({
   name: 'ContainerHealth',
-  components: { LogsModal },
+  components: { 
+    LogsModal,
+    Activity, 
+    RefreshCw, 
+    ArrowLeft, 
+    Layers, 
+    CheckCircle2, 
+    AlertTriangle, 
+    Box, 
+    Server, 
+    BarChart3, 
+    Terminal, 
+    RotateCw, 
+    Square 
+  },
   setup() {
     const router = useRouter();
     const loading = ref(false);
@@ -490,19 +500,17 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #f5f7fb;
+  background-color: var(--color-canvas);
 }
 
-nav {
-  width: 100%; 
-  position: fixed; 
+.flat-nav {
+  width: 100%;
+  position: fixed;
   top: 0;
   left: 0;
   z-index: 50;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  border-bottom: 2px solid var(--color-muted);
 }
 
 .nav-wrapper {
@@ -511,7 +519,7 @@ nav {
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 14px 28px;
+  padding: 16px 28px;
 }
 
 .brand-container {
@@ -522,17 +530,15 @@ nav {
 }
 
 .brand-logo {
-  height: 32px;
+  height: 34px;
   width: auto;
-  object-fit: contain;
 }
 
 .brand {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: #172033;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-fg);
 }
 
 .nav-links {
@@ -541,49 +547,47 @@ nav {
   padding: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .nav-links a {
   text-decoration: none;
-  color: #64748b;
+  color: #4b5563;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   padding: 8px 14px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
 }
 
 .nav-links a:hover,
 .nav-link-item.active {
-  color: #172033;
-  background: rgba(0, 0, 0, 0.04);
+  background-color: var(--color-muted);
+  color: var(--color-fg);
 }
 
-.refresh-nav-btn {
+.nav-link-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 13px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: #334155;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: all 0.2s ease;
 }
 
-.refresh-nav-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #94a3b8;
-  color: #0f172a;
+.flat-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-fg);
+  background-color: var(--color-muted);
+  border-radius: var(--radius-md);
+  border: 0;
 }
 
-.refresh-nav-btn:disabled {
-  opacity: 0.6;
-  cursor: wait;
+.flat-nav-btn:hover:not(:disabled) {
+  background-color: var(--color-muted-hover);
+  transform: scale(1.05);
 }
 
 .spin {
@@ -613,32 +617,26 @@ nav {
 }
 
 .eyebrow {
-  margin-bottom: 8px;
-  color: #2563eb;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  margin-bottom: 6px;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
 .dashboard-header h1 {
   margin: 0;
-  font-size: clamp(1.9rem, 3.5vw, 2.75rem);
+  font-size: clamp(2rem, 3.8vw, 2.9rem);
   line-height: 1.1;
-  color: #172033;
-  letter-spacing: -0.04em;
-  font-weight: 700;
+  color: var(--color-fg);
+  letter-spacing: -0.03em;
+  font-weight: 800;
 }
 
 .page-subtitle {
   margin: 8px 0 0;
-  color: #64748b;
-  font-size: 0.95rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
+  color: #6b7280;
+  font-size: 0.98rem;
 }
 
 .back-btn {
@@ -646,22 +644,20 @@ nav {
   align-items: center;
   gap: 8px;
   padding: 10px 18px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #334155;
-  font-size: 0.88rem;
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-  transition: all 0.2s ease;
+  border-radius: var(--radius-md);
+  background-color: var(--color-muted);
+  color: var(--color-fg);
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 0;
 }
 
 .back-btn:hover {
-  background: #f8fafc;
-  color: #0f172a;
-  border-color: #94a3b8;
+  background-color: var(--color-muted-hover);
+  transform: scale(1.05);
 }
 
+/* Color Block Summary Cards */
 .summary-section {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -673,31 +669,33 @@ nav {
   align-items: center;
   gap: 16px;
   padding: 20px 22px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--radius-lg);
+  transition: transform var(--transition-fast);
 }
 
 .summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  transform: scale(1.02);
 }
 
-.summary-icon-wrap {
+.block-blue { background-color: var(--color-blue-subtle); }
+.block-emerald { background-color: var(--color-emerald-subtle); }
+.block-red { background-color: var(--color-danger-subtle); }
+.block-amber { background-color: var(--color-amber-subtle); }
+
+.summary-icon-circle {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #ffffff;
   flex-shrink: 0;
 }
 
-.summary-icon-wrap.primary { background: #dbeafe; color: #2563eb; }
-.summary-icon-wrap.success { background: #dcfce7; color: #16a34a; }
-.summary-icon-wrap.danger { background: #fee2e2; color: #dc2626; }
-.summary-icon-wrap.purple { background: #ede9fe; color: #7c3aed; }
+.text-blue { color: var(--color-primary); }
+.text-emerald { color: var(--color-secondary); }
+.text-red { color: var(--color-danger); }
+.text-amber { color: var(--color-accent); }
 
 .summary-content {
   display: flex;
@@ -705,77 +703,72 @@ nav {
 }
 
 .summary-count {
-  color: #172033;
-  font-size: 1.75rem;
+  color: var(--color-fg);
+  font-size: 2rem;
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 800;
 }
-
-.text-success { color: #16a34a !important; }
-.text-danger { color: #dc2626 !important; }
 
 .summary-label {
   margin-top: 4px;
-  color: #64748b;
-  font-size: 0.8rem;
+  color: #4b5563;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
+/* Containers Section */
 .containers-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .section-heading {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .section-heading h2 {
   margin: 0;
-  font-size: 1.25rem;
-  color: #172033;
-  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--color-fg);
+  font-weight: 800;
 }
 
 .count-pill {
-  padding: 3px 10px;
-  background: #e2e8f0;
-  color: #475569;
-  border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 600;
+  padding: 4px 12px;
+  background-color: var(--color-muted);
+  color: #374151;
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .container-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 18px;
 }
 
 .container-card {
-  background: #ffffff;
-  border-radius: 16px;
+  background-color: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-muted);
   padding: 22px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
-  border: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--transition-fast);
 }
 
 .container-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  transform: scale(1.02);
 }
 
 .container-card.card-unhealthy {
-  border-color: #fecdd3;
-  background: linear-gradient(180deg, #fff5f5 0%, #ffffff 40%);
+  border-color: #fecaca;
+  background-color: #fffafb;
 }
 
 .container-card-header {
@@ -792,36 +785,37 @@ nav {
   min-width: 0;
 }
 
-.service-icon {
+.server-icon-wrap {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  background: #f1f5f9;
-  color: #2563eb;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-muted);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
   flex-shrink: 0;
 }
 
 .container-title {
   margin: 0;
   font-size: 1rem;
-  font-weight: 700;
-  color: #172033;
+  font-weight: 800;
+  color: var(--color-fg);
   font-family: var(--font-mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Status Badges */
 .status-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   flex-shrink: 0;
@@ -835,34 +829,34 @@ nav {
 
 .status-badge.running,
 .status-badge.healthy {
-  background: #dcfce7;
-  color: #15803d;
+  background-color: var(--color-emerald-subtle);
+  color: #065f46;
 }
 .status-badge.running .badge-dot,
-.status-badge.healthy .badge-dot { background: #22c55e; }
+.status-badge.healthy .badge-dot { background-color: var(--color-secondary); }
 
 .status-badge.exited,
 .status-badge.unhealthy {
-  background: #fee2e2;
-  color: #b91c1c;
+  background-color: var(--color-danger-subtle);
+  color: #991b1b;
 }
 .status-badge.exited .badge-dot,
-.status-badge.unhealthy .badge-dot { background: #ef4444; }
+.status-badge.unhealthy .badge-dot { background-color: var(--color-danger); }
 
 .status-badge.unknown {
-  background: #f1f5f9;
-  color: #475569;
+  background-color: var(--color-muted);
+  color: #374151;
 }
-.status-badge.unknown .badge-dot { background: #94a3b8; }
+.status-badge.unknown .badge-dot { background-color: #9ca3af; }
 
-.metrics-container {
+/* Flat Metrics Gauges */
+.metrics-block {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #f8fafc;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid #f1f5f9;
+  background-color: var(--color-muted);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
 }
 
 .metric-row {
@@ -875,47 +869,48 @@ nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
 }
 
 .metric-label {
-  color: #64748b;
+  color: #4b5563;
   font-weight: 600;
 }
 
 .metric-value {
-  color: #1e293b;
+  color: var(--color-fg);
   font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 0.8rem;
+  font-weight: 700;
+  font-size: 0.82rem;
 }
 
 .progress-track {
   width: 100%;
-  height: 6px;
-  background: #e2e8f0;
-  border-radius: 999px;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: var(--radius-full);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 999px;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-full);
+  transition: width 0.3s cubic-bezier(0, 0, 0.2, 1);
 }
 
-.progress-fill.normal { background: #22c55e; }
-.progress-fill.warning { background: #f59e0b; }
-.progress-fill.critical { background: #ef4444; }
+.progress-fill.normal { background-color: var(--color-secondary); }
+.progress-fill.warning { background-color: var(--color-accent); }
+.progress-fill.critical { background-color: var(--color-danger); }
 
+/* Flat Stats */
 .container-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 10px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  background-color: #ffffff;
+  border: 2px solid var(--color-muted);
+  border-radius: var(--radius-md);
   text-align: center;
 }
 
@@ -927,23 +922,23 @@ nav {
 
 .stat-label {
   font-size: 0.72rem;
-  color: #64748b;
-  font-weight: 600;
+  color: #6b7280;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .stat-number {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-fg);
   font-family: var(--font-mono);
 }
 
+/* Action Buttons */
 .container-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding-top: 4px;
 }
 
 .action-btn {
@@ -952,93 +947,78 @@ nav {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  transition: all 0.15s ease;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 0;
+  transition: all var(--transition-fast);
 }
 
 .metrics-btn {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
+  background-color: var(--color-blue-subtle);
+  color: var(--color-primary);
 }
-.metrics-btn:hover {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
+.metrics-btn:hover { background-color: #dbeafe; }
 
 .logs-btn {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
+  background-color: var(--color-muted);
+  color: var(--color-fg);
 }
-.logs-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-}
+.logs-btn:hover { background-color: var(--color-muted-hover); }
 
 .restart-btn {
-  background: #fefce8;
-  color: #ca8a04;
-  border: 1px solid #fef08a;
+  background-color: var(--color-amber-subtle);
+  color: #92400e;
 }
-.restart-btn:hover {
-  background: #fef08a;
-  color: #a16207;
-}
+.restart-btn:hover { background-color: #fef08a; }
 
 .stop-btn {
-  background: #fff1f2;
-  color: #e11d48;
-  border: 1px solid #fecdd3;
+  background-color: var(--color-danger-subtle);
+  color: var(--color-danger-hover);
 }
-.stop-btn:hover {
-  background: #ffe4e6;
-  color: #be123c;
-}
+.stop-btn:hover { background-color: #fecaca; }
 
 .no-containers {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 56px 24px;
-  background: #ffffff;
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
+  padding: 64px 24px;
+  background-color: #ffffff;
+  border: 2px dashed #d1d5db;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
-.empty-icon {
+.empty-icon-circle {
   display: grid;
   place-items: center;
   width: 64px;
   height: 64px;
-  border-radius: 16px;
-  background: #f1f5f9;
-  color: #94a3b8;
+  border-radius: 50%;
+  background-color: var(--color-muted);
+  color: #9ca3af;
   margin-bottom: 14px;
 }
 
 .no-containers strong {
-  font-size: 1.1rem;
-  color: #1e293b;
+  font-size: 1.15rem;
+  color: var(--color-fg);
   margin-bottom: 4px;
 }
 
 .no-containers p {
-  color: #64748b;
-  font-size: 0.88rem;
+  color: #6b7280;
+  font-size: 0.9rem;
   margin: 0;
 }
 
-footer {
+/* Flat High-Contrast Dark Footer */
+.flat-footer {
   width: 100%;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-  padding: 20px 0;
+  background-color: var(--color-dark);
+  padding: 24px 0;
   margin-top: auto;
 }
 
@@ -1049,14 +1029,14 @@ footer {
   text-align: center;
 }
 
-footer p {
+.flat-footer p {
   margin: 0;
-  color: #64748b;
-  font-size: 0.86rem;
+  color: #9ca3af;
+  font-size: 0.9rem;
 }
 
-footer strong {
-  color: #172033;
+.flat-footer strong {
+  color: #ffffff;
 }
 
 @media (max-width: 900px) {
