@@ -85,24 +85,52 @@ onUnmounted(() => {
     <div class="modal" @click.stop>
       <div class="modal-header">
         <div class="title-container">
-          <h3>Logs for <span class="subdomain-highlight">{{ subdomain }}</span></h3>
+          <div class="terminal-dots">
+            <span class="dot-red"></span>
+            <span class="dot-yellow"></span>
+            <span class="dot-green"></span>
+          </div>
+          <div class="title-meta">
+            <h3>Live Telemetry Logs</h3>
+            <span class="subdomain-badge">{{ subdomain }}</span>
+          </div>
         </div>
+
         <div class="header-actions">
           <div class="log-type-toggle">
             <button :class="{ active: logType === 'all' }" @click="logType = 'all'; fetchLogs()">All</button>
             <button :class="{ active: logType === 'build' }" @click="logType = 'build'; fetchLogs()">Build</button>
             <button :class="{ active: logType === 'runtime' }" @click="logType = 'runtime'; fetchLogs()">Runtime</button>
           </div>
-          <button class="action-btn" :class="{ 'active': autoRefresh }" @click="toggleAutoRefresh">
-            {{ autoRefresh ? 'Auto: ON' : 'Auto: OFF' }}
+
+          <button class="action-btn auto-btn" :class="{ 'active': autoRefresh }" @click="toggleAutoRefresh">
+            <span class="auto-dot" :class="{ 'dot-active': autoRefresh }"></span>
+            {{ autoRefresh ? 'Streaming' : 'Paused' }}
           </button>
-          <button class="action-btn refresh-btn" @click="fetchLogs">Refresh</button>
-          <span class="close" @click="$emit('close-modal')">&times;</span>
+
+          <button class="action-btn refresh-btn" @click="fetchLogs">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+            Refresh
+          </button>
+
+          <button class="close-btn" @click="$emit('close-modal')" aria-label="Close modal">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
         </div>
       </div>
+
       <div class="modal-content">
         <pre class="log-container">{{ logs }}</pre>
-        <p v-if="error" class="error">{{ error }}</p>
+        <div v-if="error" class="error-banner">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <span>{{ error }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -111,52 +139,97 @@ onUnmounted(() => {
 <style scoped>
 .modal-overlay {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 1000;
+  padding: 24px;
 }
 
 .modal {
-  background-color: #1e1e1e;
+  background-color: #0b0f19;
   height: 85vh;
-  width: 85vw;
+  width: 90vw;
   max-width: 1200px;
-  padding: 20px;
-  border-radius: 8px;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  color: #d4d4d4;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  border: 1px solid #333;
+  color: #e2e8f0;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.6);
+  border: 1px solid #1e293b;
+  overflow: hidden;
+  animation: modal-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #333;
-  padding-bottom: 12px;
+  gap: 16px;
+  padding: 16px 22px;
+  background-color: #0f172a;
+  border-bottom: 1px solid #1e293b;
   flex-wrap: wrap;
 }
 
-.title-container h3 {
-  margin: 0;
-  color: #fff;
-  font-size: 1.1rem;
-  font-weight: 600;
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.subdomain-highlight {
-  color: #60a5fa;
-  word-break: break-all;
+.terminal-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.terminal-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot-red { background-color: #ef4444; }
+.dot-yellow { background-color: #f59e0b; }
+.dot-green { background-color: #10b981; }
+
+.title-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-meta h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.subdomain-badge {
+  font-family: var(--font-mono);
+  background-color: #1e293b;
+  color: #38bdf8;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  border: 1px solid #334155;
 }
 
 .header-actions {
@@ -168,70 +241,87 @@ onUnmounted(() => {
 
 .log-type-toggle {
   display: flex;
-  background-color: #111;
-  border: 1px solid #383838;
-  border-radius: 6px;
-  padding: 2px;
-  gap: 2px;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
 }
 
 .log-type-toggle button {
   background: transparent;
   border: none;
-  color: #9ca3af;
+  color: #94a3b8;
   padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition: all 0.15s ease;
 }
 
 .log-type-toggle button.active {
-  background-color: #3b82f6;
+  background-color: #2563eb;
   color: #ffffff;
-  font-weight: 600;
 }
 
 .log-type-toggle button:hover:not(.active) {
-  color: #ffffff;
-  background-color: #262626;
+  color: #f8fafc;
 }
 
 .action-btn {
-  padding: 5px 12px;
-  background-color: #262626;
-  color: #e5e5e5;
-  border: 1px solid #404040;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
 }
 
 .action-btn:hover {
-  background-color: #333;
-  border-color: #555;
-}
-
-.action-btn.active {
-  background-color: #047857;
-  border-color: #10b981;
+  background-color: #334155;
   color: #ffffff;
 }
 
-.close {
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: #888;
-  padding: 0 4px;
-  transition: color 0.2s;
+.auto-btn.active {
+  border-color: #065f46;
+  background-color: #064e3b;
+  color: #6ee7b7;
 }
 
-.close:hover {
-  color: #fff;
+.auto-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+}
+
+.auto-dot.dot-active {
+  background-color: #34d399;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.close-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.close-btn:hover {
+  background-color: #1e293b;
+  color: #f8fafc;
 }
 
 .modal-content {
@@ -239,27 +329,36 @@ onUnmounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 14px;
+  background-color: #050811;
 }
 
 .log-container {
   flex: 1;
-  background-color: #0c0c0c;
-  color: #4ade80;
+  background-color: #050811;
+  color: #a7f3d0;
   padding: 16px;
-  border-radius: 6px;
+  border-radius: 10px;
   overflow-y: auto;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 13px;
-  line-height: 1.5;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-wrap: break-word;
-  text-align: left;
-  border: 1px solid #262626;
+  margin: 0;
+  border: 1px solid #111827;
 }
 
-.error {
-  color: #f87171;
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fca5a5;
+  background-color: #450a0a;
+  border: 1px solid #7f1d1d;
+  padding: 8px 14px;
+  border-radius: 8px;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: 0.8rem;
 }
 </style>

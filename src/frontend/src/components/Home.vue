@@ -1,121 +1,183 @@
 <template>
-  <header>
-    <nav>
-      <div class="nav-wrapper">
-        <router-link to="/" class="brand-container">
-          <img src="/df-logo.png" class="brand-logo" alt="logo">
-          <p class="brand">Domain Forge</p>
-        </router-link>
-        <ul class="nav-links">
-          <li><a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md">Docs</a></li>
-          <li><router-link to="/health" class="health-link">Health</router-link></li>
-          <li class="login-provider">
-            <button @click="showApiKeyModal = true" class="logout-button">Api Key</button>
-          </li>
-          <li class="login-provider">
-            <button @click="logoutAndRedirect" class="logout-button">Logout</button>
-          </li>
-        </ul>
+  <div class="page-layout">
+    <header>
+      <nav>
+        <div class="nav-wrapper">
+          <router-link to="/" class="brand-container">
+            <img src="/df-logo.png" class="brand-logo" alt="Domain Forge logo">
+            <span class="brand">Domain Forge</span>
+          </router-link>
+          <ul class="nav-links">
+            <li>
+              <a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md" target="_blank" rel="noopener noreferrer">Docs</a>
+            </li>
+            <li>
+              <router-link to="/health" class="nav-link-item">Health</router-link>
+            </li>
+            <li>
+              <button @click="showApiKeyModal = true" class="secondary-nav-btn">
+                <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+                  <path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd" />
+                </svg>
+                API Key
+              </button>
+            </li>
+            <li>
+              <button @click="logoutAndRedirect" class="logout-btn">
+                Logout
+              </button>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+    
+    <div id="home-container">
+      <div id="home-heading">
+        <div class="heading-text">
+          <p class="eyebrow">Workspace / Overview</p>
+          <h1>Good to see you, <span>{{ user }}</span></h1>
+          <p class="page-subtitle">Manage subdomains, monitor live container health, and deploy updates seamlessly.</p>
+        </div>
+        <button class="primary-action" @click="showModal = true">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+          </svg>
+          Add Subdomain
+        </button>
       </div>
-    </nav>
-  </header>
-  
-  <div id="home-container">
-    <div id="home-heading">
-      <div>
-        <p class="eyebrow">Workspace / Overview</p>
-        <h1>Good to see you, <span>{{ user }}</span></h1>
-        <p class="page-subtitle">Everything you need to manage your domains and deployments in one place.</p>
-      </div>
-      <button class="primary-action" @click="showModal = true">+ Add subdomain</button>
-    </div>
-    <div class="summary-grid">
-      <div class="summary-card summary-card-primary">
-        <span class="summary-icon">⌁</span>
-        <div>
-          <strong>{{ maps.length }}</strong>
-          <span>Total subdomains</span>
+
+      <div class="summary-grid">
+        <div class="summary-card summary-card-primary">
+          <div class="summary-icon-wrap primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="20" height="20">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div class="summary-content">
+            <strong class="summary-count">{{ maps.length }}</strong>
+            <span class="summary-label">Total subdomains</span>
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-icon-wrap success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="20" height="20">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="summary-content">
+            <strong class="summary-count">{{ readyCount }}</strong>
+            <span class="summary-label">Healthy deployments</span>
+          </div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-icon-wrap warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="20" height="20">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="summary-content">
+            <strong class="summary-count">{{ activeCount }}</strong>
+            <span class="summary-label">Deploying or pending</span>
+          </div>
         </div>
       </div>
-      <div class="summary-card">
-        <span class="summary-icon summary-icon-success">✓</span>
-        <div>
-          <strong>{{ readyCount }}</strong>
-          <span>Healthy deployments</span>
+
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div>
+            <h2>Deployments</h2>
+            <p>{{ maps.length }} {{ maps.length === 1 ? 'subdomain' : 'subdomains' }} configured in this workspace</p>
+          </div>
+          <span class="live-indicator">
+            <span class="pulse-dot"></span> Live status
+          </span>
+        </div>
+
+        <div class="table-scroll">
+          <table id="tableComponent">
+            <thead>
+              <tr>
+                <th v-for="field in fields" :key="field">
+                  {{ field === "" ? "Actions" : field.replace("_", " ") }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in maps" :key="item.subdomain">
+                <td v-for="field in fields" :key="field">
+                  <span v-if="item[field] && field !== 'subdomain' && field !== 'status'" class="cell-value">
+                    {{ item[field] }}
+                  </span>
+                  
+                  <span v-else-if="field === 'subdomain'" class="subdomain-cell">
+                    <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" class="subdomain-link">
+                      {{ item[field] }}
+                      <svg class="external-icon" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                      </svg>
+                    </a>
+                  </span>
+
+                  <span v-else-if="field === 'status'">
+                    <span :class="'status-badge status-' + (item[field] || 'READY').toLowerCase()">
+                      <span class="badge-point"></span>
+                      {{ item[field] || 'READY' }}
+                    </span>
+                  </span>
+
+                  <span v-else-if="field === ''">
+                    <div class="row-actions">
+                      <button class="logs-btn" @click="showLogsModal=true;selectedItem=item">
+                        Logs
+                      </button>
+                      <button
+                        v-if="item.resource_type && item.resource_type.toLowerCase().includes('github')"
+                        class="redeploy-btn"
+                        :disabled="redeploying === item.subdomain"
+                        @click="redeployItem(item)"
+                      >
+                        {{ redeploying === item.subdomain ? 'Redeploying…' : 'Redeploy' }}
+                      </button>
+                      <button class="delete-btn" @click="showDeleteModal=true;selectedItem=item">
+                        Delete
+                      </button>
+                    </div>
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div v-if="!maps.length" class="empty-state">
+            <div class="empty-state-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="36" height="36">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <strong>No subdomains yet</strong>
+            <span>Create your first deployment to get started.</span>
+            <button class="empty-cta" @click="showModal = true">+ Add Subdomain</button>
+          </div>
         </div>
       </div>
-      <div class="summary-card">
-        <span class="summary-icon summary-icon-warning">◷</span>
-        <div>
-          <strong>{{ activeCount }}</strong>
-          <span>Deploying or pending</span>
-        </div>
-      </div>
-    </div>
-    <div class="table-card">
-      <div class="table-toolbar">
-        <div>
-          <h2>Deployments</h2>
-          <p>{{ maps.length }} {{ maps.length === 1 ? 'subdomain' : 'subdomains' }} configured</p>
-        </div>
-        <span class="live-indicator"><span></span> Live status</span>
-      </div>
-      <div class="table-scroll">
-        <table id="tableComponent">
-          <thead>
-        <tr>
-          <th v-for="field in fields" :key="field">
-            {{ field === "" ? "Actions" : field.replace("_", " ") }}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in maps" :key="item.subdomain">
-          <td v-for="field in fields" :key="field">
-            <span v-if="item[field] && field !== 'subdomain' && field !== 'status'" class="cell-value">{{ item[field] }}</span>
-            <span v-else-if="field === 'subdomain'">
-              <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
-            </span>
-            <span v-else-if="field === 'status'">
-              <span :class="'status-badge status-' + (item[field] || 'READY').toLowerCase()">
-                {{ item[field] || 'READY' }}
-              </span>
-            </span>
-            <span v-else-if="field === ''">
-              <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
-              <div class="row-actions">
-                <button class="logs-btn" @click="showLogsModal=true;selectedItem=item">Logs</button>
-                <button
-                  v-if="item.resource_type && item.resource_type.toLowerCase().includes('github')"
-                  class="redeploy-btn"
-                  :disabled="redeploying === item.subdomain"
-                  @click="redeployItem(item)"
-                >
-                  {{ redeploying === item.subdomain ? 'Redeploying…' : 'Redeploy' }}
-                </button>
-                <button class="delete" @click="showDeleteModal=true;selectedItem=item">Delete!</button>
-              </div>
-            </span>
-          </td>
-        </tr>
-      </tbody>
-        </table>
-        <div v-if="!maps.length" class="empty-state">
-          <strong>No subdomains yet</strong>
-          <span>Create your first deployment to get started.</span>
-        </div>
-      </div>
+
+      <!-- Modals rendered at container root level -->
+      <modal v-show="showModal" @close-modal="showModal = false" />
+      <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
+      <LogsModal v-if="showLogsModal" :subdomain="selectedItem?.subdomain" :user="user" @close-modal="showLogsModal = false" />
+      <ApiKeyModal v-show="showApiKeyModal" :apiKey="apiKey" @close-modal="showApiKeyModal = false" />
     </div>
 
-    <modal v-show="showModal" @close-modal="showModal = false" />
-    <LogsModal v-if="showLogsModal" :subdomain="selectedItem?.subdomain" :user="user" @close-modal="showLogsModal = false" />
+    <footer>
+      <div class="footer-content">
+        <p>Made with ❤️ by <strong>MDG Space</strong></p>
+      </div>
+    </footer>
   </div>
-
-  <ApiKeyModal v-show="showApiKeyModal" :apiKey="apiKey" @close-modal="showApiKeyModal = false" />
-
-  <footer>
-    <p>Made with ❤️ by MDG Space</p>
-  </footer>
 </template>
 
 <script>
@@ -268,250 +330,316 @@ export default {
 </script>
 
 <style scoped>
-.brand-logo {
-  height: 30px;
-  margin-right: 10px; 
-}
-
-body {
-  overflow: hidden; 
-  margin: 0; 
+.page-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f7fb;
 }
 
 nav {
   width: 100%; 
   position: fixed; 
   top: 0;
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid #e7ebf3;
-}
-
-header {
-  margin-bottom: 20px;
+  left: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .nav-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1180px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 14px 28px;
+}
+
+.brand-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.brand-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
 }
 
 .brand {
   margin: 0;
-  font-size: 24px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #172033;
 }
-.brand-container {
-  display: flex;
-  align-items: center;
-  color: inherit;
-  text-decoration: none;
-}
+
 .nav-links {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   align-items: center;
-}
-
-.nav-links li {
-  margin-right: 12px;
-}
-
-.nav-links li:last-child {
-  margin-right: 0;
+  gap: 10px;
 }
 
 .nav-links a {
   text-decoration: none;
-  color: #536074;
+  color: #64748b;
   font-weight: 600;
-  padding: 10px 12px;
+  font-size: 0.9rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
-.logout-button {
-  width: auto;
-  padding: 9px 16px;
-  font-size: 13px;
-  background-color: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  font-weight: 600;
-  box-shadow: 0 5px 12px rgba(37, 99, 235, 0.18);
+.nav-links a:hover,
+.nav-link-item.router-link-active {
+  color: #172033;
+  background: rgba(0, 0, 0, 0.04);
 }
 
-.logout-button:hover {
-  background-color: #1d4ed8;
+.secondary-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+
+.secondary-nav-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.logout-btn {
+  padding: 7px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  color: #dc2626;
+  background: #fef2f2;
 }
 
 #home-container {
-  width: min(1240px, calc(100% - 64px));
+  width: min(1200px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 128px 0 54px;
-  gap: 24px;
+  padding: 110px 0 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  flex: 1;
 }
 
 #home-heading {
   width: 100%;
-  margin: 0;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
 }
 
+.heading-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  margin-bottom: 8px;
+  color: #2563eb;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 #home-heading h1 {
   margin: 0;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  line-height: 1.05;
-  text-align: left;
-  letter-spacing: -0.06em;
+  font-size: clamp(1.9rem, 3.5vw, 2.75rem);
+  line-height: 1.1;
+  color: #172033;
+  letter-spacing: -0.04em;
+  font-weight: 700;
 }
 
 #home-heading h1 span {
   color: #2563eb;
 }
 
-.eyebrow {
-  margin-bottom: 10px;
-  color: #2563eb;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 .page-subtitle {
-  max-width: 620px;
-  margin: 14px 0 0;
-  color: #718096;
-  font-size: 0.98rem;
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 0.95rem;
 }
 
 .primary-action {
-  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex: 0 0 auto;
-  padding: 12px 18px;
+  padding: 11px 20px;
   border-radius: 10px;
-  background: #172033;
-  color: #fff;
-  font-size: 0.9rem;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.92rem;
   font-weight: 600;
-  box-shadow: 0 8px 18px rgba(23, 32, 51, 0.16);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.24);
+  transition: all 0.2s ease;
+}
+
+.primary-action:hover {
+  background: #1d4ed8;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.32);
+  transform: translateY(-1px);
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 18px;
 }
 
 .summary-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 104px;
-  padding: 18px 20px;
-  border: 1px solid #e5eaf2;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 10px 28px rgba(34, 48, 79, 0.05);
+  gap: 16px;
+  padding: 20px 22px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 .summary-card-primary {
-  border-color: #d5e2ff;
-  background: linear-gradient(135deg, #eff5ff, #fff);
+  border-color: #bfdbfe;
+  background: linear-gradient(145deg, #eff6ff 0%, #ffffff 100%);
 }
 
-.summary-icon {
+.summary-icon-wrap {
   display: grid;
-  width: 40px;
-  height: 40px;
   place-items: center;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  background: #dce9ff;
-  color: #2563eb;
-  font-size: 1.4rem;
-  font-weight: 700;
+  flex-shrink: 0;
 }
 
-.summary-icon-success {
+.summary-icon-wrap.primary {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.summary-icon-wrap.success {
   background: #dcfce7;
   color: #16a34a;
 }
 
-.summary-icon-warning {
+.summary-icon-wrap.warning {
   background: #fef3c7;
   color: #d97706;
 }
 
-.summary-card div {
-  display: grid;
-  gap: 2px;
+.summary-content {
+  display: flex;
+  flex-direction: column;
 }
 
-.summary-card strong {
+.summary-count {
   color: #172033;
-  font-size: 1.65rem;
+  font-size: 1.75rem;
   line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
-.summary-card span:last-child {
-  color: #7a8699;
-  font-size: 0.78rem;
+.summary-label {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
 .table-card {
   overflow: hidden;
-  border: 1px solid #e5eaf2;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 18px 45px rgba(34, 48, 79, 0.08);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
 }
 
 .table-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 22px 24px;
-  border-bottom: 1px solid #edf0f5;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .table-toolbar h2 {
-  margin: 0 0 3px;
+  margin: 0 0 2px;
   color: #172033;
-  font-size: 1.05rem;
-  text-align: left;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .table-toolbar p {
   margin: 0;
-  color: #8a94a6;
-  font-size: 0.82rem;
+  color: #64748b;
+  font-size: 0.84rem;
 }
 
 .live-indicator {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #64748b;
+  padding: 5px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  color: #15803d;
   font-size: 0.78rem;
   font-weight: 600;
 }
 
-.live-indicator span {
-  width: 8px;
-  height: 8px;
+.pulse-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 0 4px #dcfce7;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+  animation: pulse-ring 2s infinite ease-in-out;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
 }
 
 .table-scroll {
@@ -520,166 +648,255 @@ header {
 
 #tableComponent {
   width: 100%;
-  min-width: 760px;
+  min-width: 820px;
   border-collapse: collapse;
   text-align: left;
 }
 
 #tableComponent th {
-  padding: 14px 18px;
-  background: #fafbfc;
-  color: #8490a3;
-  font-size: 0.7rem;
+  padding: 14px 20px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 #tableComponent td {
-  padding: 17px 18px;
-  border-top: 1px solid #edf0f5;
-  color: #4b5870;
+  padding: 16px 20px;
+  border-top: 1px solid #f1f5f9;
+  color: #334155;
   font-size: 0.88rem;
+  vertical-align: middle;
   white-space: nowrap;
+}
+
+#tableComponent tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+#tableComponent tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+#tableComponent td:first-child {
+  color: #64748b;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.subdomain-cell {
+  display: inline-flex;
+  align-items: center;
+}
+
+.subdomain-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.subdomain-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.external-icon {
+  opacity: 0.6;
+}
+
+.subdomain-link:hover .external-icon {
+  opacity: 1;
 }
 
 .cell-value {
   display: block;
-  max-width: 210px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.88rem;
 }
 
-#tableComponent td:first-child {
-  color: #8791a2;
-  font-family: 'DM Mono', monospace;
-  font-size: 0.78rem;
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-#tableComponent td a {
-  color: #2563eb !important;
-  font-weight: 600;
+.badge-point {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
+
+.status-ready {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+.status-ready .badge-point { background-color: #22c55e; }
+
+.status-deploying {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+.status-deploying .badge-point { background-color: #f59e0b; animation: pulse-ring 1.5s infinite; }
+
+.status-failed {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+.status-failed .badge-point { background-color: #ef4444; }
+
+.status-pending {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+.status-pending .badge-point { background-color: #94a3b8; }
 
 .row-actions {
   display: flex;
-  justify-content: flex-start;
-  gap: 7px;
+  align-items: center;
+  gap: 8px;
 }
 
 .logs-btn {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 7px 11px;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
   border-radius: 7px;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
 .logs-btn:hover {
-  background-color: #5a6268;
+  background-color: #e2e8f0;
+  color: #0f172a;
 }
 
 .redeploy-btn {
-  background-color: #7c3aed;
-  color: white;
-  border: none;
-  padding: 7px 11px;
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+  padding: 6px 12px;
   border-radius: 7px;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
 .redeploy-btn:hover:not(:disabled) {
-  background-color: #6d28d9;
+  background-color: #ede9fe;
+  color: #5b21b6;
 }
 
 .redeploy-btn:disabled {
+  opacity: 0.6;
   cursor: wait;
-  opacity: 0.7;
 }
 
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.delete {
-  width: auto;
-  margin: 0;
-  height: auto;
-  padding: 7px 11px;
-  border: 0;
+.delete-btn {
+  background-color: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+  padding: 6px 12px;
   border-radius: 7px;
-  background: #fff1f2;
-  color: #be123c;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
-.delete:hover {
-  background: #ffe4e6;
+.delete-btn:hover {
+  background-color: #ffe4e6;
+  color: #be123c;
 }
 
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.empty-state-icon {
   display: grid;
-  justify-items: center;
-  gap: 5px;
-  padding: 52px 24px;
-  color: #8791a2;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  margin-bottom: 16px;
 }
 
 .empty-state strong {
-  color: #344054;
+  color: #1e293b;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
 }
 
-.status-ready {
-  background-color: #d4edda;
-  color: #155724;
+.empty-state span {
+  color: #64748b;
+  font-size: 0.88rem;
+  margin-bottom: 18px;
 }
 
-.status-deploying {
-  background-color: #fff3cd;
-  color: #856404;
-  animation: pulse 2s infinite;
+.empty-cta {
+  padding: 9px 18px;
+  background: #2563eb;
+  color: white;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
-.status-failed {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.status-pending {
-  background-color: #e2e3e5;
-  color: #383d41;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+.empty-cta:hover {
+  background: #1d4ed8;
 }
 
 footer {
   width: 100%;
-  background-color: #ffffff;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
   padding: 20px 0;
-  bottom: 0;
+  margin-top: auto;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+  text-align: center;
 }
 
 footer p {
   margin: 0;
-  text-align: center;
+  color: #64748b;
+  font-size: 0.86rem;
 }
 
-@media (max-width: 700px) {
+footer strong {
+  color: #172033;
+}
+
+@media (max-width: 768px) {
   #home-container {
-    width: min(100% - 28px, 1180px);
-    padding-top: 112px;
+    width: min(100% - 32px, 1200px);
+    padding-top: 96px;
   }
 
   #home-heading {
@@ -693,11 +910,11 @@ footer p {
 
   .primary-action {
     width: 100%;
+    justify-content: center;
   }
 
   .table-toolbar {
-    padding: 18px;
+    padding: 16px 18px;
   }
 }
-
 </style>
