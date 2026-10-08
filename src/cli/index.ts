@@ -27,8 +27,8 @@ program
   .helpOption('-h, --help', 'Display help for command')
   .action(async (options) => {
     if (options.token && options.backend) {
-      userApiKey = await options.token;
-      backendUrl = await options.backend;
+      userApiKey = options.token;
+      backendUrl = options.backend;
       user = await verifyApiKey(userApiKey , provider , backendUrl);
       console.log(user);
       if (user === 'not verified') {
@@ -39,7 +39,12 @@ program
       }
       await showOptions(); // Show options if the API key is valid
     } else {
-      console.error('❌ Please provide a valid token using --token.');
+      if (!options.token) {
+        console.error('❌ Please provide a valid token using --token.');
+      }
+      if (!options.backend) {
+        console.error('❌ Please provide the backend URL using --backend.');
+      }
       process.exit(1);
     }
   });

@@ -12,7 +12,8 @@ export default function dockerize(
   }
   let execute_cmd = "CMD " + JSON.stringify(last_cmd.split(" "));
   let build_steps = run_cmd.filter(Boolean).map((cmd) => `RUN ${cmd}`);
-  if (stack == "Python") {
+  const normalizedStack = (stack || "").trim().toLowerCase();
+  if (normalizedStack === "python") {
     dockerfile = [
       "FROM python:3.12-slim AS builder",
       "WORKDIR /app",
@@ -32,7 +33,7 @@ export default function dockerize(
       `EXPOSE ${port}`,
       execute_cmd,
     ].join("\n");
-  } else if (stack == "NodeJS") {
+  } else if (normalizedStack === "nodejs" || normalizedStack === "node") {
     dockerfile = [
       "FROM node:22-alpine AS builder",
       "WORKDIR /app",
@@ -50,7 +51,7 @@ export default function dockerize(
       `EXPOSE ${port}`,
       execute_cmd,
     ].join("\n");
-  } else if (stack === "Go") {
+  } else if (normalizedStack === "go" || normalizedStack === "golang") {
     let goBuildOverride: string[] = [];
     if (last_cmd.startsWith("go run")) {
       const target = last_cmd.replace("go run ", "");
@@ -75,7 +76,7 @@ export default function dockerize(
       `EXPOSE ${port}`,
       execute_cmd,
     ].join("\n");
-  } else if (stack === "Rust") {
+  } else if (normalizedStack === "rust") {
     let rustBuildOverride: string[] = [];
     let processed_build_steps = build_steps;
 
@@ -109,7 +110,7 @@ export default function dockerize(
       `EXPOSE ${port}`,
       execute_cmd,
     ].join("\n");
-  } else if (stack === "React") {
+  } else if (normalizedStack === "react") {
     dockerfile = [
       "FROM node:22-alpine AS builder",
       "WORKDIR /app",
@@ -124,6 +125,8 @@ export default function dockerize(
       `RUN printf "server {\\n    listen ${port};\\n    location / {\\n        root /usr/share/nginx/html;\\n        index index.html index.htm;\\n        try_files \\$uri \\$uri/ /index.html;\\n    }\\n}" > /etc/nginx/conf.d/default.conf`,
       `EXPOSE ${port}`,
     ].join("\n");
+  } else {
+    throw new Error(`Unsupported technology stack: '${stack}'. Supported stacks are Python, NodeJS, Go, Rust, React.`);
   }
   return dockerfile.toString();
 }
@@ -134,13 +137,16 @@ export function dockerignore(stack: string): string {
     "*.md", ".DS_Store",
   ];
 
+  const normalizedStack = (stack || "").trim().toLowerCase();
   const stackRules: Record<string, string[]> = {
-    Python: ["__pycache__/", "*.pyc", "*.pyo", ".venv/", "dist/", "*.egg-info/"],
-    NodeJS: ["node_modules/", "dist/", ".npm/", "*.log", "coverage/"],
-    Go: ["bin/", "obj/", "*.exe", "*.dll", "*.so", "*.dylib"],
-    Rust: ["target/", "**/*.rs.bk"],
-    React: ["node_modules/", "build/", "dist/", ".npm/", "*.log", "coverage/"],
+    python: ["__pycache__/", "*.pyc", "*.pyo", ".venv/", "dist/", "*.egg-info/"],
+    nodejs: ["node_modules/", "dist/", ".npm/", "*.log", "coverage/"],
+    node: ["node_modules/", "dist/", ".npm/", "*.log", "coverage/"],
+    go: ["bin/", "obj/", "*.exe", "*.dll", "*.so", "*.dylib"],
+    golang: ["bin/", "obj/", "*.exe", "*.dll", "*.so", "*.dylib"],
+    rust: ["target/", "**/*.rs.bk"],
+    react: ["node_modules/", "build/", "dist/", ".npm/", "*.log", "coverage/"],
   };
 
-  return [...common, ...(stackRules[stack] ?? [])].join("\n") + "\n";
+  return [...common, ...(stackRules[normalizedStack] ?? [])].join("\n") + "\n";
 }

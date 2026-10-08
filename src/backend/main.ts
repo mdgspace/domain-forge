@@ -156,7 +156,8 @@ async function addSubdomain(ctx: Context) {
               
               const headers = {
                 'Accept': 'application/vnd.github.v3+json',
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${authToken}`,
+                'User-Agent': 'Domain-Forge',
               };
 
               const webhookSecret = Deno.env.get("GITHUB_WEBHOOK_SECRET");
@@ -345,10 +346,15 @@ async function githubWebhook(ctx: Context) {
   const rawBody = await ctx.request.body({ type: "bytes" }).value;
   const signature = ctx.request.headers.get("x-hub-signature-256");
   const webhookSecret = Deno.env.get("GITHUB_WEBHOOK_SECRET") || "";
+  const isProd = Deno.env.get("DENO_ENV") === "production";
 
-  // Strictly enforce webhook verification across all environments
-  if (!webhookSecret || !(await verifyGitHubSignature(rawBody, signature, webhookSecret))) {
-    ctx.throw(401, "Invalid webhook signature");
+  // Strictly enforce webhook verification when secret is configured or in production
+  if (webhookSecret || isProd) {
+    if (!webhookSecret || !(await verifyGitHubSignature(rawBody, signature, webhookSecret))) {
+      ctx.throw(401, "Invalid webhook signature");
+    }
+  } else {
+    console.warn("[Webhook] GITHUB_WEBHOOK_SECRET is not configured; skipping signature verification in development.");
   }
 
   const event = ctx.request.headers.get("x-github-event");
@@ -395,22 +401,31 @@ async function githubWebhook(ctx: Context) {
       console.log(`Webhook automatically redeploying subdomain ${dep.subdomain}`);
       Sentry.captureMessage(`Webhook automatically redeploying subdomain ${dep.subdomain}`, "info");
 
-      // Tear down old deployment securely
-      await deleteScript(dep);
-      
-      // Decrypt env content from DB before deploying
-      const decryptedEnv = await decryptEnv(dep.env_content || "");
+      try {
+        // Clear old terminal status before new build
+        try {
+          await Deno.remove(`/hostpipe/status/${dep.subdomain}.status`);
+        } catch (_e) {}
 
-      // Re-add to trigger fresh pull and container build
-      await addScript(
-        dep,
-        decryptedEnv,
-        dep.static_content,
-        dep.dockerfile_present,
-        dep.stack,
-        dep.port,
-        dep.build_cmds
-      );
+        // Decrypt env content from DB before deploying
+        const decryptedEnv = await decryptEnv(dep.env_content || "");
+
+        // Re-add to trigger fresh pull and container build with zero downtime
+        await addScript(
+          dep,
+          decryptedEnv,
+          dep.static_content,
+          dep.dockerfile_present,
+          dep.stack,
+          dep.port,
+          dep.build_cmds
+        );
+      } catch (error) {
+        try {
+          await Deno.writeTextFile(`/hostpipe/status/${dep.subdomain}.status`, "FAILED\n");
+        } catch (_e) {}
+        console.error(`Webhook failed to redeploy ${dep.subdomain}:`, error);
+      }
     }
   }
 

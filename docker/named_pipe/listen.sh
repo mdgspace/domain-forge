@@ -26,7 +26,7 @@ while true; do
     # Validate that script_path basename is in allowed whitelist
     script_name="$(basename "$script_path")"
     case "$script_name" in
-      "container.sh"|"restart.sh"|"stop.sh"|"delete.sh"|"automate.sh")
+      "container.sh"|"restart.sh"|"stop.sh"|"delete.sh"|"automate.sh"|"redeploy.sh")
         script_full_path="$SCRIPT_DIR/$script_name"
         if [ -f "$script_full_path" ]; then
           bash "$script_full_path" "${args[@]:$shift_count}" || true

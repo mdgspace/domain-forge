@@ -79,6 +79,9 @@ async function addScript(
         `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -g ${subdomain} ${resource} ${safePort} ${memLimit} ${author}' > /hostpipe/pipe"`,
       );
     } else if (dockerfile_present === 'Yes') {
+      if (env_content) {
+        await Deno.writeTextFile(`/hostpipe/.env.${subdomain}`, env_content);
+      }
       await safeExec(
         `bash -c "echo 'bash ../../src/backend/shell_scripts/container.sh -d ${subdomain} ${resource} ${safePort} ${memLimit} ${author}' > /hostpipe/pipe"`,
       );

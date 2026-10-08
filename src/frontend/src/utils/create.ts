@@ -1,78 +1,60 @@
 import { check_jwt } from "./authorize.ts";
 
-function secure_input(s: string) {
-  const blockedPhrases = [
-    ";",
-    "&",
-    "|",
-    "&&",
-    "||",
-    ">",
-    ">>",
-    "<",
-    "<<",
-    "$",
-    "(",
-    ")",
-    "{",
-    "}",
-    "`",
-    '"',
-    "!",
-    "~",
-    "*",
-    "?",
-    "[",
-    "]",
-    "#",
-    "%",
-    "+",
-    "curl",
-    "wget",
-    "rm",
-    "tail",
-    "cat",
-    "grep",
-    "nc",
-    "xxd",
-    "apt",
-    "echo",
-    "pwd",
-    "ping",
-    "more",
-    "tail",
-    "usermod",
-    "bash",
-    "sudo",
-    ",",
-  ];
+function isValidSubdomain(s: string): boolean {
+  return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i.test(s);
+}
 
-  for (const phrase of blockedPhrases) {
-    if (s.includes(phrase)) {
+function secure_input(s: string): boolean {
+  if (!s || typeof s !== "string") return false;
+  // Disallow shell metacharacters that could cause command injection
+  const dangerousShellChars = /[;&|`$><\\!~\n\r"']/;
+  return !dangerousShellChars.test(s);
+}
+
+function validateResource(resourceType: string, resource: string): boolean {
+  if (!resource || !secure_input(resource)) return false;
+  if (resourceType === "PORT") {
+    const portNum = Number(resource);
+    return Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
+  }
+  if (resourceType === "URL") {
+    try {
+      const url = new URL(resource);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+  if (resourceType === "GITHUB") {
+    try {
+      const url = new URL(resource);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
       return false;
     }
   }
   return true;
 }
+
 export async function create(
   subdomain: string,
   resource_type: string,
   resource: string,
   env_content: string,
   static_content: string,
-  dockerfile_present:string,
+  dockerfile_present: string,
   port: string,
   stack: string,
   build_cmds: string,
   enable_ci: boolean,
 ) {
-  if (secure_input(subdomain) === false) {
+  if (!isValidSubdomain(subdomain)) {
     return "failed";
   }
-  if (secure_input(resource_type) === false) {
+  if (!["URL", "PORT", "GITHUB"].includes(resource_type)) {
     return "failed";
   }
-  if (secure_input(resource) === false) {
+  if (!validateResource(resource_type, resource)) {
     return "failed";
   }
   const user = await check_jwt(
