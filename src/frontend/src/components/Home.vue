@@ -2,10 +2,10 @@
   <header>
     <nav>
       <div class="nav-wrapper">
-        <div class="brand-container">
+        <router-link to="/" class="brand-container">
           <img src="/df-logo.png" class="brand-logo" alt="logo">
           <p class="brand">Domain Forge</p>
-        </div>
+        </router-link>
         <ul class="nav-links">
           <li><a href="https://github.com/mdgspace/domain-forge/blob/master/docs/users/README.md">Docs</a></li>
           <li><router-link to="/health" class="health-link">Health</router-link></li>
@@ -23,16 +23,39 @@
   <div id="home-container">
     <div id="home-heading">
       <div>
-        <p class="eyebrow">Workspace overview</p>
-        <h1>{{ user }}'s subdomains</h1>
-        <p class="page-subtitle">Manage your deployments, review activity, and keep every endpoint running smoothly.</p>
+        <p class="eyebrow">Workspace / Overview</p>
+        <h1>Good to see you, <span>{{ user }}</span></h1>
+        <p class="page-subtitle">Everything you need to manage your domains and deployments in one place.</p>
       </div>
       <button class="primary-action" @click="showModal = true">+ Add subdomain</button>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card summary-card-primary">
+        <span class="summary-icon">⌁</span>
+        <div>
+          <strong>{{ maps.length }}</strong>
+          <span>Total subdomains</span>
+        </div>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon summary-icon-success">✓</span>
+        <div>
+          <strong>{{ readyCount }}</strong>
+          <span>Healthy deployments</span>
+        </div>
+      </div>
+      <div class="summary-card">
+        <span class="summary-icon summary-icon-warning">◷</span>
+        <div>
+          <strong>{{ activeCount }}</strong>
+          <span>Deploying or pending</span>
+        </div>
+      </div>
     </div>
     <div class="table-card">
       <div class="table-toolbar">
         <div>
-          <h2>Your deployments</h2>
+          <h2>Deployments</h2>
           <p>{{ maps.length }} {{ maps.length === 1 ? 'subdomain' : 'subdomains' }} configured</p>
         </div>
         <span class="live-indicator"><span></span> Live status</span>
@@ -49,7 +72,7 @@
       <tbody>
         <tr v-for="item in maps" :key="item.subdomain">
           <td v-for="field in fields" :key="field">
-            <span v-if="item[field] && field !== 'subdomain' && field !== 'status'">{{ item[field] }}</span>
+            <span v-if="item[field] && field !== 'subdomain' && field !== 'status'" class="cell-value">{{ item[field] }}</span>
             <span v-else-if="field === 'subdomain'">
               <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
             </span>
@@ -96,7 +119,7 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { getMaps } from '../utils/maps.ts';
 import { check_jwt } from '../utils/authorize.ts';
 import modal from './modal.vue';
@@ -120,7 +143,9 @@ export default {
       user,
       apiKey,
       maps,
-      fields
+      fields,
+      readyCount: computed(() => maps.value.filter((item) => (item.status || 'READY').toUpperCase() === 'READY').length),
+      activeCount: computed(() => maps.value.filter((item) => ['DEPLOYING', 'PENDING'].includes((item.status || '').toUpperCase())).length),
     };
   },
   data() {
@@ -283,6 +308,8 @@ header {
 .brand-container {
   display: flex;
   align-items: center;
+  color: inherit;
+  text-decoration: none;
 }
 .nav-links {
   list-style: none;
@@ -324,7 +351,7 @@ header {
 }
 
 #home-container {
-  width: min(1180px, calc(100% - 40px));
+  width: min(1240px, calc(100% - 64px));
   margin: 0 auto;
   padding: 128px 0 54px;
   gap: 24px;
@@ -345,6 +372,10 @@ header {
   line-height: 1.05;
   text-align: left;
   letter-spacing: -0.06em;
+}
+
+#home-heading h1 span {
+  color: #2563eb;
 }
 
 .eyebrow {
@@ -373,6 +404,68 @@ header {
   font-size: 0.9rem;
   font-weight: 600;
   box-shadow: 0 8px 18px rgba(23, 32, 51, 0.16);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 104px;
+  padding: 18px 20px;
+  border: 1px solid #e5eaf2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(34, 48, 79, 0.05);
+}
+
+.summary-card-primary {
+  border-color: #d5e2ff;
+  background: linear-gradient(135deg, #eff5ff, #fff);
+}
+
+.summary-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: #dce9ff;
+  color: #2563eb;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.summary-icon-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.summary-icon-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.summary-card div {
+  display: grid;
+  gap: 2px;
+}
+
+.summary-card strong {
+  color: #172033;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.summary-card span:last-child {
+  color: #7a8699;
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .table-card {
@@ -448,6 +541,13 @@ header {
   color: #4b5870;
   font-size: 0.88rem;
   white-space: nowrap;
+}
+
+.cell-value {
+  display: block;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #tableComponent td:first-child {
@@ -585,6 +685,10 @@ footer p {
   #home-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
 
   .primary-action {
