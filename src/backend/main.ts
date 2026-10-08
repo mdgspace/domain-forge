@@ -11,6 +11,9 @@ import { ensureTenantGrafanaOrg } from "./utils/grafana-provisioner.ts";
 import { ensureTenantAlloyPipeline } from "./utils/alloy-provisioner.ts";
 import { selectRedeployableDeployment } from "./utils/redeploy.ts";
 import { isValidSubdomain } from "./utils/subdomain.ts";
+import { clearSubdomainStatus } from "./status-stream.ts";
+import { clearContainerStats } from "./utils/auto-restart.ts";
+import { clearContainerHealthAttempts } from "./health-monitor.ts";
 
 async function getSubdomains(ctx: Context) {
   const auth = await authenticateRequest(ctx);
@@ -260,7 +263,12 @@ async function deleteSubdomain(ctx: Context) {
 
   const data = await deleteMaps(document, isSuper);
   if (data.deletedCount) {
-    deleteScript(document);
+    await deleteScript(document);
+    
+    // Clear in-memory monitor and status maps to prevent memory leaks
+    clearSubdomainStatus(document.subdomain);
+    clearContainerStats(document.subdomain);
+    clearContainerHealthAttempts(document.subdomain);
     
     // Clean up all temporary, log, and status files for this subdomain (P2-5 Remediation)
     if (isValidSubdomain(document.subdomain)) {

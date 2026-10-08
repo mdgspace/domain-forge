@@ -21,6 +21,10 @@ let isRunning = false;
 
 const restartAttempts = new Map<string, { count: number; lastAttempt: Date }>();
 
+export function clearContainerHealthAttempts(containerName: string): void {
+    restartAttempts.delete(containerName);
+}
+
 export function startHealthMonitor(): void {
     if (isRunning) {
         console.log('[Health Monitor] Already running');

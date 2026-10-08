@@ -22,6 +22,10 @@ let watcherStarted = false;
 // from flooding subscribers with unchanged statuses.
 const lastPublishedStatus = new Map<string, string>();
 
+export function clearSubdomainStatus(subdomain: string): void {
+  lastPublishedStatus.delete(subdomain);
+}
+
 function eventMessage(event: string, payload: unknown): Uint8Array {
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
 }

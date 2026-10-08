@@ -43,6 +43,11 @@ export function resetContainerActionStatsForTest(): void {
     stopCounts.clear();
 }
 
+export function clearContainerStats(containerName: string): void {
+    restartCounts.delete(containerName);
+    stopCounts.delete(containerName);
+}
+
 export function getRestartCount(containerName: string): number {
     return restartCounts.get(containerName)?.count || 0;
 }
