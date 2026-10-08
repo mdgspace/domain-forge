@@ -22,20 +22,33 @@
   
   <div id="home-container">
     <div id="home-heading">
-      <h3>{{ user }}'s subdomains:</h3>
+      <div>
+        <p class="eyebrow">Workspace overview</p>
+        <h1>{{ user }}'s subdomains</h1>
+        <p class="page-subtitle">Manage your deployments, review activity, and keep every endpoint running smoothly.</p>
+      </div>
+      <button class="primary-action" @click="showModal = true">+ Add subdomain</button>
     </div>
-    <br>
-    <table id="tableComponent" style="display:table; width:100%; padding: 0px 30px">
-      <thead>
+    <div class="table-card">
+      <div class="table-toolbar">
+        <div>
+          <h2>Your deployments</h2>
+          <p>{{ maps.length }} {{ maps.length === 1 ? 'subdomain' : 'subdomains' }} configured</p>
+        </div>
+        <span class="live-indicator"><span></span> Live status</span>
+      </div>
+      <div class="table-scroll">
+        <table id="tableComponent">
+          <thead>
         <tr>
-          <th v-for="field in fields" :key="field" style="padding:5px;background-color: #ffffff; color: #121212;border-bottom: 1px solid #121212; border-top:1px solid #121212;font-weight: 900;">
-            <h3>{{ field === "" ? "Actions" : field.replace("_", " ") }}</h3>
+          <th v-for="field in fields" :key="field">
+            {{ field === "" ? "Actions" : field.replace("_", " ") }}
           </th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in maps" :key="item.subdomain">
-          <td v-for="field in fields" :key="field" style="border-bottom: 1px solid #121212">
+          <td v-for="field in fields" :key="field">
             <span v-if="item[field] && field !== 'subdomain' && field !== 'status'">{{ item[field] }}</span>
             <span v-else-if="field === 'subdomain'">
               <a :href="'https://' + item[field]" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: inherit;">{{ item[field] }}</a>
@@ -47,7 +60,7 @@
             </span>
             <span v-else-if="field === ''">
               <deletemodal v-show="showDeleteModal" @close-modal="showDeleteModal = false" :selectedItem="selectedItem" />
-              <div style="display: flex; gap: 10px; justify-content: center;">
+              <div class="row-actions">
                 <button class="logs-btn" @click="showLogsModal=true;selectedItem=item">Logs</button>
                 <button
                   v-if="item.resource_type && item.resource_type.toLowerCase().includes('github')"
@@ -63,11 +76,16 @@
           </td>
         </tr>
       </tbody>
-    </table>
+        </table>
+        <div v-if="!maps.length" class="empty-state">
+          <strong>No subdomains yet</strong>
+          <span>Create your first deployment to get started.</span>
+        </div>
+      </div>
+    </div>
 
     <modal v-show="showModal" @close-modal="showModal = false" />
     <LogsModal v-if="showLogsModal" :subdomain="selectedItem?.subdomain" :user="user" @close-modal="showLogsModal = false" />
-    <div style="text-align: center;"><button @click="showModal = true">+ Add</button></div>
   </div>
 
   <ApiKeyModal v-show="showApiKeyModal" :apiKey="apiKey" @close-modal="showApiKeyModal = false" />
@@ -239,9 +257,10 @@ nav {
   width: 100%; 
   position: fixed; 
   top: 0;
-  padding-bottom: 5px;
-  padding-top: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid #e7ebf3;
 }
 
 header {
@@ -252,7 +271,9 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px; 
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px;
 }
 
 .brand {
@@ -272,7 +293,7 @@ header {
 }
 
 .nav-links li {
-  margin-right: 20px;
+  margin-right: 12px;
 }
 
 .nav-links li:last-child {
@@ -281,34 +302,179 @@ header {
 
 .nav-links a {
   text-decoration: none;
-  color: #333;
-  font-weight: bold;
-  padding: 10px; 
+  color: #536074;
+  font-weight: 600;
+  padding: 10px 12px;
 }
 
 .logout-button {
-  width: 10rem;
-  padding: 8px 4px;
-  font-size: 14px;
-  background-color: #007bff;
+  width: auto;
+  padding: 9px 16px;
+  font-size: 13px;
+  background-color: #2563eb;
   color: #fff;
   border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+  border-radius: 9px;
+  font-weight: 600;
+  box-shadow: 0 5px 12px rgba(37, 99, 235, 0.18);
 }
 
 .logout-button:hover {
-  background-color: #0056b3;
+  background-color: #1d4ed8;
+}
+
+#home-container {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 128px 0 54px;
+  gap: 24px;
+}
+
+#home-heading {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+#home-heading h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.05;
+  text-align: left;
+  letter-spacing: -0.06em;
+}
+
+.eyebrow {
+  margin-bottom: 10px;
+  color: #2563eb;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.page-subtitle {
+  max-width: 620px;
+  margin: 14px 0 0;
+  color: #718096;
+  font-size: 0.98rem;
+}
+
+.primary-action {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #172033;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 8px 18px rgba(23, 32, 51, 0.16);
+}
+
+.table-card {
+  overflow: hidden;
+  border: 1px solid #e5eaf2;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(34, 48, 79, 0.08);
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 24px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.table-toolbar h2 {
+  margin: 0 0 3px;
+  color: #172033;
+  font-size: 1.05rem;
+  text-align: left;
+}
+
+.table-toolbar p {
+  margin: 0;
+  color: #8a94a6;
+  font-size: 0.82rem;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.live-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px #dcfce7;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+#tableComponent {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+#tableComponent th {
+  padding: 14px 18px;
+  background: #fafbfc;
+  color: #8490a3;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#tableComponent td {
+  padding: 17px 18px;
+  border-top: 1px solid #edf0f5;
+  color: #4b5870;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+#tableComponent td:first-child {
+  color: #8791a2;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+}
+
+#tableComponent td a {
+  color: #2563eb !important;
+  font-weight: 600;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 7px;
 }
 
 .logs-btn {
   background-color: #6c757d;
   color: white;
   border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
 }
 
 .logs-btn:hover {
@@ -319,9 +485,10 @@ header {
   background-color: #7c3aed;
   color: white;
   border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 0.76rem;
+  font-weight: 600;
 }
 
 .redeploy-btn:hover:not(:disabled) {
@@ -335,10 +502,39 @@ header {
 
 .status-badge {
   padding: 4px 8px;
-  border-radius: 12px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
+}
+
+.delete {
+  width: auto;
+  margin: 0;
+  height: auto;
+  padding: 7px 11px;
+  border: 0;
+  border-radius: 7px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.delete:hover {
+  background: #ffe4e6;
+}
+
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 52px 24px;
+  color: #8791a2;
+}
+
+.empty-state strong {
+  color: #344054;
 }
 
 .status-ready {
@@ -378,6 +574,26 @@ footer {
 footer p {
   margin: 0;
   text-align: center;
+}
+
+@media (max-width: 700px) {
+  #home-container {
+    width: min(100% - 28px, 1180px);
+    padding-top: 112px;
+  }
+
+  #home-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primary-action {
+    width: 100%;
+  }
+
+  .table-toolbar {
+    padding: 18px;
+  }
 }
 
 </style>
