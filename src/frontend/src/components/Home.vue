@@ -353,7 +353,7 @@ nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1200px;
+  max-width: 1560px;
   margin: 0 auto;
   padding: 14px 28px;
 }
@@ -442,7 +442,7 @@ nav {
 }
 
 #home-container {
-  width: min(1200px, calc(100% - 48px));
+  width: min(1560px, calc(100% - 48px));
   margin: 0 auto;
   padding: 110px 0 60px;
   display: flex;
@@ -648,7 +648,6 @@ nav {
 
 #tableComponent {
   width: 100%;
-  min-width: 820px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -719,7 +718,7 @@ nav {
 
 .cell-value {
   display: block;
-  max-width: 200px;
+  max-width: 480px;
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.88rem;
@@ -877,7 +876,7 @@ footer {
 }
 
 .footer-content {
-  max-width: 1200px;
+  max-width: 1560px;
   margin: 0 auto;
   padding: 0 28px;
   text-align: center;

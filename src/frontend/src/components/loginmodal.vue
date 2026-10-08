@@ -170,19 +170,7 @@ export default {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.github-btn {
-  background-color: #171d2b;
-  color: #ffffff;
-  border: 1px solid #171d2b;
-  box-shadow: 0 2px 8px rgba(23, 29, 43, 0.18);
-}
-
-.github-btn:hover {
-  background-color: #0b0f19;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(23, 29, 43, 0.25);
-}
-
+.github-btn,
 .gitlab-btn {
   background-color: #ffffff;
   color: #1f2937;
@@ -190,6 +178,7 @@ export default {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
+.github-btn:hover,
 .gitlab-btn:hover {
   background-color: #f9fafb;
   border-color: #9ca3af;
