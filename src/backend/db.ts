@@ -28,12 +28,12 @@ try {
     db = client.db("df_test");
     userAuthCollection = db.collection("user_auth");
     contentMapsCollection = db.collection("content_maps");
-    console.log("✅ Connected to MongoDB successfully");
+    console.log("Connected to MongoDB successfully");
   } else {
-    console.error("❌ SKIPPING DB CONNECTION: MONGO_URI is missing.");
+    console.error("SKIPPING DB CONNECTION: MONGO_URI is missing.");
   }
 } catch (error) {
-  console.error("❌ Failed to connect to MongoDB:", error);
+  console.error("Failed to connect to MongoDB:", error);
 }
 
 // Function to update access token on db if user exists
@@ -199,4 +199,14 @@ async function getAllActiveSubdomains(): Promise<string[]> {
   return docs.map((doc: any) => doc.subdomain).filter(Boolean);
 }
 
-export { addMaps, checkUser, deleteMaps, getMaps, getDeploymentsByRepo, getUserToken, getAllActiveSubdomains };
+export {
+  addMaps,
+  checkUser,
+  deleteMaps,
+  getMaps,
+  getDeploymentsByRepo,
+  getUserSubdomains,
+  verifySubdomainOwnership,
+  getUserToken,
+  getAllActiveSubdomains,
+};
