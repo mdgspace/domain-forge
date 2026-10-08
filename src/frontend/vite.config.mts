@@ -8,4 +8,7 @@ import "npm:lucide-vue-next@^0.469.0";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  server: {
+    allowedHosts: ["domains.pluto.mdgspace.org"],
+  },
 });
