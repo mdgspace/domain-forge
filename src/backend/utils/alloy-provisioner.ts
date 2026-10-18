@@ -5,7 +5,7 @@ export function sanitizeRiverIdentifier(name: string): string {
   return name.replace(/[^a-zA-Z0-9_]/g, "_");
 }
 
-export function escapeRiverRegex(str: string): string {
+function escapeRiverRegex(str: string): string {
   // In River configuration, strings are double-quoted literals ("...").
   // Go/River strings only allow standard escape sequences (\n, \t, \\, \", etc.).
   // Metacharacters with special meaning in regex (\ ^ $ . * + ? ( ) [ ] { } |)
@@ -14,7 +14,7 @@ export function escapeRiverRegex(str: string): string {
   return str.replace(/[\\^$.*+?()[\]{}|]/g, "\\\\$&");
 }
 
-export type TenantsInput = string[] | Record<string, string[]> | Map<string, string[]>;
+type TenantsInput = string[] | Record<string, string[]> | Map<string, string[]>;
 
 export function generateAlloyConfig(tenantsInput: TenantsInput): string {
   const tenantMap = new Map<string, string[]>();
@@ -254,7 +254,7 @@ ${tenantPipelineBlocks}
 const knownTenants = new Map<string, string[]>();
 let syncPromise: Promise<void> | null = null;
 
-export async function reloadAlloy(): Promise<boolean> {
+async function reloadAlloy(): Promise<boolean> {
   const candidateUrls = [
     Deno.env.get("ALLOY_URL") ? `${Deno.env.get("ALLOY_URL")}/-/reload` : null,
     "http://alloy:12345/-/reload",

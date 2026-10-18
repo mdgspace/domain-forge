@@ -1,5 +1,6 @@
 // WebCrypto AES-GCM Implementation for shielding sensitive .env configurations
 // Ensures plaintext secrets are never persisted in MongoDB.
+import { decodeBase64, encodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const isProd = Deno.env.get("DENO_ENV") === "production";
 const rawKey = Deno.env.get("ENCRYPTION_KEY");
@@ -25,24 +26,11 @@ async function getKey(): Promise<CryptoKey> {
 }
 
 function bufferToBase64(bytes: Uint8Array): string {
-  // Chunked base64 encoding to prevent "Maximum call stack size exceeded" on large strings
-  let binary = "";
-  const chunkSize = 8192;
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i += chunkSize) {
-    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
-    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
-  }
-  return btoa(binary);
+  return encodeBase64(bytes);
 }
 
 function base64ToBuffer(base64: string): Uint8Array {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
+  return decodeBase64(base64);
 }
 
 export async function encryptEnv(plainText: string): Promise<string> {

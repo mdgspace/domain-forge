@@ -7,7 +7,7 @@ const MAX_LOG_SIZE_BYTES = parseInt(Deno.env.get("MAX_LOG_SIZE_BYTES") || String
 const LOG_DIR = "/hostpipe/logs";
 const STATUS_DIR = "/hostpipe/status";
 
-let cleanupInterval: number | null = null;
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 let isRunning = false;
 
 export function startLogCleanup(): void {

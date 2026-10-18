@@ -14,7 +14,7 @@ export interface ContainerStats {
     lastUpdated: Date;
 }
 
-export type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
+type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
 
 export interface TimeRange {
     step: TimeStep;
@@ -259,6 +259,18 @@ export function isUnhealthy(
     );
 }
 
+export function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
+    const reasons: string[] = [];
+
+    if (c.cpuPercent > 90) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
+    if (c.memoryPercent > 85) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
+    if (c.restartCount > 5) reasons.push(`Many restarts (${c.restartCount})`);
+    if (c.status === 'exited') reasons.push('Container exited');
+    if (c.status === 'unhealthy') reasons.push('Health check failed');
+
+    return reasons.join(', ') || 'Unknown';
+}
+
 export async function getHealthSummary(user?: string): Promise<{
     total: number;
     healthy: number;
@@ -287,7 +299,7 @@ export function isUserContainer(name: string): boolean {
     return !systemPattern.test(normalized);
 }
 
-function determineStatus(stats: Partial<ContainerStats>): ContainerStatus {
+export function determineStatus(stats: Partial<ContainerStats>): ContainerStatus {
     if (!stats.cpuPercent && !stats.memoryUsage) {
         return 'unknown';
     }

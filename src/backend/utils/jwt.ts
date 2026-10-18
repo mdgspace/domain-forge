@@ -1,5 +1,18 @@
 import { create, verify } from "../dependencies.ts";
 import { computeApiKeySignature } from "./apiKeyGen.ts";
+import { fromFileUrl } from "https://deno.land/std@0.224.0/path/mod.ts";
+
+// Anchor Grafana JWT key paths to the repo root so they resolve identically
+// regardless of the process CWD (previously these were CWD-relative, which made
+// `deno task test` fail lookups and scatter jwt/ artifacts outside docker/).
+// Order matters: /hostpipe/jwt (container mount) is always preferred.
+const repoRoot = fromFileUrl(new URL("../../..", import.meta.url));
+const GRAFANA_JWT_DIRS = [
+  "/hostpipe/jwt",
+  `${repoRoot}/docker/named_pipe/jwt`,
+  `${repoRoot}/docker/grafana/jwt`,
+  "/etc/grafana/jwt",
+];
 
 const isProd = Deno.env.get("DENO_ENV") === "production";
 const rawSecret = Deno.env.get("JWT_SECRET");
@@ -22,7 +35,7 @@ let grafanaRsaKeyPair: CryptoKeyPair;
 
 try {
   let loaded = false;
-  for (const dir of ["/hostpipe/jwt", "docker/named_pipe/jwt", "docker/grafana/jwt", "/etc/grafana/jwt", "./named_pipe/jwt", "named_pipe/jwt"]) {
+  for (const dir of GRAFANA_JWT_DIRS) {
     try {
       const privText = await Deno.readTextFile(`${dir}/private_key.json`);
       const pubText = await Deno.readTextFile(`${dir}/public_key.json`);
@@ -65,7 +78,7 @@ try {
 
     const privJwk = await crypto.subtle.exportKey("jwk", grafanaRsaKeyPair.privateKey);
     const pubJwk = await crypto.subtle.exportKey("jwk", grafanaRsaKeyPair.publicKey);
-    for (const dir of ["/hostpipe/jwt", "docker/named_pipe/jwt", "docker/grafana/jwt", "/etc/grafana/jwt", "./named_pipe/jwt", "named_pipe/jwt"]) {
+    for (const dir of GRAFANA_JWT_DIRS) {
       try {
         await Deno.mkdir(dir, { recursive: true });
         await Deno.writeTextFile(`${dir}/private_key.json`, JSON.stringify(privJwk, null, 2));
@@ -77,7 +90,7 @@ try {
   console.error("[JWT] Failed to initialize RSA KeyPair:", err);
 }
 
-export async function syncGrafanaJwks(): Promise<void> {
+export async function syncGrafanaJwks(dirs: readonly string[] = GRAFANA_JWT_DIRS): Promise<void> {
   try {
     const publicJwk = await crypto.subtle.exportKey("jwk", grafanaRsaKeyPair.publicKey);
     const jwks = {
@@ -94,8 +107,9 @@ export async function syncGrafanaJwks(): Promise<void> {
     };
 
     const jwksJson = JSON.stringify(jwks, null, 2);
-    // Write to all possible mounted and local development paths
-    for (const dir of ["/hostpipe/jwt", "docker/named_pipe/jwt", "docker/grafana/jwt", "/etc/grafana/jwt", "./named_pipe/jwt", "named_pipe/jwt"]) {
+    // Write to all target directories (defaults to GRAFANA_JWT_DIRS; tests
+    // pass their own isolated temp dirs so tracked key files are never touched)
+    for (const dir of dirs) {
       try {
         await Deno.mkdir(dir, { recursive: true });
         await Deno.writeTextFile(`${dir}/jwks.json`, jwksJson);
@@ -131,6 +145,17 @@ function getUserRole(userId: string): "superadmin" | "user" {
   return isSuperAdmin(userId) ? "superadmin" : "user";
 }
 
+// Single source of truth for the per-user Grafana org naming convention.
+// `isSuper` is an optional override because the JWT path additionally trusts
+// a "superadmin" role claim (see createGrafanaJWT); without it, superadmin
+// status is derived from the admin/superadmin lists alone.
+export function getTenantOrgName(userId: string, isSuper?: boolean): string {
+  if (isSuper ?? isSuperAdmin(userId)) {
+    return "Main Org.";
+  }
+  return `org_${userId}`;
+}
+
 async function createJWT(provider: string, githubId: string, ttlSeconds = 7 * 24 * 3600) {
   const now = Math.floor(Date.now() / 1000);
   const token = await create(
@@ -158,7 +183,7 @@ async function createGrafanaJWT(
 ) {
   const now = Math.floor(Date.now() / 1000);
   const isSuper = role === "superadmin" || isSuperAdmin(userId);
-  const orgName = isSuper ? "Main Org." : `org_${userId}`;
+  const orgName = getTenantOrgName(userId, isSuper);
   const token = await create(
     { alg: "RS256", typ: "JWT", kid: "df-key-1" },
     {

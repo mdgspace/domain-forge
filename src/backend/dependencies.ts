@@ -23,7 +23,7 @@ async function exec(command: string) {
 import * as Sentry from "npm:@sentry/deno";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { load } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
-import { MongoClient, ObjectId } from "npm:mongodb@6.1.0";
+import { MongoClient } from "npm:mongodb@6.1.0";
 
 try {
   // Load .env only for variables that are not already set in the runtime environment
@@ -52,5 +52,4 @@ export {
   Status,
   verify,
   MongoClient,
-  ObjectId,
 };

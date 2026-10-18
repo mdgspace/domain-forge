@@ -1,4 +1,4 @@
-import { isSuperAdmin, getSuperAdmins, getAdmins } from "./jwt.ts";
+import { isSuperAdmin, getSuperAdmins, getAdmins, getTenantOrgName } from "./jwt.ts";
 import { ensureTenantAlloyPipeline } from "./alloy-provisioner.ts";
 import { getAllTenantsWithSubdomains, getSubdomainOwner } from "../db.ts";
 
@@ -9,13 +9,6 @@ const GRAFANA_ADMIN_PASSWORD = Deno.env.get("GF_SECURITY_ADMIN_PASSWORD") || "ad
 function getAdminAuthHeader(): string {
   const token = btoa(`${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASSWORD}`);
   return `Basic ${token}`;
-}
-
-export function getTenantOrgName(userId: string): string {
-  if (isSuperAdmin(userId)) {
-    return "Main Org.";
-  }
-  return `org_${userId}`;
 }
 
 interface GrafanaOrgResponse {

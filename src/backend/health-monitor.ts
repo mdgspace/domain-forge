@@ -113,7 +113,7 @@ async function handleUnhealthyContainer(container: ContainerStats): Promise<void
 }
 
 
-function calculateCooldown(attemptCount: number): number {
+export function calculateCooldown(attemptCount: number): number {
     const baseMs = 30000; 
     const maxMs = 600000;
     return Math.min(baseMs * Math.pow(2, attemptCount), maxMs);

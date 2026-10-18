@@ -1,3 +1,4 @@
+#!/bin/bash
 PORT_MIN=8010
 PORT_MAX=8099
 flag=$1
@@ -35,21 +36,22 @@ error_handler() {
 }
 trap 'error_handler' ERR
 
-available_ports=()
+# Find the first free port in range (only one is ever needed)
+available_port=""
 
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
-    if ! ss -ln src :$port | grep -q "\<$port\>"; then
-        available_ports+=($port)
+    if ! ss -lnt "sport = :$port" | grep -q "\<$port\>"; then
+        available_port=$port
+        break
     fi
 done
 
-if [ ${#available_ports[@]} -eq 0 ]; then
+if [ -z "$available_port" ]; then
     echo "ERROR: No available ports in range $PORT_MIN-$PORT_MAX" >&2
     exit 1
 fi
 
-echo "Available ports: ${available_ports[0]}"
-AVAILABLE=0
+echo "Using free port: $available_port"
 echo "Creating subdomain $name"
 git clone $resource $name
 # Check for subdomain-specific .env file
@@ -78,7 +80,7 @@ if [ -n "$author" ]; then
     LABEL_ARGS="$LABEL_ARGS --label df_author=$author"
 fi
 
-sudo docker run $LABEL_ARGS --memory=$max_mem --name=$name -d -p 127.0.0.1:${available_ports[$AVAILABLE]}:$exp_port $name
+sudo docker run $LABEL_ARGS --memory=$max_mem --name=$name -d -p 127.0.0.1:${available_port}:$exp_port $name
 cd ..
 cleanup_temp_files
 
@@ -90,7 +92,7 @@ echo "# Virtual Host configuration for $name
     listen [::]:80;
     server_name $name;
     location / {
-        proxy_pass http://localhost:${available_ports[$AVAILABLE]};
+        proxy_pass http://localhost:${available_port};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';

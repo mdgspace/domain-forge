@@ -5,6 +5,7 @@ import {
     isUnhealthy,
     type TimeStep,
     type TimeRange,
+    getUnhealthyReason,
 } from "./utils/container-health.ts";
 import { restartContainer, stopContainer, getRestartCount, getStopCount, validateContainerName } from "./utils/auto-restart.ts";
 import { getMonitorStatus, triggerHealthCheck } from "./health-monitor.ts";
@@ -243,14 +244,3 @@ export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
     };
 }
 
-function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
-    const reasons: string[] = [];
-
-    if (c.cpuPercent > 90) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
-    if (c.memoryPercent > 85) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
-    if (c.restartCount > 5) reasons.push(`Many restarts (${c.restartCount})`);
-    if (c.status === 'exited') reasons.push('Container exited');
-    if (c.status === 'unhealthy') reasons.push('Health check failed');
-
-    return reasons.join(', ') || 'Unknown';
-}
