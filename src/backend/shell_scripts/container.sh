@@ -32,6 +32,24 @@ cleanup_temp_files() {
 error_handler() {
     echo "FAILED" > "$STATUS_FILE"
     cleanup_temp_files
+    # A failed deploy must not leave its nginx conf behind: it would keep
+    # pointing at a port that a future deploy can recycle. But if a container
+    # with this name is still running (a failed redeploy that died before the
+    # container swap, or a conf/reload failure after a successful run), the
+    # existing conf is still correct — keep it.
+    if ps_out="$(sudo docker ps --format '{{.Names}}' 2>/dev/null)"; then
+        if ! printf '%s\n' "$ps_out" | grep -Fxq -- "$name"; then
+            sudo rm -f "/etc/nginx/sites-available/$name.conf" "/etc/nginx/sites-enabled/$name.conf" 2>/dev/null || true
+            # Take the removal live at once instead of leaving a stale
+            # in-memory route until the next deploy's reload; harmless if
+            # nothing changed (no-op reload).
+            if sudo nginx -t >/dev/null 2>&1; then
+                sudo systemctl reload nginx 2>/dev/null || true
+            fi
+        fi
+    else
+        echo "WARN: docker ps failed; keeping nginx confs for $name" >&2
+    fi
     exit 1
 }
 trap 'error_handler' ERR
@@ -71,6 +89,26 @@ elif [ $flag = "-s" ]; then
 fi
 
 sudo docker build -t $name .
+
+# ---- Port translation -------------------------------------------------------
+# The deployer's Port field is advisory; the image is the source of truth for
+# which port the app actually listens on. If the typed port is not among the
+# TCP ports the image declares (EXPOSE), publish to the image's declared port
+# instead — e.g. user types 8084 but the app serves on 80.
+# Inspect the IMAGE (not "$name", which may still resolve to the previous
+# container on a redeploy) and tolerate missing images via || true.
+declared="$(sudo docker image inspect --format '{{range $p, $_ := .Config.ExposedPorts}}{{$p}} {{end}}' "$name" 2>/dev/null || true)"
+tcp_ports="$(echo "$declared" | tr -s ' ' '\n' | sed -n 's|/tcp$||p')"
+if [ -n "$tcp_ports" ] && ! printf '%s\n' "$tcp_ports" | grep -Fxq -- "$exp_port"; then
+    translated="$(printf '%s\n' "$tcp_ports" | sort -n | head -1)"
+    echo "NOTE: requested port ${exp_port} is not declared by the image (declares: ${declared})."
+    if [ "$(printf '%s\n' "$tcp_ports" | wc -l)" -gt 1 ]; then
+        echo "WARN: image declares several TCP ports; chose the lowest one. Verify the site serves the app."
+    fi
+    echo "      Publishing to container port ${translated} instead."
+    exp_port="$translated"
+fi
+# -----------------------------------------------------------------------------
 
 # Safety net: If the frontend sends double requests from spam-clicking, forcefully remove any zombie container holding the name
 sudo docker rm -f $name 2>/dev/null || true
