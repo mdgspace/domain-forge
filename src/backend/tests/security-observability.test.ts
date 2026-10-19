@@ -3,15 +3,14 @@ import {
   assertRejects,
   assertMatch,
 } from "https://deno.land/std@0.208.0/assert/mod.ts";
+import { fromFileUrl } from "https://deno.land/std@0.224.0/path/mod.ts";
 import { isUserContainer } from "../utils/container-health.ts";
 import { buildLokiQuery, isValidSubdomain } from "../utils/log-service.ts";
 import {
   checkJWT,
   createGrafanaJWT,
   createJWT,
-  getAdmins,
-  getSuperAdmins,
-  getUserRole,
+  getTenantOrgName,
   isSuperAdmin,
   syncGrafanaJwks,
 } from "../utils/jwt.ts";
@@ -27,9 +26,14 @@ import {
 import { getLogQueueSizeForTest, logger } from "../utils/logger.ts";
 import { verifyGitHubSignature } from "../utils/webhook-verify.ts";
 import { encryptEnv, decryptEnv } from "../utils/crypto.ts";
-import { getTenantOrgName, ensureTenantGrafanaOrg } from "../utils/grafana-provisioner.ts";
 import { authenticateRequest } from "../utils/auth-helper.ts";
+import { type Context } from "../dependencies.ts";
 import { generateAlloyConfig, sanitizeRiverIdentifier } from "../utils/alloy-provisioner.ts";
+
+// Repo root anchored via module URL so paths work no matter which CWD the
+// tests are run from (previously CWD-relative reads scattered artifacts and
+// the compose-config test only passed when run from the repo root).
+const repoRoot = fromFileUrl(new URL("../../..", import.meta.url));
 
 // ==========================================
 // 1. Exact System Container Matching
@@ -125,9 +129,8 @@ Deno.test("auto-restart - propagates execution failure and does not increment st
   resetContainerActionStatsForTest();
 
   // Mock executor that throws on error
-  setCommandExecutorForTest(async (_cmd: string) => {
-    throw new Error("Command failed with code 1: permission denied");
-  });
+  setCommandExecutorForTest(() =>
+    Promise.reject(new Error("Command failed with code 1: permission denied")));
 
   await assertRejects(
     async () => {
@@ -150,7 +153,7 @@ Deno.test("auto-restart - propagates execution failure and does not increment st
   assertEquals(getStopCount("test-app"), 0);
 
   // Reset executor to successful mock
-  setCommandExecutorForTest(async (_cmd: string) => {});
+  setCommandExecutorForTest(() => Promise.resolve());
 
   await restartContainer("test-app");
   assertEquals(getRestartCount("test-app"), 1);
@@ -230,7 +233,6 @@ Deno.test("createGrafanaJWT - creates RS256 token with short-lived expiry and te
   assertEquals(payload.iss, "domain-forge");
   assertEquals(typeof payload.exp, "number");
   // Default TTL is 300 seconds
-  const now = Math.floor(Date.now() / 1000);
   assertEquals(payload.exp - payload.iat, 300);
 
   // Superadmin token
@@ -318,7 +320,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       headers: new Headers(),
       url: new URL(`http://localhost:7000/health?token=${token}`),
     },
-  } as any;
+  } as unknown as Context;
 
   assertEquals(await authenticateRequest(queryOnlyCtx), null);
 
@@ -331,7 +333,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       }),
       url: new URL("http://localhost:7000/health"),
     },
-  } as any;
+  } as unknown as Context;
 
   const validAuth = await authenticateRequest(validHeaderCtx);
   assertEquals(validAuth?.user, "dave");
@@ -346,7 +348,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       }),
       url: new URL("http://localhost:7000/health?user=eve"),
     },
-  } as any;
+  } as unknown as Context;
 
   const mismatchAuth = await authenticateRequest(mismatchCtx);
   assertEquals(mismatchAuth, null);
@@ -361,7 +363,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       }),
       url: new URL("http://localhost:7000/health?user=other_user"),
     },
-  } as any;
+  } as unknown as Context;
 
   const superAuth = await authenticateRequest(superCtx);
   assertEquals(superAuth?.user, "superadmin_user");
@@ -370,18 +372,24 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
 // ==========================================
 // 10. JWKS Key Generation and Synchronization
 // ==========================================
-Deno.test("jwt - syncGrafanaJwks writes valid RSA JWKS to named pipe jwt directory", async () => {
-  await syncGrafanaJwks();
-  const jwksPath = "docker/named_pipe/jwt/jwks.json";
-  const content = await Deno.readTextFile(jwksPath);
-  const parsed = JSON.parse(content);
-  assertEquals(Array.isArray(parsed.keys), true);
-  assertEquals(parsed.keys.length, 1);
-  assertEquals(parsed.keys[0].kty, "RSA");
-  assertEquals(parsed.keys[0].alg, "RS256");
-  assertEquals(parsed.keys[0].kid, "df-key-1");
-  assertEquals(typeof parsed.keys[0].n, "string");
-  assertEquals(typeof parsed.keys[0].e, "string");
+Deno.test("jwt - syncGrafanaJwks writes valid RSA JWKS to target directory", async () => {
+  // Write to an isolated temp dir so tests never touch the tracked jwt files
+  // under docker/ (pre-existing footgun: tests used to overwrite jwks.json).
+  const targetDir = await Deno.makeTempDir();
+  try {
+    await syncGrafanaJwks([targetDir]);
+    const content = await Deno.readTextFile(`${targetDir}/jwks.json`);
+    const parsed = JSON.parse(content);
+    assertEquals(Array.isArray(parsed.keys), true);
+    assertEquals(parsed.keys.length, 1);
+    assertEquals(parsed.keys[0].kty, "RSA");
+    assertEquals(parsed.keys[0].alg, "RS256");
+    assertEquals(parsed.keys[0].kid, "df-key-1");
+    assertEquals(typeof parsed.keys[0].n, "string");
+    assertEquals(typeof parsed.keys[0].e, "string");
+  } finally {
+    await Deno.remove(targetDir, { recursive: true });
+  }
 });
 
 // ==========================================
@@ -457,7 +465,7 @@ Deno.test("isUserContainer - normalizes leading slashes from cAdvisor", () => {
 
 Deno.test("grafana - compose config enforces Grafana 11.2 JWT contract and correct mounts", async () => {
   for (const composeFile of ["docker/docker-compose.yml", "docker/dev.docker-compose.yml"]) {
-    const content = await Deno.readTextFile(composeFile);
+    const content = await Deno.readTextFile(`${repoRoot}/${composeFile}`);
     // Required non-empty header_name so Grafana 11.2 authn Test() passes for JWT module
     assertMatch(content, /GF_AUTH_JWT_HEADER_NAME=X-JWT-Assertion/);
 

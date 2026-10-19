@@ -11,7 +11,7 @@ export default function dockerize(
     throw new Error("build_cmds must contain at least one valid execution command");
   }
   let execute_cmd = "CMD " + JSON.stringify(last_cmd.split(" "));
-  let build_steps = run_cmd.filter(Boolean).map((cmd) => `RUN ${cmd}`);
+  const build_steps = run_cmd.filter(Boolean).map((cmd) => `RUN ${cmd}`);
   if (stack == "Python") {
     dockerfile = [
       "FROM python:3.12-slim AS builder",

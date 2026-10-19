@@ -1,4 +1,4 @@
-import { isSuperAdmin, getSuperAdmins, getAdmins } from "./jwt.ts";
+import { getSuperAdmins, getAdmins, getTenantOrgName } from "./jwt.ts";
 import { ensureTenantAlloyPipeline } from "./alloy-provisioner.ts";
 import { getAllTenantsWithSubdomains, getSubdomainOwner } from "../db.ts";
 
@@ -11,13 +11,6 @@ function getAdminAuthHeader(): string {
   return `Basic ${token}`;
 }
 
-export function getTenantOrgName(userId: string): string {
-  if (isSuperAdmin(userId)) {
-    return "Main Org.";
-  }
-  return `org_${userId}`;
-}
-
 interface GrafanaOrgResponse {
   id?: number;
   orgId?: number;
@@ -27,7 +20,7 @@ interface GrafanaOrgResponse {
 
 async function upsertDatasource(
   orgHeaders: Record<string, string>,
-  ds: Record<string, any>,
+  ds: { uid: string; [key: string]: unknown },
 ): Promise<void> {
   try {
     const getResp = await fetch(`${GRAFANA_URL}/api/datasources/uid/${ds.uid}`, {
@@ -93,7 +86,9 @@ export async function ensureTenantGrafanaOrg(userId: string, subdomain?: string)
         if (allTenants.length > 0) {
           mimirTenant = allTenants.join("|");
         }
-      } catch (_e) {}
+      } catch (_e) {
+        // Intentionally ignored: leave mimirTenant as the current value.
+      }
 
       let lokiTenant = userId;
       if (subdomain) {

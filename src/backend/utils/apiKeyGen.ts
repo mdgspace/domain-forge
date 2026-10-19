@@ -20,10 +20,6 @@ function getSimpleDateString(): string {
   return `${year}${month}${day}`;
 }
 
-function generateRandomPart(): string {
-  return generateRandomString(16);
-}
-
 export async function computeApiKeySignature(data: string, secret?: string): Promise<string> {
   const isProd = Deno.env.get("DENO_ENV") === "production";
   const envSecret = Deno.env.get("JWT_SECRET");
@@ -50,7 +46,7 @@ export async function computeApiKeySignature(data: string, secret?: string): Pro
 export async function generateApiKey(payload: string): Promise<string> {
   const datePart = getSimpleDateString();
   const encodedPayload = encodePayload(payload);
-  const randomPart = generateRandomPart();
+  const randomPart = generateRandomString(16);
   const base = `${datePart}.${encodedPayload}.${randomPart}`;
   const signature = await computeApiKeySignature(base);
   return `${base}.${signature}`;

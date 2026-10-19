@@ -4,7 +4,10 @@ const restartCounts = new Map<string, { count: number; lastRestart: Date }>();
 const stopCounts = new Map<string, { count: number; lastStop: Date }>();
 const SAFE_CONTAINER_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
-let execCommand = async (command: string): Promise<void> => {
+/** Runs one host-pipe command. May return synchronously (void) or a promise. */
+type CommandExecutor = (command: string) => void | Promise<void>;
+
+let execCommand: CommandExecutor = async (command: string): Promise<void> => {
     const res = await exec(command);
     if (!res.status.success) {
         throw new Error(
@@ -26,7 +29,7 @@ function buildHostPipeCommand(scriptName: "restart.sh" | "stop.sh", containerNam
 }
 
 export function setCommandExecutorForTest(
-    executor: ((command: string) => Promise<void>) | null,
+    executor: CommandExecutor | null,
 ): void {
     execCommand = executor ?? (async (command: string): Promise<void> => {
         const res = await exec(command);

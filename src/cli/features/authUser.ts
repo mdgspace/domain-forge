@@ -8,7 +8,7 @@ export async function verifyApiKey(apiKey: string, provider: string , backendUrl
         provider: provider,
       });
       return response.data?.user || 'not verified';
-    } catch (error) {
+    } catch (_error) {
       console.error(chalk.red('Error verifying API key:'));
       return 'not verified';
     }

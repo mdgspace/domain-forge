@@ -33,9 +33,9 @@ Deno.test("SSE reconnect snapshot includes current statuses only for authorized 
   const snapshot = await getStatusSnapshot(
     "/hostpipe/status",
     new Set(["app.example.org", "missing.example.org", "../invalid"]),
-    async (path) => {
-      if (path.endsWith("app.example.org.status")) return "READY\n";
-      throw new Deno.errors.NotFound();
+    (path) => {
+      if (path.endsWith("app.example.org.status")) return Promise.resolve("READY\n");
+      return Promise.reject(new Deno.errors.NotFound());
     },
   );
   assertEquals(snapshot, [{ subdomain: "app.example.org", status: "READY" }]);

@@ -14,6 +14,9 @@ export interface ContainerStats {
     lastUpdated: Date;
 }
 
+/* Contra the earlier audit's A4: this type is exported because exported
+ * determineStatus()'s signature consumes it — importing the function
+ * requires importing the type. */
 export type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
 
 export interface TimeRange {
@@ -259,6 +262,23 @@ export function isUnhealthy(
     );
 }
 
+export function getUnhealthyReason(
+    c: Pick<ContainerStats, "cpuPercent" | "memoryPercent" | "restartCount" | "status">,
+    thresholds: HealthThresholds = DEFAULT_THRESHOLDS
+): string {
+    const reasons: string[] = [];
+
+    // Same thresholds isUnhealthy() uses (env-overridable), so the dashboard
+    // reason can never disagree with the health verdict.
+    if (c.cpuPercent > thresholds.maxCpuPercent) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
+    if (c.memoryPercent > thresholds.maxMemoryPercent) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
+    if (c.restartCount > thresholds.maxRestartCount) reasons.push(`Many restarts (${c.restartCount})`);
+    if (c.status === 'exited') reasons.push('Container exited');
+    if (c.status === 'unhealthy') reasons.push('Health check failed');
+
+    return reasons.join(', ') || 'Unknown';
+}
+
 export async function getHealthSummary(user?: string): Promise<{
     total: number;
     healthy: number;
@@ -287,7 +307,7 @@ export function isUserContainer(name: string): boolean {
     return !systemPattern.test(normalized);
 }
 
-function determineStatus(stats: Partial<ContainerStats>): ContainerStatus {
+export function determineStatus(stats: Partial<ContainerStats>): ContainerStatus {
     if (!stats.cpuPercent && !stats.memoryUsage) {
         return 'unknown';
     }
