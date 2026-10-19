@@ -25,14 +25,6 @@ async function getKey(): Promise<CryptoKey> {
   );
 }
 
-function bufferToBase64(bytes: Uint8Array): string {
-  return encodeBase64(bytes);
-}
-
-function base64ToBuffer(base64: string): Uint8Array {
-  return decodeBase64(base64);
-}
-
 export async function encryptEnv(plainText: string): Promise<string> {
   if (!plainText) return "";
   const key = await getKey();
@@ -50,14 +42,14 @@ export async function encryptEnv(plainText: string): Promise<string> {
   payload.set(iv, 0);
   payload.set(new Uint8Array(cipherBuffer), iv.length);
 
-  return bufferToBase64(payload);
+  return encodeBase64(payload);
 }
 
 export async function decryptEnv(cipherB64: string): Promise<string> {
   if (!cipherB64) return "";
   try {
     const key = await getKey();
-    const payload = base64ToBuffer(cipherB64);
+    const payload = decodeBase64(cipherB64);
     if (payload.length < 13) return "";
 
     const iv = payload.slice(0, 12);

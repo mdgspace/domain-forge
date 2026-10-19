@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { promptUser } from '../utils/promptTaker.js';
 
-let domain = 'domains.pluto.mdgspace.org';
+const domain = 'domains.pluto.mdgspace.org';
 
 async function selectResourceType() {
   const { resourceType } = await inquirer.prompt([
@@ -27,18 +27,6 @@ async function selectDockerPresent() {
     },
   ]);
   return resourceType;
-}
-
-async function selectStack() {
-  const { Stack } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'Stack',
-      message: 'Select the tech stack:',
-      choices: ['Python', 'NodeJS'],
-    },
-  ]);
-  return Stack;
 }
 
 export async function createDomain(userApiKey: string, user: string, provider: string, backendUrl: string) {
@@ -93,7 +81,7 @@ export async function createDomain(userApiKey: string, user: string, provider: s
       console.log('❌ Domain creation failed!');
       console.log("Either the domain exists or the domain was not created");
     }
-  } catch (error) {
+  } catch (_error) {
     console.error(chalk.red('Error creating domain:'));
   }
 }

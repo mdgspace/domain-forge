@@ -83,7 +83,10 @@ try {
         await Deno.mkdir(dir, { recursive: true });
         await Deno.writeTextFile(`${dir}/private_key.json`, JSON.stringify(privJwk, null, 2));
         await Deno.writeTextFile(`${dir}/public_key.json`, JSON.stringify(pubJwk, null, 2));
-      } catch (_e) {}
+      } catch (_e) {
+        // Intentionally ignored: this dir simply isn't writable in the
+        // current environment; the other candidate dirs cover the need.
+      }
     }
   }
 } catch (err) {
@@ -121,9 +124,6 @@ export async function syncGrafanaJwks(dirs: readonly string[] = GRAFANA_JWT_DIRS
     console.error("[JWT] Failed to write dynamic Grafana JWKS:", error);
   }
 }
-
-// Write JWKS on initialization
-await syncGrafanaJwks();
 
 function getSuperAdmins(): string[] {
   const list = Deno.env.get("SUPER_ADMIN_LIST") || "";
@@ -242,11 +242,15 @@ async function checkJWT(provider: string, token: string): Promise<string> {
       return await decodeApiKey(token);
     } else {
       const payload = await verify(token, key);
+      // djwt returns a string or byte payload for alg-less tokens; JWT claims
+      // only exist on the object form.
+      if (typeof payload !== "object" || payload == null) return "not verified";
+      const { exp, nbf } = payload as { exp?: unknown; nbf?: unknown };
       const now = Math.floor(Date.now() / 1000);
-      if (typeof (payload as any).exp === "number" && (payload as any).exp <= now) {
+      if (typeof exp === "number" && exp <= now) {
         return "not verified";
       }
-      if (typeof (payload as any).nbf === "number" && (payload as any).nbf > now) {
+      if (typeof nbf === "number" && nbf > now) {
         return "not verified";
       }
       return (payload as Record<string, string>)[`${provider}Id`] || "not verified";

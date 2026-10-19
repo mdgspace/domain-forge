@@ -27,6 +27,7 @@ import { getLogQueueSizeForTest, logger } from "../utils/logger.ts";
 import { verifyGitHubSignature } from "../utils/webhook-verify.ts";
 import { encryptEnv, decryptEnv } from "../utils/crypto.ts";
 import { authenticateRequest } from "../utils/auth-helper.ts";
+import { type Context } from "../dependencies.ts";
 import { generateAlloyConfig, sanitizeRiverIdentifier } from "../utils/alloy-provisioner.ts";
 
 // Repo root anchored via module URL so paths work no matter which CWD the
@@ -128,9 +129,8 @@ Deno.test("auto-restart - propagates execution failure and does not increment st
   resetContainerActionStatsForTest();
 
   // Mock executor that throws on error
-  setCommandExecutorForTest(async (_cmd: string) => {
-    throw new Error("Command failed with code 1: permission denied");
-  });
+  setCommandExecutorForTest(() =>
+    Promise.reject(new Error("Command failed with code 1: permission denied")));
 
   await assertRejects(
     async () => {
@@ -153,7 +153,7 @@ Deno.test("auto-restart - propagates execution failure and does not increment st
   assertEquals(getStopCount("test-app"), 0);
 
   // Reset executor to successful mock
-  setCommandExecutorForTest(async (_cmd: string) => {});
+  setCommandExecutorForTest(() => Promise.resolve());
 
   await restartContainer("test-app");
   assertEquals(getRestartCount("test-app"), 1);
@@ -233,7 +233,6 @@ Deno.test("createGrafanaJWT - creates RS256 token with short-lived expiry and te
   assertEquals(payload.iss, "domain-forge");
   assertEquals(typeof payload.exp, "number");
   // Default TTL is 300 seconds
-  const now = Math.floor(Date.now() / 1000);
   assertEquals(payload.exp - payload.iat, 300);
 
   // Superadmin token
@@ -321,7 +320,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       headers: new Headers(),
       url: new URL(`http://localhost:7000/health?token=${token}`),
     },
-  } as any;
+  } as unknown as Context;
 
   assertEquals(await authenticateRequest(queryOnlyCtx), null);
 
@@ -334,7 +333,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       }),
       url: new URL("http://localhost:7000/health"),
     },
-  } as any;
+  } as unknown as Context;
 
   const validAuth = await authenticateRequest(validHeaderCtx);
   assertEquals(validAuth?.user, "dave");
@@ -349,7 +348,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       }),
       url: new URL("http://localhost:7000/health?user=eve"),
     },
-  } as any;
+  } as unknown as Context;
 
   const mismatchAuth = await authenticateRequest(mismatchCtx);
   assertEquals(mismatchAuth, null);
@@ -364,7 +363,7 @@ Deno.test("authenticateRequest - extracts and verifies Bearer header auth strict
       }),
       url: new URL("http://localhost:7000/health?user=other_user"),
     },
-  } as any;
+  } as unknown as Context;
 
   const superAuth = await authenticateRequest(superCtx);
   assertEquals(superAuth?.user, "superadmin_user");

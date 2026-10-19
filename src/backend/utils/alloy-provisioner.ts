@@ -313,9 +313,10 @@ async function performSyncAlloyConfig(additionalTenants: string[] = []): Promise
 
   const configContent = generateAlloyConfig(knownTenants);
 
+  // Only the two real locations: the repo mount (host dev runs) and its
+  // container-side path. The former docker/config.alloy and the backend
+  // container's own /etc/alloy were never mounted into the alloy container.
   const targetPaths = [
-    "docker/config.alloy",
-    "/etc/alloy/config.alloy",
     "/hostpipe/alloy/config.alloy",
     "docker/named_pipe/alloy/config.alloy",
   ];

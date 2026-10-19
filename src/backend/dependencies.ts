@@ -20,7 +20,7 @@ async function exec(command: string) {
     status: { code, success: code === 0 },
   };
 }
-import * as Sentry from "npm:@sentry/deno";
+import * as Sentry from "npm:@sentry/deno@11.8.0";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { load } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
 import { MongoClient } from "npm:mongodb@6.1.0";

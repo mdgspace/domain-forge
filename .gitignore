@@ -15,6 +15,7 @@ docker/named_pipe/pipe
 docker/named_pipe/status/
 docker/named_pipe/logs/
 docker/config.alloy
+status/
 docker/grafana/jwt/
 docker/named_pipe/jwt/
 !docker/named_pipe/alloy/config.alloy

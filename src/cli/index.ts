@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import inquirer from 'inquirer';
 import dotenv from 'dotenv';
-import axios from 'axios';
 import { Command } from 'commander';
 import { listDomains } from './features/listDomain.js';
 import { createDomain } from './features/createDomain.js';

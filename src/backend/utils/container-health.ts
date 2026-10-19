@@ -14,7 +14,10 @@ export interface ContainerStats {
     lastUpdated: Date;
 }
 
-type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
+/* Contra the earlier audit's A4: this type is exported because exported
+ * determineStatus()'s signature consumes it — importing the function
+ * requires importing the type. */
+export type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
 
 export interface TimeRange {
     step: TimeStep;
@@ -259,12 +262,17 @@ export function isUnhealthy(
     );
 }
 
-export function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
+export function getUnhealthyReason(
+    c: Pick<ContainerStats, "cpuPercent" | "memoryPercent" | "restartCount" | "status">,
+    thresholds: HealthThresholds = DEFAULT_THRESHOLDS
+): string {
     const reasons: string[] = [];
 
-    if (c.cpuPercent > 90) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
-    if (c.memoryPercent > 85) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
-    if (c.restartCount > 5) reasons.push(`Many restarts (${c.restartCount})`);
+    // Same thresholds isUnhealthy() uses (env-overridable), so the dashboard
+    // reason can never disagree with the health verdict.
+    if (c.cpuPercent > thresholds.maxCpuPercent) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
+    if (c.memoryPercent > thresholds.maxMemoryPercent) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
+    if (c.restartCount > thresholds.maxRestartCount) reasons.push(`Many restarts (${c.restartCount})`);
     if (c.status === 'exited') reasons.push('Container exited');
     if (c.status === 'unhealthy') reasons.push('Health check failed');
 

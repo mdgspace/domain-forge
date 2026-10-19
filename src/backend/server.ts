@@ -27,7 +27,7 @@ import { startHealthMonitor } from "./health-monitor.ts";
 import { startLogCleanup } from "./log-cleanup.ts";
 import { startStatusWatcher, streamStatuses } from "./status-stream.ts";
 import { ensureTenantGrafanaOrg } from "./utils/grafana-provisioner.ts";
-import { createGrafanaJWT, getUserRole, isSuperAdmin, getTenantOrgName } from "./utils/jwt.ts";
+import { createGrafanaJWT, getUserRole, isSuperAdmin, getTenantOrgName, syncGrafanaJwks } from "./utils/jwt.ts";
 import { logger, requestLoggerMiddleware } from "./utils/logger.ts";
 import { getSystemLogs } from "./utils/log-service.ts";
 import { authenticateRequest } from "./utils/auth-helper.ts";
@@ -198,6 +198,11 @@ startStatusWatcher();
 
 // Start log cleanup scheduler
 startLogCleanup();
+
+// Publish the Grafana JWKS on startup so the Grafana JWT auth module can
+// verify tokens (previously done via a side effect of importing jwt.ts,
+// which also ran during test imports and scattered key artifacts).
+await syncGrafanaJwks();
 
 app.listen({ port: PORT });
 console.log("Listening...");

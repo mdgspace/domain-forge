@@ -17,6 +17,7 @@ import {
 } from "../utils/auto-restart.ts";
 import {
     type ContainerStats,
+    type ContainerStatus,
     type HealthThresholds,
     determineStatus,
     getUnhealthyReason,
@@ -183,14 +184,14 @@ Deno.test("calculateCooldown - exponential backoff capped at 10 minutes", () => 
 });
 
 Deno.test("getUnhealthyReason - reports each threshold violation", () => {
-    const reason = (overrides: { cpuPercent?: number; memoryPercent?: number; restartCount?: number; status?: string; } = {}) =>
+    const reason = (overrides: { cpuPercent?: number; memoryPercent?: number; restartCount?: number; status?: ContainerStatus; } = {}) =>
         getUnhealthyReason({
             cpuPercent: 50,
             memoryPercent: 50,
             restartCount: 0,
             status: 'running',
             ...overrides,
-        });
+        }, THRESHOLDS);
 
     assert(reason({ cpuPercent: 95 }).includes("High CPU"));
     assert(reason({ cpuPercent: 95 }).includes("95.0%"));
@@ -220,7 +221,7 @@ Deno.test("getRestartCount - returns 0 for unknown container", () => {
 
 Deno.test("getRestartCount - returns correct count", async () => {
     resetContainerActionStatsForTest();
-    setCommandExecutorForTest(async () => {});
+    setCommandExecutorForTest(() => Promise.resolve());
 
     try {
         await restartContainer("test-container");
@@ -235,7 +236,7 @@ Deno.test("getRestartCount - returns correct count", async () => {
 
 Deno.test("getRestartCount - tracks multiple containers separately", async () => {
     resetContainerActionStatsForTest();
-    setCommandExecutorForTest(async () => {});
+    setCommandExecutorForTest(() => Promise.resolve());
 
     try {
         await restartContainer("container-a");
@@ -255,7 +256,7 @@ Deno.test("getRestartCount - tracks multiple containers separately", async () =>
 
 Deno.test("getStopCount - returns correct count", async () => {
     resetContainerActionStatsForTest();
-    setCommandExecutorForTest(async () => {});
+    setCommandExecutorForTest(() => Promise.resolve());
 
     try {
         await stopContainer("test-container");
@@ -271,7 +272,7 @@ Deno.test("getStopCount - returns correct count", async () => {
 Deno.test("restartContainer - updates restart count", async () => {
     resetContainerActionStatsForTest();
     let execCalledWith = "";
-    setCommandExecutorForTest(async (cmd: string) => {
+    setCommandExecutorForTest((cmd: string) => {
         execCalledWith = cmd;
     });
 
@@ -288,7 +289,7 @@ Deno.test("restartContainer - updates restart count", async () => {
 Deno.test("stopContainer - updates stop count and calls stop script", async () => {
     resetContainerActionStatsForTest();
     let execCalledWith = "";
-    setCommandExecutorForTest(async (cmd: string) => {
+    setCommandExecutorForTest((cmd: string) => {
         execCalledWith = cmd;
     });
 
