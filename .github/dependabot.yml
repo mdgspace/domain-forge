@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # CLI npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/src/cli"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Backend / frontend Deno dependencies (deno.json import maps)
+  # Version updates only — Deno has no Dependabot security-update support yet
+  - package-ecosystem: "deno"
+    directory: "/src/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "deno"
+    directory: "/src/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Dockerfiles (backend + frontend images, base images only)
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # GitHub Actions version pins (e.g. appleboy/ssh-action)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
