@@ -126,7 +126,7 @@ const domain = import.meta.env.VITE_APP_DOMAIN
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="container-port">Container Port</label>
+              <label class="form-label" for="container-port">Port your app listens on inside the container</label>
               <input id="container-port" class="form-input" v-model="port" placeholder="e.g. 3000 or 8080" />
             </div>
 

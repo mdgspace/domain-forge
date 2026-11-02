@@ -1,3 +1,4 @@
+#!/bin/bash
 PORT_MIN=8010
 PORT_MAX=8099
 flag=$1
@@ -31,25 +32,44 @@ cleanup_temp_files() {
 error_handler() {
     echo "FAILED" > "$STATUS_FILE"
     cleanup_temp_files
+    # A failed deploy must not leave its nginx conf behind: it would keep
+    # pointing at a port that a future deploy can recycle. But if a container
+    # with this name is still running (a failed redeploy that died before the
+    # container swap, or a conf/reload failure after a successful run), the
+    # existing conf is still correct — keep it.
+    if ps_out="$(sudo docker ps --format '{{.Names}}' 2>/dev/null)"; then
+        if ! printf '%s\n' "$ps_out" | grep -Fxq -- "$name"; then
+            sudo rm -f "/etc/nginx/sites-available/$name.conf" "/etc/nginx/sites-enabled/$name.conf" 2>/dev/null || true
+            # Take the removal live at once instead of leaving a stale
+            # in-memory route until the next deploy's reload; harmless if
+            # nothing changed (no-op reload).
+            if sudo nginx -t >/dev/null 2>&1; then
+                sudo systemctl reload nginx 2>/dev/null || true
+            fi
+        fi
+    else
+        echo "WARN: docker ps failed; keeping nginx confs for $name" >&2
+    fi
     exit 1
 }
 trap 'error_handler' ERR
 
-available_ports=()
+# Find the first free port in range (only one is ever needed)
+available_port=""
 
 for ((port=PORT_MIN; port<=PORT_MAX; port++)); do
-    if ! ss -ln src :$port | grep -q "\<$port\>"; then
-        available_ports+=($port)
+    if ! ss -lnt "sport = :$port" | grep -q "\<$port\>"; then
+        available_port=$port
+        break
     fi
 done
 
-if [ ${#available_ports[@]} -eq 0 ]; then
+if [ -z "$available_port" ]; then
     echo "ERROR: No available ports in range $PORT_MIN-$PORT_MAX" >&2
     exit 1
 fi
 
-echo "Available ports: ${available_ports[0]}"
-AVAILABLE=0
+echo "Using free port: $available_port"
 echo "Creating subdomain $name"
 git clone $resource $name
 # Check for subdomain-specific .env file
@@ -70,6 +90,14 @@ fi
 
 sudo docker build -t $name .
 
+# EXPOSE is advisory metadata; preserve the explicitly configured runtime port.
+declared="$(sudo docker image inspect --format '{{range $p, $_ := .Config.ExposedPorts}}{{$p}} {{end}}' "$name" 2>/dev/null || true)"
+tcp_ports="$(echo "$declared" | tr -s ' ' '\n' | sed -n 's|/tcp$||p')"
+if [ -n "$tcp_ports" ] && ! printf '%s\n' "$tcp_ports" | grep -Fxq -- "$exp_port"; then
+    echo "WARN: requested port ${exp_port} is not declared by the image (declares: ${declared})."
+    echo "      Keeping port ${exp_port}; verify the app listens on this port inside the container."
+fi
+
 # Safety net: If the frontend sends double requests from spam-clicking, forcefully remove any zombie container holding the name
 sudo docker rm -f $name 2>/dev/null || true
 
@@ -78,7 +106,7 @@ if [ -n "$author" ]; then
     LABEL_ARGS="$LABEL_ARGS --label df_author=$author"
 fi
 
-sudo docker run $LABEL_ARGS --memory=$max_mem --name=$name -d -p 127.0.0.1:${available_ports[$AVAILABLE]}:$exp_port $name
+sudo docker run $LABEL_ARGS --memory=$max_mem --name=$name -d -p 127.0.0.1:${available_port}:$exp_port $name
 cd ..
 cleanup_temp_files
 
@@ -90,7 +118,7 @@ echo "# Virtual Host configuration for $name
     listen [::]:80;
     server_name $name;
     location / {
-        proxy_pass http://localhost:${available_ports[$AVAILABLE]};
+        proxy_pass http://localhost:${available_port};
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';

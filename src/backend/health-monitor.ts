@@ -16,7 +16,6 @@ const THRESHOLDS: HealthThresholds = {
     maxRestartCount: parseInt(Deno.env.get('MAX_RESTART_COUNT') || '5'),
 };
 
-let monitorInterval: ReturnType<typeof setInterval> | number | null = null;
 let isRunning = false;
 
 const restartAttempts = new Map<string, { count: number; lastAttempt: Date }>();
@@ -34,7 +33,8 @@ export function startHealthMonitor(): void {
     isRunning = true;
 
     checkContainerHealth();
-    monitorInterval = setInterval(checkContainerHealth, HEALTH_CHECK_INTERVAL);
+    // No cached handle: the monitor runs for the process lifetime.
+    setInterval(checkContainerHealth, HEALTH_CHECK_INTERVAL);
 }
 
 
@@ -113,7 +113,7 @@ async function handleUnhealthyContainer(container: ContainerStats): Promise<void
 }
 
 
-function calculateCooldown(attemptCount: number): number {
+export function calculateCooldown(attemptCount: number): number {
     const baseMs = 30000; 
     const maxMs = 600000;
     return Math.min(baseMs * Math.pow(2, attemptCount), maxMs);

@@ -26,11 +26,11 @@ import {
 import { startHealthMonitor } from "./health-monitor.ts";
 import { startLogCleanup } from "./log-cleanup.ts";
 import { startStatusWatcher, streamStatuses } from "./status-stream.ts";
-import { createGrafanaJWT, getUserRole, isSuperAdmin } from "./utils/jwt.ts";
+import { ensureTenantGrafanaOrg } from "./utils/grafana-provisioner.ts";
+import { createGrafanaJWT, getUserRole, isSuperAdmin, getTenantOrgName, syncGrafanaJwks } from "./utils/jwt.ts";
 import { logger, requestLoggerMiddleware } from "./utils/logger.ts";
 import { getSystemLogs } from "./utils/log-service.ts";
 import { authenticateRequest } from "./utils/auth-helper.ts";
-import { ensureTenantGrafanaOrg, getTenantOrgName } from "./utils/grafana-provisioner.ts";
 import { syncAlloyConfig } from "./utils/alloy-provisioner.ts";
 
 const router = new Router();
@@ -179,8 +179,8 @@ const allowedOrigins = isProd
 app.use(
   oakCors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Auth-Provider"],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Auth-Provider"],
     credentials: true,
   }),
 );
@@ -198,6 +198,11 @@ startStatusWatcher();
 
 // Start log cleanup scheduler
 startLogCleanup();
+
+// Publish the Grafana JWKS on startup so the Grafana JWT auth module can
+// verify tokens (previously done via a side effect of importing jwt.ts,
+// which also ran during test imports and scattered key artifacts).
+await syncGrafanaJwks();
 
 app.listen({ port: PORT });
 console.log("Listening...");

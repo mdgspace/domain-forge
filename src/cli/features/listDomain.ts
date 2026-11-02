@@ -45,7 +45,7 @@ export async function listDomains(user: string, userApiKey: string, provider: st
     });
 
     console.log(domainTable.toString());
-  } catch (error) {
+  } catch (_error) {
     console.error(chalk.red('Error fetching domains:'));
   }
 }

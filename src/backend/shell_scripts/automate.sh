@@ -79,7 +79,8 @@ elif [ "$arg1" = "-p" ]; then
      echo "READY" > "$STATUS_FILE"
 
 else
-    echo "Generating port.conf"
-    echo "redirect: $arg2"
-    echo "READY" > "$STATUS_FILE"
+    echo "ERROR: Unknown flag: $arg1" >&2
+    echo "Usage: $0 -u <redirect-url> <subdomain> | -p <port> <subdomain>" >&2
+    echo "FAILED" > "$STATUS_FILE"
+    exit 1
 fi

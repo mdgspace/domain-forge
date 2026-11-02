@@ -201,7 +201,7 @@ async function addSubdomain(ctx: Context) {
             }
           }
         }
-      } catch (e) {
+      } catch (_e) {
         console.error("Invalid GitHub URL:", document.resource);
       }
     }

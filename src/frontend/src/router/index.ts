@@ -12,8 +12,8 @@ import { check_jwt } from "../utils/authorize.ts";
 
 // Auth guard for protected routes
 async function authGuard(
-  to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
+  _to: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
   next: NavigationGuardNext,
 ) {
   if (

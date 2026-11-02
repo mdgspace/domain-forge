@@ -7,7 +7,6 @@ const MAX_LOG_SIZE_BYTES = parseInt(Deno.env.get("MAX_LOG_SIZE_BYTES") || String
 const LOG_DIR = "/hostpipe/logs";
 const STATUS_DIR = "/hostpipe/status";
 
-let cleanupInterval: number | null = null;
 let isRunning = false;
 
 export function startLogCleanup(): void {
@@ -22,8 +21,9 @@ export function startLogCleanup(): void {
 
   isRunning = true;
 
+  // No cached handle: the scheduler lives for the process lifetime.
   setTimeout(() => runCleanup(), 10_000);
-  cleanupInterval = setInterval(() => runCleanup(), CLEANUP_INTERVAL_MS);
+  setInterval(() => runCleanup(), CLEANUP_INTERVAL_MS);
 }
 
 

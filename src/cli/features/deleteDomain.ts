@@ -26,7 +26,7 @@ export async function deleteDomain(userApiKey: string, user: string, provider: s
     } else {
       console.log('❌ Domain deletion failed!');
     }
-  } catch (error) {
+  } catch (_error) {
     console.error(chalk.red('Error deleting domain:'));
   }
 }

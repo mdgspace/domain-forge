@@ -1,3 +1,4 @@
+import type { RouterContext } from "https://deno.land/x/oak@v12.5.0/mod.ts";
 import { Context } from "./dependencies.ts";
 import {
     getContainerHistory,
@@ -5,6 +6,7 @@ import {
     isUnhealthy,
     type TimeStep,
     type TimeRange,
+    getUnhealthyReason,
 } from "./utils/container-health.ts";
 import { restartContainer, stopContainer, getRestartCount, getStopCount, validateContainerName } from "./utils/auto-restart.ts";
 import { getMonitorStatus, triggerHealthCheck } from "./health-monitor.ts";
@@ -63,8 +65,8 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
     };
 }
 
-export async function getContainerMetrics(ctx: Context): Promise<void> {
-    const subdomain = (ctx as any).params?.subdomain;
+export async function getContainerMetrics(ctx: RouterContext<"/health/:subdomain/metrics">): Promise<void> {
+    const subdomain = ctx.params.subdomain;
     const stepParam = ctx.request.url.searchParams.get("step") || '1m';
     const auth = await authenticateRequest(ctx);
     if (!auth) {
@@ -150,10 +152,11 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
     };
 }
 
-export async function restartContainerHandler(ctx: Context): Promise<void> {
-    const subdomain = (ctx as any).params?.subdomain;
+export async function restartContainerHandler(ctx: RouterContext<"/health/:subdomain/restart">): Promise<void> {
+    const subdomain = ctx.params.subdomain;
     let safeSubdomain = "";
     try {
+        if (!subdomain) throw new Error("Missing subdomain");
         safeSubdomain = validateContainerName(subdomain);
     } catch {
         ctx.throw(400, "Invalid container identifier");
@@ -187,10 +190,11 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
     }
 }
 
-export async function stopContainerHandler(ctx: Context): Promise<void> {
-    const subdomain = (ctx as any).params?.subdomain;
+export async function stopContainerHandler(ctx: RouterContext<"/health/:subdomain/stop">): Promise<void> {
+    const subdomain = ctx.params.subdomain;
     let safeSubdomain = "";
     try {
+        if (!subdomain) throw new Error("Missing subdomain");
         safeSubdomain = validateContainerName(subdomain);
     } catch {
         ctx.throw(400, "Invalid container identifier");
@@ -243,14 +247,3 @@ export async function triggerHealthCheckHandler(ctx: Context): Promise<void> {
     };
 }
 
-function getUnhealthyReason(c: { cpuPercent: number; memoryPercent: number; restartCount: number; status: string }): string {
-    const reasons: string[] = [];
-
-    if (c.cpuPercent > 90) reasons.push(`High CPU (${c.cpuPercent.toFixed(1)}%)`);
-    if (c.memoryPercent > 85) reasons.push(`High Memory (${c.memoryPercent.toFixed(1)}%)`);
-    if (c.restartCount > 5) reasons.push(`Many restarts (${c.restartCount})`);
-    if (c.status === 'exited') reasons.push('Container exited');
-    if (c.status === 'unhealthy') reasons.push('Health check failed');
-
-    return reasons.join(', ') || 'Unknown';
-}
