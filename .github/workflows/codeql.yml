@@ -5,10 +5,7 @@ on:
     branches: [master, develop]
   pull_request:
     branches: [master, develop]
-  schedule:
-    # Weekly, Tuesday 03:31 UTC (off-peak; not on the hour to avoid queue contention)
-    - cron: "31 3 * * 2"
-  workflow_dispatch:
+  workflow_dispatch: # Allow manual runs from the Actions tab
 
 jobs:
   analyze:
@@ -19,16 +16,16 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
           # Interpret the repo without building; JS/TS analysis needs no build
           build-mode: none
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:javascript-typescript"
