@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # CLI npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/src/cli"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+
+  # Backend / frontend Deno dependencies (deno.json import maps)
+  # Version updates only — Deno has no Dependabot security-update support yet
+  - package-ecosystem: "deno"
+    directory: "/src/backend"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "deno"
+    directory: "/src/frontend"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+
+  # Dockerfiles (backend + frontend images, base images only)
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+
+  # GitHub Actions version pins (e.g. appleboy/ssh-action)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
