@@ -90,25 +90,13 @@ fi
 
 sudo docker build -t $name .
 
-# ---- Port translation -------------------------------------------------------
-# The deployer's Port field is advisory; the image is the source of truth for
-# which port the app actually listens on. If the typed port is not among the
-# TCP ports the image declares (EXPOSE), publish to the image's declared port
-# instead — e.g. user types 8084 but the app serves on 80.
-# Inspect the IMAGE (not "$name", which may still resolve to the previous
-# container on a redeploy) and tolerate missing images via || true.
+# EXPOSE is advisory metadata; preserve the explicitly configured runtime port.
 declared="$(sudo docker image inspect --format '{{range $p, $_ := .Config.ExposedPorts}}{{$p}} {{end}}' "$name" 2>/dev/null || true)"
 tcp_ports="$(echo "$declared" | tr -s ' ' '\n' | sed -n 's|/tcp$||p')"
 if [ -n "$tcp_ports" ] && ! printf '%s\n' "$tcp_ports" | grep -Fxq -- "$exp_port"; then
-    translated="$(printf '%s\n' "$tcp_ports" | sort -n | head -1)"
-    echo "NOTE: requested port ${exp_port} is not declared by the image (declares: ${declared})."
-    if [ "$(printf '%s\n' "$tcp_ports" | wc -l)" -gt 1 ]; then
-        echo "WARN: image declares several TCP ports; chose the lowest one. Verify the site serves the app."
-    fi
-    echo "      Publishing to container port ${translated} instead."
-    exp_port="$translated"
+    echo "WARN: requested port ${exp_port} is not declared by the image (declares: ${declared})."
+    echo "      Keeping port ${exp_port}; verify the app listens on this port inside the container."
 fi
-# -----------------------------------------------------------------------------
 
 # Safety net: If the frontend sends double requests from spam-clicking, forcefully remove any zombie container holding the name
 sudo docker rm -f $name 2>/dev/null || true

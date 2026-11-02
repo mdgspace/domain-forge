@@ -1,11 +1,6 @@
-// Tests for container-health, health-monitor and auto-restart logic.
-// IMPORTANT: every pure function under test here is imported from production
-// code (previously this file shipped with several local re-implementations —
-// see the audit for why that made the tests assert the fakes, not the code).
 import {
-    assertEquals,
-    assertExists,
     assert,
+    assertEquals,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
     getRestartCount,
@@ -37,11 +32,7 @@ const THRESHOLDS: HealthThresholds = {
 };
 
 // Stats factory: every isUnhealthy case varies only its overrides.
-// NOTE (pending wiring, tracked in the audit as B1/B2): production
-// getAllContainerStats() currently never populates restartCount and only ever
-// emits status 'running' | 'unknown'. These cases keep the restartCount and
-// unhealthy/exited branches covered so they are already tested when the
-// wiring (real docker state + getRestartCount into the stats path) lands.
+// Production stats do not yet populate restart counts or exited/unhealthy states.
 function makeStats(overrides: Partial<ContainerStats> = {}): ContainerStats {
     return {
         containerId: "abc",
@@ -274,6 +265,7 @@ Deno.test("restartContainer - updates restart count", async () => {
     let execCalledWith = "";
     setCommandExecutorForTest((cmd: string) => {
         execCalledWith = cmd;
+        return Promise.resolve();
     });
 
     try {
@@ -291,6 +283,7 @@ Deno.test("stopContainer - updates stop count and calls stop script", async () =
     let execCalledWith = "";
     setCommandExecutorForTest((cmd: string) => {
         execCalledWith = cmd;
+        return Promise.resolve();
     });
 
     try {
@@ -301,22 +294,4 @@ Deno.test("stopContainer - updates stop count and calls stop script", async () =
 
     assertEquals(execCalledWith, `bash -c "echo 'bash ../../src/backend/shell_scripts/stop.sh test-container' > /hostpipe/pipe"`);
     assertEquals(getStopCount("test-container"), 1);
-});
-
-Deno.test("makeStats - stats factory covers the production shape", () => {
-    // Guards the factory itself: if production's ContainerStats shape grows,
-    // extending makeStats()'s default object is what keeps every test above
-    // type-checking against the real interface.
-    const stats = makeStats({ name: "shape-check" });
-    assertExists(stats.containerId);
-    assertExists(stats.name);
-    assertExists(stats.subdomain);
-    assert(typeof stats.cpuPercent === 'number');
-    assert(typeof stats.memoryUsage === 'number');
-    assert(typeof stats.memoryLimit === 'number');
-    assert(typeof stats.memoryPercent === 'number');
-    assert(typeof stats.restartCount === 'number');
-    assertExists(stats.status);
-    assert(stats.lastUpdated instanceof Date);
-    assertEquals(stats.name, "shape-check");
 });

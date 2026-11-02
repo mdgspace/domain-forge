@@ -1,3 +1,4 @@
+import type { RouterContext } from "https://deno.land/x/oak@v12.5.0/mod.ts";
 import { Context } from "./dependencies.ts";
 import {
     getContainerHistory,
@@ -22,11 +23,6 @@ const TIME_RANGE_PRESETS: Record<TimeStep, TimeRange> = {
     '1h': { step: '1h', duration: '24h' },
     '1d': { step: '1d', duration: '7d' },
 };
-
-// oak types params only on RouterContext; subdomain is guaranteed by the route
-function getSubdomain(ctx: Context): string | undefined {
-    return (ctx as unknown as { params: { subdomain?: string } }).params.subdomain;
-}
 
 export async function getContainerHealth(ctx: Context): Promise<void> {
     const auth = await authenticateRequest(ctx);
@@ -69,8 +65,8 @@ export async function getContainerHealth(ctx: Context): Promise<void> {
     };
 }
 
-export async function getContainerMetrics(ctx: Context): Promise<void> {
-    const subdomain = getSubdomain(ctx);
+export async function getContainerMetrics(ctx: RouterContext<"/health/:subdomain/metrics">): Promise<void> {
+    const subdomain = ctx.params.subdomain;
     const stepParam = ctx.request.url.searchParams.get("step") || '1m';
     const auth = await authenticateRequest(ctx);
     if (!auth) {
@@ -156,8 +152,8 @@ export async function getHealthDashboard(ctx: Context): Promise<void> {
     };
 }
 
-export async function restartContainerHandler(ctx: Context): Promise<void> {
-    const subdomain = getSubdomain(ctx);
+export async function restartContainerHandler(ctx: RouterContext<"/health/:subdomain/restart">): Promise<void> {
+    const subdomain = ctx.params.subdomain;
     let safeSubdomain = "";
     try {
         if (!subdomain) throw new Error("Missing subdomain");
@@ -194,8 +190,8 @@ export async function restartContainerHandler(ctx: Context): Promise<void> {
     }
 }
 
-export async function stopContainerHandler(ctx: Context): Promise<void> {
-    const subdomain = getSubdomain(ctx);
+export async function stopContainerHandler(ctx: RouterContext<"/health/:subdomain/stop">): Promise<void> {
+    const subdomain = ctx.params.subdomain;
     let safeSubdomain = "";
     try {
         if (!subdomain) throw new Error("Missing subdomain");

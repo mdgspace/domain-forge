@@ -4,8 +4,7 @@ const restartCounts = new Map<string, { count: number; lastRestart: Date }>();
 const stopCounts = new Map<string, { count: number; lastStop: Date }>();
 const SAFE_CONTAINER_NAME_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
-/** Runs one host-pipe command. May return synchronously (void) or a promise. */
-type CommandExecutor = (command: string) => void | Promise<void>;
+type CommandExecutor = (command: string) => Promise<void>;
 
 let execCommand: CommandExecutor = async (command: string): Promise<void> => {
     const res = await exec(command);

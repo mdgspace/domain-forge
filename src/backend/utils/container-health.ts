@@ -14,9 +14,6 @@ export interface ContainerStats {
     lastUpdated: Date;
 }
 
-/* Contra the earlier audit's A4: this type is exported because exported
- * determineStatus()'s signature consumes it — importing the function
- * requires importing the type. */
 export type ContainerStatus = 'running' | 'exited' | 'paused' | 'unhealthy' | 'unknown';
 
 export interface TimeRange {
